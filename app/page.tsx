@@ -1,47 +1,15 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import { Upload, Copy, Download, Check, Sparkles, FileText, Zap } from "lucide-react"
+import { Upload, Copy, Download, Check, Sparkles, FileText, Zap, ArrowRight } from "lucide-react"
 
 type AppState = "idle" | "loaded" | "converting" | "done"
+type WaitlistStatus = "idle" | "loading" | "success" | "error"
 
 const SUPPORTED_FORMATS = ["PDF", "DOC", "DOCX", "PAGES", "TXT", "RTF"]
 
-
-function FloatingIcon({ 
-  icon: Icon, 
-  className, 
-  delay = 0 
-}: { 
-  icon: typeof FileText
-  className?: string
-  delay?: number 
-}) {
-  const [mounted, setMounted] = useState(false)
-  
-  useEffect(() => {
-    const timer = setTimeout(() => setMounted(true), delay)
-    return () => clearTimeout(timer)
-  }, [delay])
-  
-  return (
-    <div 
-      className={`absolute transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'} ${className}`}
-    >
-      <div className="rounded-lg border border-neutral-200 bg-white/80 p-2.5 shadow-sm backdrop-blur-sm">
-        <Icon className="h-4 w-4 text-neutral-400" strokeWidth={1.5} />
-      </div>
-    </div>
-  )
-}
-
-function AnimatedGradientOrb({ className }: { className?: string }) {
-  return (
-    <div className={`absolute rounded-full blur-3xl ${className}`} />
-  )
-}
-
 export default function MDSpinPage() {
+  // --- converter state ---
   const [state, setState] = useState<AppState>("idle")
   const [fileName, setFileName] = useState<string>("")
   const [markdown, setMarkdown] = useState<string>("")
@@ -52,10 +20,15 @@ export default function MDSpinPage() {
   const [mounted, setMounted] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // --- waitlist state ---
+  const [waitlistEmail, setWaitlistEmail] = useState("")
+  const [waitlistStatus, setWaitlistStatus] = useState<WaitlistStatus>("idle")
+
   useEffect(() => {
     setMounted(true)
   }, [])
 
+  // --- converter handlers (preserved exactly) ---
   const handleFile = useCallback((droppedFile: File) => {
     setFileName(droppedFile.name)
     setFile(droppedFile)
@@ -101,7 +74,7 @@ export default function MDSpinPage() {
     try {
       const fd = new FormData()
       fd.append("file", file)
-      const res  = await fetch("/api/convert", { method: "POST", body: fd })
+      const res = await fetch("/api/convert", { method: "POST", body: fd })
       const data = await res.json()
 
       if (!res.ok) {
@@ -147,99 +120,259 @@ export default function MDSpinPage() {
     }
   }
 
+  // --- waitlist handler ---
+  const handleWaitlist = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!waitlistEmail || waitlistStatus === "loading" || waitlistStatus === "success") return
+    setWaitlistStatus("loading")
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: waitlistEmail }),
+      })
+      setWaitlistStatus(res.ok ? "success" : "error")
+    } catch {
+      setWaitlistStatus("error")
+    }
+  }
+
   return (
-    <main className="relative min-h-screen overflow-hidden bg-neutral-50">
-      {/* Background elements */}
-      <div className="pointer-events-none absolute inset-0">
-        <AnimatedGradientOrb className="left-1/4 top-1/4 h-96 w-96 bg-orange-100/40 animate-pulse" />
-        <AnimatedGradientOrb className="right-1/4 bottom-1/3 h-80 w-80 bg-neutral-200/30 animate-pulse [animation-delay:1s]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgb(250,250,250)_70%)]" />
-      </div>
+    <div className="min-h-screen bg-[#0C0C0C] font-sans text-[#F0EDE8]">
+      {/* Grain overlay */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-50 opacity-[0.03]"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
+        }}
+      />
 
-      {/* Floating decorative icons */}
-      <FloatingIcon icon={FileText} className="left-[10%] top-[20%] hidden lg:block" delay={200} />
-      <FloatingIcon icon={Sparkles} className="right-[12%] top-[25%] hidden lg:block" delay={400} />
-      <FloatingIcon icon={Zap} className="left-[15%] bottom-[30%] hidden lg:block" delay={600} />
-
-      <div className="relative z-10 mx-auto max-w-2xl px-6 py-12">
-        {/* Header */}
-        <header 
-          className={`mb-16 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}
-        >
-          <div className="flex items-center gap-3">
-            <img 
-              src="/logo.png" 
-              alt="MDSpin logo" 
-              className="h-10 w-10 rounded-lg"
-            />
-            <h1 className="text-xl font-semibold tracking-tight text-black">MDSpin</h1>
+      {/* ── Nav ── */}
+      <nav className="fixed left-0 right-0 top-0 z-40 border-b border-[#1E1E1E] bg-[#0C0C0C]/90 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-2.5">
+            <img src="/logo.png" alt="MDSpin" className="h-7 w-7 rounded-md" />
+            <span className="font-display text-sm font-semibold tracking-tight text-white">MDSpin</span>
+            <span className="rounded-full bg-[#FF4800]/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-[#FF4800]">
+              Beta
+            </span>
           </div>
-        </header>
+          <div className="flex items-center gap-3">
+            <a
+              href="#products"
+              className="hidden text-sm text-[#888480] transition-colors hover:text-[#F0EDE8] sm:block"
+            >
+              Join waitlist
+            </a>
+            <a
+              href="#converter"
+              className="flex items-center gap-1.5 rounded-full bg-[#FF4800] px-4 py-1.5 text-xs font-semibold text-white transition-all hover:bg-[#e04200]"
+            >
+              Try it <ArrowRight className="h-3 w-3" />
+            </a>
+          </div>
+        </div>
+      </nav>
 
-        {/* Hero text */}
-        <div 
-          className={`mb-12 text-center transition-all duration-700 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+      {/* ── Hero ── */}
+      <section className="relative overflow-hidden pb-28 pt-36">
+        {/* Radial orange glow */}
+        <div className="pointer-events-none absolute bottom-0 left-1/2 h-[500px] w-[900px] -translate-x-1/2 rounded-full bg-[#FF4800]/8 blur-[140px]" />
+
+        <div
+          className={`relative z-10 mx-auto max-w-4xl px-6 text-center transition-all duration-700 ${mounted ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
         >
-          <h2 className="text-balance text-3xl font-semibold tracking-tight text-black sm:text-4xl">
-            Transform documents into
-            <span className="relative ml-2">
-              clean markdown
-              <svg className="absolute -bottom-1 left-0 h-2 w-full" viewBox="0 0 200 8" fill="none">
-                <path 
-                  d="M2 6C50 2 150 2 198 6" 
-                  stroke="#FF4800" 
-                  strokeWidth="3" 
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#2A2A2A] bg-[#161616] px-4 py-1.5 text-xs text-[#888480]">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#FF4800]" />
+            Markdown is the input format your AI deserves
+          </div>
+
+          <h1 className="font-display text-5xl font-extrabold leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl">
+            Stop feeding your
+            <br />
+            AI{" "}
+            <span className="relative inline-block text-[#FF4800]">
+              garbage.
+              <svg
+                className="absolute -bottom-1 left-0 h-[3px] w-full"
+                viewBox="0 0 300 3"
+                fill="none"
+                preserveAspectRatio="none"
+              >
+                <path
+                  d="M0 1.5 Q75 0.5 150 1.5 Q225 2.5 300 1.5"
+                  stroke="#FF4800"
+                  strokeWidth="2"
                   strokeLinecap="round"
-                  className="animate-draw"
                   style={{
-                    strokeDasharray: 200,
-                    strokeDashoffset: mounted ? 0 : 200,
-                    transition: 'stroke-dashoffset 1s ease-out 0.5s'
+                    strokeDasharray: 320,
+                    strokeDashoffset: mounted ? 0 : 320,
+                    transition: "stroke-dashoffset 1.2s ease-out 0.6s",
                   }}
                 />
               </svg>
             </span>
-          </h2>
-          <p className="mx-auto mt-4 max-w-lg text-pretty text-neutral-500">
-            Markdown gives your AI up to <span className="font-semibold text-[#FF4800]">64% better retrieval accuracy</span>, <span className="font-semibold text-neutral-700">2.4x faster processing</span>, and <span className="font-semibold text-neutral-700">40% lower token costs</span> compared to PDF or DOCX.
+          </h1>
+
+          <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-[#888480] sm:text-lg">
+            PDF and DOCX files waste{" "}
+            <span className="text-[#F0EDE8]">40% of your AI&apos;s token budget</span> on
+            layout artifacts and formatting noise. Markdown is pure signal. MDSpin converts
+            your docs into the format your AI actually reads.
+          </p>
+
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <a
+              href="#converter"
+              className="flex items-center gap-2 rounded-full bg-[#FF4800] px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#e04200] hover:shadow-lg hover:shadow-[#FF4800]/20"
+            >
+              Convert a file <ArrowRight className="h-4 w-4" />
+            </a>
+            <a
+              href="#products"
+              className="flex items-center gap-2 rounded-full border border-[#2A2A2A] px-6 py-2.5 text-sm font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
+            >
+              Join the waitlist
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ── The Problem ── */}
+      <section className="border-t border-[#1E1E1E] py-24">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="mb-12 text-center">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#FF4800]">
+              The Problem
+            </p>
+            <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">
+              What your AI actually sees
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#888480]">
+              When you feed a PDF to an LLM, it doesn&apos;t see a document. It sees a stream
+              of tokens polluted with layout artifacts, font metadata, and garbled characters.
+              Markdown eliminates the noise.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {/* PDF → LLM */}
+            <div className="overflow-hidden rounded-xl border border-[#2A2A2A] bg-[#161616]">
+              <div className="flex items-center gap-2 border-b border-[#2A2A2A] px-4 py-3">
+                <div className="h-2.5 w-2.5 rounded-full bg-red-500/50" />
+                <div className="h-2.5 w-2.5 rounded-full bg-yellow-500/30" />
+                <div className="h-2.5 w-2.5 rounded-full bg-green-500/15" />
+                <span className="ml-2 font-mono text-xs text-[#4A4A46]">document.pdf → LLM</span>
+              </div>
+              <pre className="overflow-x-auto p-5 font-mono text-xs leading-relaxed text-red-400/60">
+{`%PDF-1.7 %%âãÏÓ3 0 obj
+<</Type/Page/MediaBox
+[0 0 612 792]/Contents
+4 0 R/Resources<</Font
+<</F1 5 0 R/F2 6 0 R>>
+BT /F1 12 Tf 72 720 Td
+(Q u a r t e r l y R e p)
+0 -24 Td /F2 10 Tf
+(\\316\\261\\304\\273\\302\\256)
+Tj ET q 0.239 0.239 rg
+/GS1 gs 72 710 540 1 re f`}
+              </pre>
+            </div>
+
+            {/* Markdown → LLM */}
+            <div className="overflow-hidden rounded-xl border border-[#FF4800]/25 bg-[#161616]">
+              <div className="flex items-center gap-2 border-b border-[#FF4800]/20 px-4 py-3">
+                <div className="h-2.5 w-2.5 rounded-full bg-red-500/15" />
+                <div className="h-2.5 w-2.5 rounded-full bg-yellow-500/15" />
+                <div className="h-2.5 w-2.5 rounded-full bg-[#FF4800]/50" />
+                <span className="ml-2 font-mono text-xs text-[#4A4A46]">document.md → LLM</span>
+              </div>
+              <pre className="overflow-x-auto p-5 font-mono text-xs leading-relaxed text-[#F0EDE8]/70">
+{`# Quarterly Report
+
+## Executive Summary
+
+Revenue grew 24% YoY driven by
+enterprise adoption and new market
+expansion in EMEA.
+
+## Key Metrics
+
+- ARR: $4.2M (+24% YoY)
+- NRR: 118%
+- Customers: 847 (+31% YoY)`}
+              </pre>
+            </div>
+          </div>
+
+          <p className="mt-4 text-center font-mono text-xs text-[#4A4A46]">
+            Same document. One is signal, one is noise.
           </p>
         </div>
+      </section>
 
-        {/* Metrics Grid */}
-        <div 
-          className={`mb-14 grid grid-cols-2 gap-3 sm:grid-cols-4 transition-all duration-700 delay-150 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-        >
-          <div className="rounded-xl border border-neutral-200 bg-white p-4 text-center shadow-sm">
-            <div className="text-lg font-semibold text-[#FF4800]">+64%</div>
-            <div className="mt-1 text-xs text-neutral-500">Retrieval Accuracy</div>
+      {/* ── Stats ── */}
+      <section className="border-t border-[#1E1E1E] py-24">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="mb-12 text-center">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#FF4800]">
+              Why It Matters
+            </p>
+            <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">
+              The numbers don&apos;t lie
+            </h2>
           </div>
-          <div className="rounded-xl border border-neutral-200 bg-white p-4 text-center shadow-sm">
-            <div className="text-lg font-semibold text-neutral-900">2.4x</div>
-            <div className="mt-1 text-xs text-neutral-500">Faster Processing</div>
-          </div>
-          <div className="rounded-xl border border-neutral-200 bg-white p-4 text-center shadow-sm">
-            <div className="text-lg font-semibold text-neutral-900">-40%</div>
-            <div className="mt-1 text-xs text-neutral-500">Token Costs</div>
-          </div>
-          <div className="rounded-xl border border-neutral-200 bg-white p-4 text-center shadow-sm">
-            <div className="text-lg font-semibold text-neutral-900">+16%</div>
-            <div className="mt-1 text-xs text-neutral-500">Reasoning Accuracy</div>
+
+          <div className="grid grid-cols-2 overflow-hidden rounded-xl bg-[#1E1E1E] lg:grid-cols-4">
+            {[
+              { value: "+64%", label: "Retrieval Accuracy", sub: "vs. raw PDF input" },
+              { value: "2.4×", label: "Faster Processing", sub: "document parsing speed" },
+              { value: "−40%", label: "Token Costs", sub: "per document processed" },
+              { value: "+16%", label: "Reasoning Accuracy", sub: "complex QA benchmarks" },
+            ].map((stat, i) => (
+              <div
+                key={stat.label}
+                className={`bg-[#0C0C0C] p-8 text-center ${i < 3 ? "border-r border-[#1E1E1E]" : ""} ${i < 2 ? "border-b border-[#1E1E1E] lg:border-b-0" : ""}`}
+              >
+                <div className="font-display text-4xl font-extrabold text-[#FF4800] sm:text-5xl">
+                  {stat.value}
+                </div>
+                <div className="mt-2 text-sm font-medium text-[#F0EDE8]">{stat.label}</div>
+                <div className="mt-1 text-xs text-[#4A4A46]">{stat.sub}</div>
+              </div>
+            ))}
           </div>
         </div>
+      </section>
 
-        {/* Upload Zone */}
-        <div 
-          className={`transition-all duration-700 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-        >
+      {/* ── Converter ── */}
+      <section id="converter" className="border-t border-[#1E1E1E] py-24">
+        <div className="mx-auto max-w-2xl px-6">
+          <div className="mb-10 text-center">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#FF4800]">
+              The Converter
+            </p>
+            <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">
+              See it for yourself
+            </h2>
+            <p className="mt-3 text-sm text-[#888480]">
+              Drop any document and get clean, AI-ready markdown in seconds.
+            </p>
+          </div>
+
+          {/* Upload zone */}
           <div
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onClick={state === "idle" ? handleBrowse : undefined}
             className={`
-              group relative flex min-h-[220px] flex-col items-center justify-center 
-              rounded-2xl border-2 border-dashed bg-white transition-all duration-300
-              ${isDragOver ? "scale-[1.02] border-[#FF4800] bg-orange-50/50 shadow-lg shadow-orange-100" : "border-neutral-200 hover:border-neutral-300 hover:shadow-md"}
+              group relative flex min-h-[200px] flex-col items-center justify-center
+              rounded-xl border-2 border-dashed transition-all duration-300
+              ${isDragOver
+                ? "scale-[1.01] border-[#FF4800] bg-[#FF4800]/5 shadow-lg shadow-[#FF4800]/10"
+                : "border-[#2A2A2A] bg-[#161616] hover:border-[#3A3A3A]"}
               ${state === "converting" ? "opacity-60" : ""}
               ${state === "idle" ? "cursor-pointer" : "cursor-default"}
             `}
@@ -254,17 +387,25 @@ export default function MDSpinPage() {
 
             {state === "idle" && (
               <div className="flex flex-col items-center">
-                <div className="mb-4 rounded-xl bg-neutral-100 p-4 transition-transform duration-300 group-hover:scale-110">
-                  <Upload className="h-6 w-6 text-neutral-400" strokeWidth={1.5} />
+                <div
+                  className={`mb-4 rounded-xl p-4 transition-all duration-300 ${
+                    isDragOver
+                      ? "bg-[#FF4800]/20"
+                      : "bg-[#1E1E1E] group-hover:bg-[#2A2A2A]"
+                  }`}
+                >
+                  <Upload
+                    className={`h-6 w-6 transition-colors ${
+                      isDragOver ? "text-[#FF4800]" : "text-[#4A4A46] group-hover:text-[#888480]"
+                    }`}
+                    strokeWidth={1.5}
+                  />
                 </div>
-                <p className="text-sm font-medium text-neutral-700">Drop your file here</p>
+                <p className="text-sm font-medium text-[#888480]">Drop your file here</p>
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleBrowse()
-                  }}
-                  className="mt-1.5 text-sm text-neutral-400 underline underline-offset-4 transition-colors hover:text-[#FF4800]"
+                  onClick={(e) => { e.stopPropagation(); handleBrowse() }}
+                  className="mt-1.5 text-sm text-[#4A4A46] underline underline-offset-4 transition-colors hover:text-[#FF4800]"
                 >
                   or browse
                 </button>
@@ -273,18 +414,15 @@ export default function MDSpinPage() {
 
             {(state === "loaded" || state === "converting" || state === "done") && (
               <div className="flex flex-col items-center">
-                <div className="mb-3 rounded-xl bg-neutral-900 p-3">
-                  <FileText className="h-5 w-5 text-white" strokeWidth={1.5} />
+                <div className="mb-3 rounded-xl bg-[#2A2A2A] p-3">
+                  <FileText className="h-5 w-5 text-[#F0EDE8]" strokeWidth={1.5} />
                 </div>
-                <p className="text-sm font-medium text-black">{fileName}</p>
+                <p className="text-sm font-medium text-[#F0EDE8]">{fileName}</p>
                 {state !== "done" && (
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      resetApp()
-                    }}
-                    className="mt-2 text-xs text-neutral-400 transition-colors hover:text-neutral-600"
+                    onClick={(e) => { e.stopPropagation(); resetApp() }}
+                    className="mt-2 text-xs text-[#4A4A46] transition-colors hover:text-[#888480]"
                   >
                     Remove
                   </button>
@@ -292,181 +430,237 @@ export default function MDSpinPage() {
               </div>
             )}
           </div>
-        </div>
 
-        {/* Supported Formats */}
-        <div 
-          className={`mt-5 flex flex-wrap items-center justify-center gap-2 transition-all duration-700 delay-300 ${mounted ? 'opacity-100' : 'opacity-0'}`}
-        >
-          {SUPPORTED_FORMATS.map((format, i) => (
-            <span 
-              key={format} 
-              className="flex items-center rounded-full bg-white px-2.5 py-1 text-xs text-neutral-400 shadow-sm"
-            >
-              {format}
-            </span>
-          ))}
-        </div>
-
-        {/* Error message */}
-        {error && (
-          <p className="mt-4 text-center text-sm text-red-500">{error}</p>
-        )}
-
-        {/* Spin Button */}
-        <div
-          className={`mt-10 flex justify-center transition-all duration-700 delay-400 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-        >
-          <button
-            type="button"
-            onClick={handleSpin}
-            disabled={state !== "loaded"}
-            className={`
-              group relative flex h-12 min-w-[140px] items-center justify-center gap-2 rounded-full px-8 text-sm font-medium 
-              transition-all duration-300
-              ${
-                state === "loaded"
-                  ? "bg-[#FF4800] text-white shadow-lg shadow-orange-200 hover:shadow-xl hover:shadow-orange-200 hover:scale-105 active:scale-[0.98]"
-                  : "cursor-not-allowed bg-neutral-200 text-neutral-400"
-              }
-            `}
-          >
-            {state === "converting" ? (
-              <span className="flex items-center gap-2">
-                <svg
-                  className="h-4 w-4 animate-spin"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                Converting
-              </span>
-            ) : (
-              <>
-                <Sparkles className={`h-4 w-4 transition-transform ${state === "loaded" ? "group-hover:rotate-12" : ""}`} />
-                Spin
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Output Area */}
-        {state === "done" && markdown && (
-          <div className="mt-14 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-lg">
-              <div className="flex items-center justify-between border-b border-neutral-100 bg-neutral-50/50 px-5 py-3">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-green-400" />
-                  <span className="text-xs font-medium text-neutral-500">Output ready</span>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleDownload}
-                    className="flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-600 transition-all hover:border-neutral-300 hover:bg-neutral-50 hover:shadow-sm"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    Save .md
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCopy}
-                    className="flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-600 transition-all hover:border-neutral-300 hover:bg-neutral-50 hover:shadow-sm"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="h-3.5 w-3.5 text-green-600" />
-                        Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3.5 w-3.5" />
-                        Copy
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-              <pre className="overflow-x-auto bg-neutral-900 p-5 text-sm leading-relaxed text-neutral-100">
-                <code>{markdown}</code>
-              </pre>
-            </div>
-
-            <div className="mt-8 flex justify-center">
-              <button
-                type="button"
-                onClick={resetApp}
-                className="flex items-center gap-2 text-sm text-neutral-400 transition-colors hover:text-neutral-600"
+          {/* Formats */}
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            {SUPPORTED_FORMATS.map((format) => (
+              <span
+                key={format}
+                className="rounded-full border border-[#2A2A2A] bg-[#161616] px-2.5 py-1 font-mono text-xs text-[#4A4A46]"
               >
-                <Zap className="h-3.5 w-3.5" />
-                Convert another file
-              </button>
-            </div>
+                {format}
+              </span>
+            ))}
           </div>
-        )}
 
-        {/* Coming Soon Section */}
-        <section 
-          className={`mt-20 transition-all duration-700 delay-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-        >
-          <div className="mb-6 text-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-900 px-3 py-1 text-xs font-medium text-white">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#FF4800]" />
-              Coming Soon
-            </span>
+          {/* Error */}
+          {error && (
+            <p className="mt-4 text-center text-sm text-red-400">{error}</p>
+          )}
+
+          {/* Spin button */}
+          <div className="mt-8 flex justify-center">
+            <button
+              type="button"
+              onClick={handleSpin}
+              disabled={state !== "loaded"}
+              className={`
+                group relative flex h-12 min-w-[140px] items-center justify-center gap-2
+                rounded-full px-8 text-sm font-semibold transition-all duration-300
+                ${state === "loaded"
+                  ? "bg-[#FF4800] text-white shadow-lg shadow-[#FF4800]/25 hover:scale-105 hover:shadow-xl hover:shadow-[#FF4800]/30 active:scale-[0.98]"
+                  : "cursor-not-allowed bg-[#1E1E1E] text-[#4A4A46]"}
+              `}
+            >
+              {state === "converting" ? (
+                <span className="flex items-center gap-2">
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Converting
+                </span>
+              ) : (
+                <>
+                  <Sparkles className={`h-4 w-4 transition-transform ${state === "loaded" ? "group-hover:rotate-12" : ""}`} />
+                  Spin
+                </>
+              )}
+            </button>
           </div>
-          
-          <div className="grid gap-4 sm:grid-cols-2">
-            {/* Make.com Integration */}
-            <div className="group rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm transition-all hover:border-neutral-300 hover:shadow-md">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#6D28D9]/10">
-                <svg className="h-6 w-6 text-[#6D28D9]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+
+          {/* Output */}
+          {state === "done" && markdown && (
+            <div className="mt-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="overflow-hidden rounded-xl border border-[#2A2A2A]">
+                <div className="flex items-center justify-between border-b border-[#2A2A2A] bg-[#161616] px-5 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-[#FF4800]" />
+                    <span className="text-xs font-medium text-[#888480]">Output ready</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleDownload}
+                      className="flex items-center gap-1.5 rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-1.5 text-xs font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Save .md
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCopy}
+                      className="flex items-center gap-1.5 rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-1.5 text-xs font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="h-3.5 w-3.5 text-[#FF4800]" />
+                          Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3.5 w-3.5" />
+                          Copy
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <pre className="max-h-80 overflow-y-auto overflow-x-auto bg-[#0C0C0C] p-5 font-mono text-xs leading-relaxed text-[#F0EDE8]/75">
+                  <code>{markdown}</code>
+                </pre>
+              </div>
+
+              <div className="mt-6 flex justify-center">
+                <button
+                  type="button"
+                  onClick={resetApp}
+                  className="flex items-center gap-2 text-sm text-[#4A4A46] transition-colors hover:text-[#888480]"
+                >
+                  <Zap className="h-3.5 w-3.5" />
+                  Convert another file
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── Products + Waitlist ── */}
+      <section id="products" className="border-t border-[#1E1E1E] py-24">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="mb-12 text-center">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#FF4800]">
+              Coming to Your Workflow
+            </p>
+            <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">
+              MDSpin everywhere you work
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#888480]">
+              The web converter is just the start. MDSpin is coming to the tools where your AI
+              workflows actually live.
+            </p>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            {/* Make.com */}
+            <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-8 transition-colors hover:border-[#3A3A3A]">
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#6D28D9]/15">
+                <svg className="h-6 w-6 text-[#8B5CF6]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 16.875h3.375m0 0h3.375m-3.375 0V13.5m0 3.375v3.375M6 10.5h2.25a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v2.25A2.25 2.25 0 006 10.5zm0 9.75h2.25A2.25 2.25 0 0010.5 18v-2.25a2.25 2.25 0 00-2.25-2.25H6a2.25 2.25 0 00-2.25 2.25V18A2.25 2.25 0 006 20.25zm9.75-9.75H18a2.25 2.25 0 002.25-2.25V6A2.25 2.25 0 0018 3.75h-2.25A2.25 2.25 0 0013.5 6v2.25a2.25 2.25 0 002.25 2.25z" />
                 </svg>
               </div>
-              <h3 className="mb-2 font-semibold text-neutral-900">Make.com App</h3>
-              <p className="text-sm leading-relaxed text-neutral-500">
-                Use MDSpin inside your automated workflows. Connect to any trigger and automatically convert documents to Markdown before sending to your AI tools.
+              <div className="mb-3 flex items-center gap-2">
+                <h3 className="font-display text-lg font-semibold text-[#F0EDE8]">Make.com App</h3>
+                <span className="rounded-full bg-[#6D28D9]/15 px-2 py-0.5 text-[10px] font-semibold text-[#8B5CF6]">
+                  Soon
+                </span>
+              </div>
+              <p className="text-sm leading-relaxed text-[#888480]">
+                Plug MDSpin into any automation. Trigger on new file uploads, pipe clean
+                markdown directly to Claude, GPT, or any AI node in your workflow.
+                Zero-friction document intelligence at scale.
               </p>
             </div>
 
             {/* Chrome Extension */}
-            <div className="group rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm transition-all hover:border-neutral-300 hover:shadow-md">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#4285F4]/10">
+            <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-8 transition-colors hover:border-[#3A3A3A]">
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#4285F4]/15">
                 <svg className="h-6 w-6 text-[#4285F4]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
                 </svg>
               </div>
-              <h3 className="mb-2 font-semibold text-neutral-900">Chrome Extension</h3>
-              <p className="text-sm leading-relaxed text-neutral-500">
-                Convert files directly in your favorite LLM chat window. When you attach a document, MDSpin automatically offers to convert it to Markdown for better AI comprehension.
+              <div className="mb-3 flex items-center gap-2">
+                <h3 className="font-display text-lg font-semibold text-[#F0EDE8]">Chrome Extension</h3>
+                <span className="rounded-full bg-[#4285F4]/15 px-2 py-0.5 text-[10px] font-semibold text-[#4285F4]">
+                  Soon
+                </span>
+              </div>
+              <p className="text-sm leading-relaxed text-[#888480]">
+                Convert docs without leaving ChatGPT, Claude, or Gemini. When you attach a
+                file, MDSpin intercepts it and swaps in clean markdown — your AI gets signal,
+                not noise.
               </p>
             </div>
           </div>
-        </section>
 
-        {/* Footer */}
-        <footer 
-          className={`mt-20 text-center transition-all duration-700 delay-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}
-        >
-          <p className="text-xs text-neutral-400">
-            Built for simplicity. Drop, spin, done.
-          </p>
-        </footer>
-      </div>
-    </main>
+          {/* Email capture */}
+          <div className="mt-8 rounded-xl border border-[#2A2A2A] bg-[#161616] p-8">
+            <div className="mx-auto max-w-md text-center">
+              {waitlistStatus === "success" ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FF4800]/15">
+                    <Check className="h-6 w-6 text-[#FF4800]" />
+                  </div>
+                  <p className="font-display text-lg font-semibold text-[#F0EDE8]">
+                    You&apos;re on the list.
+                  </p>
+                  <p className="text-sm text-[#888480]">
+                    We&apos;ll reach out the moment Make.com and the Chrome Extension go live.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <p className="font-display text-lg font-semibold text-[#F0EDE8]">
+                    Get early access
+                  </p>
+                  <p className="mt-1.5 text-sm text-[#888480]">
+                    Be first to know when Make.com and Chrome Extension launch.
+                  </p>
+                  <form onSubmit={handleWaitlist} className="mt-6 flex gap-2">
+                    <input
+                      type="email"
+                      value={waitlistEmail}
+                      onChange={(e) => setWaitlistEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      required
+                      className="flex-1 rounded-lg border border-[#2A2A2A] bg-[#0C0C0C] px-4 py-2.5 text-sm text-[#F0EDE8] placeholder-[#4A4A46] outline-none transition-all focus:border-[#FF4800]/40 focus:ring-1 focus:ring-[#FF4800]/15"
+                    />
+                    <button
+                      type="submit"
+                      disabled={waitlistStatus === "loading"}
+                      className="flex items-center gap-2 rounded-lg bg-[#FF4800] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#e04200] disabled:opacity-60"
+                    >
+                      {waitlistStatus === "loading" ? (
+                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                      ) : (
+                        "Notify me"
+                      )}
+                    </button>
+                  </form>
+                  {waitlistStatus === "error" && (
+                    <p className="mt-2 text-xs text-red-400">Something went wrong. Try again.</p>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="border-t border-[#1E1E1E] py-10">
+        <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 px-6 sm:flex-row sm:justify-between">
+          <div className="flex items-center gap-2.5">
+            <img src="/logo.png" alt="MDSpin" className="h-6 w-6 rounded-md opacity-50" />
+            <span className="text-xs text-[#4A4A46]">MDSpin</span>
+          </div>
+          <p className="text-xs text-[#4A4A46]">Drop, spin, done. © {new Date().getFullYear()}</p>
+        </div>
+      </footer>
+    </div>
   )
 }
