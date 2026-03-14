@@ -1,7 +1,10 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import { Upload, Copy, Download, Check, Sparkles, FileText, Zap, ArrowRight } from "lucide-react"
+import { Upload, Copy, Download, Check, Sparkles, FileText, Zap, ArrowRight, LogOut, History, User } from "lucide-react"
+import Link from "next/link"
+import { useAuth } from "@/components/auth-provider"
+import { createClient } from "@/lib/supabase/client"
 
 type AppState = "idle" | "loaded" | "converting" | "done"
 type WaitlistStatus = "idle" | "loading" | "success" | "error"
@@ -9,6 +12,10 @@ type WaitlistStatus = "idle" | "loading" | "success" | "error"
 const SUPPORTED_FORMATS = ["PDF", "DOC", "DOCX", "PAGES", "TXT", "RTF"]
 
 export default function MDSpinPage() {
+  const { user, isLoading: authLoading, signOut } = useAuth()
+  const supabase = createClient()
+  const [showUserMenu, setShowUserMenu] = useState(false)
+
   // --- converter state ---
   const [state, setState] = useState<AppState>("idle")
   const [fileName, setFileName] = useState<string>("")
@@ -85,6 +92,19 @@ export default function MDSpinPage() {
 
       setMarkdown(data.markdown_text)
       setState("done")
+
+      // Save conversion for logged-in users (fire-and-forget)
+      if (user && file) {
+        const ext = file.name.split(".").pop()?.toLowerCase() ?? ""
+        const wordCount = data.markdown_text.split(/\s+/).filter(Boolean).length
+        supabase.from("conversions").insert({
+          user_id: user.id,
+          filename: file.name,
+          file_type: ext,
+          word_count: wordCount,
+          markdown_text: data.markdown_text,
+        })
+      }
     } catch {
       setError("Network error. Check your connection and try again.")
       setState("loaded")
@@ -171,6 +191,51 @@ export default function MDSpinPage() {
             >
               Try it <ArrowRight className="h-3 w-3" />
             </a>
+            {!authLoading && (
+              user ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FF4800]/20 text-xs font-semibold text-[#FF4800] transition-colors hover:bg-[#FF4800]/30"
+                  >
+                    {user.email?.[0]?.toUpperCase() ?? "U"}
+                  </button>
+                  {showUserMenu && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+                      <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded-lg border border-[#2A2A2A] bg-[#161616] py-1 shadow-xl">
+                        <p className="truncate border-b border-[#2A2A2A] px-3 py-2 text-xs text-[#888480]">
+                          {user.email}
+                        </p>
+                        <Link
+                          href="/history"
+                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-[#F0EDE8] transition-colors hover:bg-[#1E1E1E]"
+                        >
+                          <History className="h-3.5 w-3.5" />
+                          My Spins
+                        </Link>
+                        <button
+                          onClick={() => { setShowUserMenu(false); signOut() }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#888480] transition-colors hover:bg-[#1E1E1E] hover:text-[#F0EDE8]"
+                        >
+                          <LogOut className="h-3.5 w-3.5" />
+                          Sign out
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  href="/auth/sign-in"
+                  className="flex items-center gap-1.5 rounded-full border border-[#2A2A2A] px-4 py-1.5 text-xs font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
+                >
+                  <User className="h-3 w-3" />
+                  Sign in
+                </Link>
+              )
+            )}
           </div>
         </div>
       </nav>
