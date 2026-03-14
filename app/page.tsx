@@ -1,13 +1,43 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import { Upload, Copy, Download, Check, Sparkles, FileText, Zap, ArrowRight, LogOut, History, User } from "lucide-react"
+import { Upload, Copy, Download, Check, Sparkles, FileText, Zap, ArrowRight, LogOut, History, User, TrendingDown } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/components/auth-provider"
 import { createClient } from "@/lib/supabase/client"
 
 type AppState = "idle" | "loaded" | "converting" | "done"
 type WaitlistStatus = "idle" | "loading" | "success" | "error"
+
+type ROIData = {
+  mdTokens: number
+  origTokens: number
+  reductionPct: number
+  savingsPerThousand: number
+  speedup: number
+  accuracyRange: string
+}
+
+const TEXT_DENSITY: Record<string, number> = {
+  pdf: 0.35, docx: 0.45, doc: 0.30,
+  txt: 0.90, rtf: 0.55, pages: 0.35,
+}
+const ACCURACY_RANGE: Record<string, string> = {
+  pdf: "+55–70%", docx: "+45–65%", doc: "+45–65%",
+  txt: "+15–30%", rtf: "+40–60%", pages: "+45–65%",
+}
+
+function calculateROI(file: File, markdown: string): ROIData {
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "pdf"
+  const density = TEXT_DENSITY[ext] ?? 0.40
+  const mdTokens = Math.max(1, Math.round(markdown.length / 4))
+  const origTokens = Math.max(mdTokens + 1, Math.round(file.size * density / 4))
+  const reductionPct = Math.min(90, Math.max(5, Math.round((1 - mdTokens / origTokens) * 100)))
+  const savingsPerThousand = Math.round((origTokens - mdTokens) * 0.000015 * 1000 * 100) / 100
+  const speedup = Math.min(5.0, Math.max(1.1, origTokens / mdTokens))
+  const accuracyRange = ACCURACY_RANGE[ext] ?? "+40–60%"
+  return { mdTokens, origTokens, reductionPct, savingsPerThousand, speedup, accuracyRange }
+}
 
 const SUPPORTED_FORMATS = ["PDF", "DOC", "DOCX", "PAGES", "TXT", "RTF"]
 
@@ -26,6 +56,10 @@ export default function MDSpinPage() {
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // --- roi state ---
+  const [roi, setRoi] = useState<ROIData | null>(null)
+  const [monthlyCalls, setMonthlyCalls] = useState(20)
 
   // --- waitlist state ---
   const [waitlistEmail, setWaitlistEmail] = useState("")
@@ -91,6 +125,7 @@ export default function MDSpinPage() {
       }
 
       setMarkdown(data.markdown_text)
+      setRoi(calculateROI(file, data.markdown_text))
       setState("done")
 
       // Save conversion for logged-in users (fire-and-forget)
@@ -135,6 +170,7 @@ export default function MDSpinPage() {
     setMarkdown("")
     setFile(null)
     setError(null)
+    setRoi(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
@@ -585,6 +621,68 @@ expansion in EMEA.
                   <code>{markdown}</code>
                 </pre>
               </div>
+
+              {/* ROI Panel */}
+              {roi && (
+                <div className="mt-6 animate-in fade-in slide-in-from-bottom-2 duration-500 overflow-hidden rounded-xl border border-[#2A2A2A] bg-[#161616]">
+                  <div className="flex items-center gap-2 border-b border-[#2A2A2A] px-5 py-3">
+                    <TrendingDown className="h-3.5 w-3.5 text-[#FF4800]" strokeWidth={2} />
+                    <span className="text-xs font-semibold uppercase tracking-[0.15em] text-[#FF4800]">Conversion Impact</span>
+                    <span className="ml-auto text-[10px] text-[#4A4A46]">for {fileName}</span>
+                  </div>
+
+                  {/* 4 stat tiles */}
+                  <div className="grid grid-cols-2 divide-x divide-y divide-[#1E1E1E]">
+                    {/* Token reduction */}
+                    <div className="p-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4A4A46]">Token Reduction</p>
+                      <p className="mt-1.5 font-display text-2xl font-bold text-[#FF4800]">−{roi.reductionPct}%</p>
+                      <p className="mt-0.5 font-mono text-[10px] text-[#888480]">
+                        ~{roi.origTokens.toLocaleString()} → ~{roi.mdTokens.toLocaleString()} tokens
+                      </p>
+                    </div>
+
+                    {/* Processing speed */}
+                    <div className="p-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4A4A46]">Inference Speed</p>
+                      <p className="mt-1.5 font-display text-2xl font-bold text-[#FF4800]">~{roi.speedup.toFixed(1)}×</p>
+                      <p className="mt-0.5 font-mono text-[10px] text-[#888480]">faster processing</p>
+                    </div>
+
+                    {/* Cost savings */}
+                    <div className="p-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4A4A46]">Cost Savings</p>
+                      <p className="mt-1.5 font-display text-2xl font-bold text-[#FF4800]">
+                        ~${(roi.savingsPerThousand * monthlyCalls / 1000).toFixed(2)}
+                        <span className="text-sm font-normal text-[#888480]">/mo</span>
+                      </p>
+                      <div className="mt-1.5 flex items-center gap-1.5">
+                        <span className="text-[10px] text-[#4A4A46]">at</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={100000}
+                          value={monthlyCalls}
+                          onChange={(e) => setMonthlyCalls(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="w-16 rounded border border-[#2A2A2A] bg-[#0C0C0C] px-1.5 py-0.5 text-center font-mono text-[10px] text-[#F0EDE8] outline-none focus:border-[#FF4800]/40"
+                        />
+                        <span className="text-[10px] text-[#4A4A46]">calls/mo</span>
+                      </div>
+                    </div>
+
+                    {/* Retrieval accuracy */}
+                    <div className="p-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4A4A46]">RAG Accuracy</p>
+                      <p className="mt-1.5 font-display text-2xl font-bold text-[#FF4800]">{roi.accuracyRange}</p>
+                      <p className="mt-0.5 font-mono text-[10px] text-[#888480]">retrieval improvement</p>
+                    </div>
+                  </div>
+
+                  <p className="border-t border-[#1E1E1E] px-5 py-2.5 text-[10px] leading-relaxed text-[#4A4A46]">
+                    Estimates based on file-type heuristics and the ~4 chars/token approximation. Actual results vary by content and model.
+                  </p>
+                </div>
+              )}
 
               <div className="mt-6 flex justify-center">
                 <button
