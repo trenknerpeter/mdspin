@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,8 +10,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Invalid email' }, { status: 400 })
     }
 
-    // TODO: wire to email service (Mailchimp, Supabase, Resend, etc.)
-    console.log(`[waitlist] New signup: ${email}`)
+    const supabase = await createClient()
+    const { error } = await supabase.from('waitlist').insert({ email })
+
+    if (error && error.code !== '23505') {
+      // 23505 = unique violation (email already signed up) — treat as success
+      return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+    }
 
     return NextResponse.json({ success: true }, { status: 200 })
   } catch {
