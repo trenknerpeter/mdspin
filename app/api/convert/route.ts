@@ -4,7 +4,7 @@
 // base64, and forwards it to the Vercel backend for Markdown conversion.
 // The BACKEND_API_KEY never leaves the server.
 //
-// Supported formats: PDF, DOCX, DOC, RTF, TXT, PAGES
+// Supported formats: PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, PAGES
 //
 // Requires env vars in .env.local (and in Vercel project settings):
 //   BACKEND_URL=https://mdc-api-murex.vercel.app
@@ -49,12 +49,12 @@ export async function POST(req: NextRequest) {
 
   // ── 3. Validate file type ───────────────────────────────────
   const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-  const SUPPORTED_EXTS = ['pdf', 'docx', 'doc', 'rtf', 'txt', 'pages'];
+  const SUPPORTED_EXTS = ['pdf', 'docx', 'doc', 'pptx', 'gslides', 'rtf', 'txt', 'pages'];
   if (!SUPPORTED_EXTS.includes(ext)) {
     return NextResponse.json(
       {
         error:   'UNSUPPORTED_FILE_TYPE',
-        message: `".${ext}" files are not supported. Please upload a PDF, DOCX, DOC, RTF, TXT, or PAGES file.`,
+        message: `".${ext}" files are not supported. Please upload a PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, or PAGES file.`,
       },
       { status: 415 }
     );
@@ -73,12 +73,14 @@ export async function POST(req: NextRequest) {
   }
 
   const MIME_TYPES: Record<string, string> = {
-    pdf:   'application/pdf',
-    docx:  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    doc:   'application/msword',
-    rtf:   'application/rtf',
-    txt:   'text/plain',
-    pages: 'application/x-iwork-pages-sffpages',
+    pdf:     'application/pdf',
+    docx:    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    doc:     'application/msword',
+    pptx:    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    gslides: 'application/vnd.google-apps.presentation',
+    rtf:     'application/rtf',
+    txt:     'text/plain',
+    pages:   'application/x-iwork-pages-sffpages',
   };
   const mimeType = MIME_TYPES[ext] ?? 'application/octet-stream';
 
@@ -107,6 +109,16 @@ export async function POST(req: NextRequest) {
 
   // ── 6. Forward response ──────────────────────────────────────
   // Pass backend errors (400/413/415/500) straight through to the client
-  const data = await backendRes.json();
+  const text = await backendRes.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    console.error('[/api/convert] Non-JSON backend response:', backendRes.status, text.slice(0, 500));
+    return NextResponse.json(
+      { error: 'BACKEND_ERROR', message: text || 'Backend returned an unexpected response.' },
+      { status: backendRes.status >= 400 ? backendRes.status : 502 }
+    );
+  }
   return NextResponse.json(data, { status: backendRes.status });
 }

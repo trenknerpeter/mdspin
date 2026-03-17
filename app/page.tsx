@@ -39,7 +39,7 @@ function calculateROI(file: File, markdown: string): ROIData {
   return { mdTokens, origTokens, reductionPct, savingsPerThousand, speedup, accuracyRange }
 }
 
-const SUPPORTED_FORMATS = ["PDF", "DOC", "DOCX", "PAGES", "TXT", "RTF"]
+const SUPPORTED_FORMATS = ["PDF", "DOC", "DOCX", "PPTX", "GSLIDES", "PAGES", "TXT", "RTF"]
 
 export default function MDSpinPage() {
   const { user, isLoading: authLoading, signOut } = useAuth()
@@ -483,7 +483,7 @@ expansion in EMEA.
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.doc,.docx,.pages,.txt,.rtf"
+              accept=".pdf,.doc,.docx,.pptx,.gslides,.pages,.txt,.rtf"
               onChange={handleFileInput}
               className="hidden"
             />
