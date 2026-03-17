@@ -138,6 +138,8 @@ export default function MDSpinPage() {
           file_type: ext,
           word_count: wordCount,
           markdown_text: data.markdown_text,
+        }).then(({ error }) => {
+          if (error) console.error("[conversions] insert failed:", error.message)
         })
       }
     } catch {
