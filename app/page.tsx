@@ -128,12 +128,12 @@ export default function MDSpinPage() {
       setRoi(calculateROI(file, data.markdown_text))
       setState("done")
 
-      // Save conversion for logged-in users (fire-and-forget)
-      if (user && file) {
+      // Save conversion (fire-and-forget; user_id null for anonymous)
+      if (file) {
         const ext = file.name.split(".").pop()?.toLowerCase() ?? ""
         const wordCount = data.markdown_text.split(/\s+/).filter(Boolean).length
         supabase.from("conversions").insert({
-          user_id: user.id,
+          user_id: user?.id ?? null,
           filename: file.name,
           file_type: ext,
           word_count: wordCount,
