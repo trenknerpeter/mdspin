@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/api/', '/auth/callback', '/auth/confirm', '/history'],
+      disallow: ['/api/', '/auth/callback', '/auth/confirm', '/auth/sign-in', '/history'],
     },
     sitemap: 'https://mdspin.app/sitemap.xml',
   }
