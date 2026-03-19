@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, Suspense } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 
@@ -11,7 +11,9 @@ function OAuthConsentForm() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [consenting, setConsenting] = useState(false)
-  const router = useRouter()
+  const [loggedInEmail, setLoggedInEmail] = useState<string | null>(null)
+  const [checkingSession, setCheckingSession] = useState(true)
+  const [returnedFromGoogle, setReturnedFromGoogle] = useState(false)
   const searchParams = useSearchParams()
   const supabase = createClient()
 
@@ -28,7 +30,33 @@ function OAuthConsentForm() {
     }
   }, [clientId, redirectUri, state])
 
-  // After Supabase auth succeeds, exchange for an OAuth authorization code
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+
+      // Check if returning from Google SSO (sessionStorage flag)
+      const wasGoogleSSO = sessionStorage.getItem("oauth_google_sso")
+      if (wasGoogleSSO) {
+        sessionStorage.removeItem("oauth_google_sso")
+        setReturnedFromGoogle(true)
+      }
+
+      if (session?.user?.email) {
+        setLoggedInEmail(session.user.email)
+
+        // Auto-consent only if returning from Google SSO redirect
+        if (wasGoogleSSO && clientId && redirectUri && state) {
+          await handleConsent()
+        }
+      }
+      setCheckingSession(false)
+    }
+    checkSession()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Exchange Supabase session for an OAuth authorization code
   const handleConsent = async () => {
     setConsenting(true)
     try {
@@ -77,15 +105,13 @@ function OAuthConsentForm() {
       setError(error.message)
       setLoading(false)
     } else {
-      // After sign-in, complete the OAuth consent flow
       await handleConsent()
     }
   }
 
   const handleGoogleSignIn = async () => {
-    // For the OAuth consent flow, we need to redirect back to this page after Google SSO
-    // Store OAuth params in sessionStorage so we can resume after the callback
-    sessionStorage.setItem("oauth_params", JSON.stringify({ clientId, redirectUri, state }))
+    // Set a flag so we know to auto-consent after the Google SSO callback
+    sessionStorage.setItem("oauth_google_sso", "true")
 
     await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -101,17 +127,18 @@ function OAuthConsentForm() {
     })
   }
 
-  // Check if user is already logged in (returning from Google SSO callback)
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session && clientId && redirectUri && state) {
-        await handleConsent()
-      }
-    }
-    checkSession()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    setLoggedInEmail(null)
+  }
+
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen bg-[#0C0C0C] flex items-center justify-center px-4">
+        <p className="text-[#999] font-[family-name:var(--font-dm-sans)]">Loading...</p>
+      </div>
+    )
+  }
 
   if (consenting) {
     return (
@@ -126,19 +153,80 @@ function OAuthConsentForm() {
     )
   }
 
+  // ── Already logged in: show consent screen ──
+  if (loggedInEmail) {
+    return (
+      <div className="min-h-screen bg-[#0C0C0C] flex items-center justify-center px-4">
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 mb-6">
+              <div className="w-8 h-8 bg-[#FF4800] rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm font-[family-name:var(--font-syne)]">M</span>
+              </div>
+              <span className="text-[#F0EDE8] font-bold text-xl font-[family-name:var(--font-syne)]">MDSpin</span>
+            </div>
+            <h1 className="text-2xl font-bold text-[#F0EDE8] font-[family-name:var(--font-syne)]">Authorize Make.com</h1>
+            <p className="text-[#999] text-sm mt-1 font-[family-name:var(--font-dm-sans)]">
+              Allow Make.com to access your MDSpin account
+            </p>
+          </div>
+
+          <div className="mb-6 px-4 py-4 rounded-lg border border-[#2A2A2A] bg-[#141414]">
+            <p className="text-[#F0EDE8] text-sm font-[family-name:var(--font-dm-sans)] mb-1">
+              Signed in as
+            </p>
+            <p className="text-[#FF4800] text-sm font-medium font-[family-name:var(--font-dm-sans)]">
+              {loggedInEmail}
+            </p>
+          </div>
+
+          <div className="mb-6 px-4 py-3 rounded-lg border border-[#2A2A2A] bg-[#141414]">
+            <p className="text-[#999] text-xs font-[family-name:var(--font-dm-sans)] mb-2">
+              Make.com will be able to:
+            </p>
+            <ul className="text-[#999] text-xs font-[family-name:var(--font-dm-sans)] space-y-1">
+              <li>- Convert Google Docs and Slides to Markdown</li>
+              <li>- Convert uploaded files (PDF, DOCX) to Markdown</li>
+              <li>- Save files to your Google Drive</li>
+            </ul>
+          </div>
+
+          {error && (
+            <p className="text-red-400 text-sm font-[family-name:var(--font-dm-sans)] mb-4">{error}</p>
+          )}
+
+          <button
+            onClick={handleConsent}
+            className="w-full py-2.5 rounded-lg bg-[#FF4800] text-white font-semibold text-sm hover:bg-[#E04000] transition-colors font-[family-name:var(--font-dm-sans)] mb-3"
+          >
+            Authorize
+          </button>
+
+          <button
+            onClick={handleSignOut}
+            className="w-full py-2.5 rounded-lg border border-[#2A2A2A] bg-transparent text-[#999] text-sm hover:bg-[#1A1A1A] transition-colors font-[family-name:var(--font-dm-sans)]"
+          >
+            Use a different account
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Not logged in: show login form ──
   return (
     <div className="min-h-screen bg-[#0C0C0C] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-6">
+          <div className="inline-flex items-center gap-2 mb-6">
             <div className="w-8 h-8 bg-[#FF4800] rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm font-[family-name:var(--font-syne)]">M</span>
             </div>
             <span className="text-[#F0EDE8] font-bold text-xl font-[family-name:var(--font-syne)]">MDSpin</span>
-          </Link>
+          </div>
           <h1 className="text-2xl font-bold text-[#F0EDE8] font-[family-name:var(--font-syne)]">Connect to Make.com</h1>
           <p className="text-[#999] text-sm mt-1 font-[family-name:var(--font-dm-sans)]">
-            Sign in to authorize Make.com to access your DocToMD account
+            Sign in to authorize Make.com to access your MDSpin account
           </p>
         </div>
 
