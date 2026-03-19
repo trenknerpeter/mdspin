@@ -215,6 +215,12 @@ export default function MDSpinPage() {
             <span className="rounded-full bg-[#FF4800]/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-[#FF4800]">
               Beta
             </span>
+            <Link
+              href="/blog"
+              className="ml-4 hidden text-sm text-[#888480] transition-colors hover:text-[#F0EDE8] sm:block"
+            >
+              Blog
+            </Link>
           </div>
           <div className="flex items-center gap-3">
             <a
@@ -823,7 +829,12 @@ expansion in EMEA.
             <img src="/logo.png" alt="MDSpin" className="h-6 w-6 rounded-md opacity-50" />
             <span className="text-xs text-[#4A4A46]">MDSpin</span>
           </div>
-          <p className="text-xs text-[#4A4A46]">Drop, spin, done. © {new Date().getFullYear()}</p>
+          <div className="flex items-center gap-4">
+            <Link href="/blog" className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]">
+              Blog
+            </Link>
+            <p className="text-xs text-[#4A4A46]">Drop, spin, done. &copy; {new Date().getFullYear()}</p>
+          </div>
         </div>
       </footer>
     </div>
