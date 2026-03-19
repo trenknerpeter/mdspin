@@ -7,6 +7,9 @@ export const metadata: Metadata = {
     'Insights on AI document processing, markdown conversion, and optimizing LLM workflows.',
   alternates: {
     canonical: `${SITE_URL}/blog`,
+    types: {
+      'application/rss+xml': `${SITE_URL}/blog/feed.xml`,
+    },
   },
 }
 
