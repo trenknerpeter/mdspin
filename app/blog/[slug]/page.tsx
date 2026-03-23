@@ -148,9 +148,17 @@ export default async function BlogPostPage({ params }: Props) {
             <img src="/logo.png" alt="MDSpin" className="h-6 w-6 rounded-md opacity-50" />
             <span className="text-xs text-[#4A4A46]">MDSpin</span>
           </div>
-          <p className="text-xs text-[#4A4A46]">
-            Drop, spin, done. &copy; {new Date().getFullYear()}
-          </p>
+          <div className="flex items-center gap-4">
+            <Link href="/blog" className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]">
+              Blog
+            </Link>
+            <Link href="/privacy" className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]">
+              Privacy
+            </Link>
+            <p className="text-xs text-[#4A4A46]">
+              Drop, spin, done. &copy; {new Date().getFullYear()}
+            </p>
+          </div>
         </div>
       </footer>
     </div>
