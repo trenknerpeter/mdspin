@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import { Upload, Copy, Download, Check, Sparkles, FileText, Zap, ArrowRight, LogOut, History, User, TrendingDown } from "lucide-react"
+import { Upload, Copy, Download, Check, Sparkles, FileText, Zap, ArrowRight, LogOut, History, User, TrendingDown, Plus } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/components/auth-provider"
 import { createClient } from "@/lib/supabase/client"
@@ -56,6 +56,11 @@ export default function MDSpinPage() {
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // --- rate limit state ---
+  const [rateLimited, setRateLimited] = useState(false)
+  const [remaining, setRemaining] = useState<number | null>(null)
+  const [dailyLimit, setDailyLimit] = useState<number | null>(null)
 
   // --- roi state ---
   const [roi, setRoi] = useState<ROIData | null>(null)
@@ -116,7 +121,21 @@ export default function MDSpinPage() {
       const fd = new FormData()
       fd.append("file", file)
       const res = await fetch("/api/convert", { method: "POST", body: fd })
+
+      // Update rate limit state from response headers
+      const limitHeader = res.headers.get("X-RateLimit-Limit")
+      const remainingHeader = res.headers.get("X-RateLimit-Remaining")
+      if (limitHeader) setDailyLimit(Number(limitHeader))
+      if (remainingHeader) setRemaining(Number(remainingHeader))
+
       const data = await res.json()
+
+      if (res.status === 429) {
+        setRateLimited(true)
+        setError(null)
+        setState("loaded")
+        return
+      }
 
       if (!res.ok) {
         setError(data.message ?? "Conversion failed. Please try again.")
@@ -176,6 +195,13 @@ export default function MDSpinPage() {
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
+  }
+
+  const handleNewConversion = () => {
+    resetApp()
+    setTimeout(() => {
+      fileInputRef.current?.click()
+    }, 50)
   }
 
   // --- waitlist handler ---
@@ -557,35 +583,67 @@ expansion in EMEA.
             <p className="mt-4 text-center text-sm text-red-400">{error}</p>
           )}
 
-          {/* Spin button */}
-          <div className="mt-8 flex justify-center">
-            <button
-              type="button"
-              onClick={handleSpin}
-              disabled={state !== "loaded"}
-              className={`
-                group relative flex h-12 min-w-[140px] items-center justify-center gap-2
-                rounded-full px-8 text-sm font-semibold transition-all duration-300
-                ${state === "loaded"
-                  ? "bg-[#FF4800] text-white shadow-lg shadow-[#FF4800]/25 hover:scale-105 hover:shadow-xl hover:shadow-[#FF4800]/30 active:scale-[0.98]"
-                  : "cursor-not-allowed bg-[#1E1E1E] text-[#4A4A46]"}
-              `}
-            >
-              {state === "converting" ? (
-                <span className="flex items-center gap-2">
-                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  Converting
-                </span>
-              ) : (
-                <>
-                  <Sparkles className={`h-4 w-4 transition-transform ${state === "loaded" ? "group-hover:rotate-12" : ""}`} />
-                  Spin
-                </>
+          {/* Spin button / Rate limit message */}
+          <div className="mt-8 flex flex-col items-center gap-2">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleSpin}
+                disabled={state !== "loaded" || rateLimited}
+                className={`
+                  group relative flex h-12 min-w-[140px] items-center justify-center gap-2
+                  rounded-full px-8 text-sm font-semibold transition-all duration-300
+                  ${state === "loaded" && !rateLimited
+                    ? "bg-[#FF4800] text-white shadow-lg shadow-[#FF4800]/25 hover:scale-105 hover:shadow-xl hover:shadow-[#FF4800]/30 active:scale-[0.98]"
+                    : "cursor-not-allowed bg-[#1E1E1E] text-[#4A4A46]"}
+                `}
+              >
+                {state === "converting" ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Converting
+                  </span>
+                ) : (
+                  <>
+                    <Sparkles className={`h-4 w-4 transition-transform ${state === "loaded" && !rateLimited ? "group-hover:rotate-12" : ""}`} />
+                    Spin
+                  </>
+                )}
+              </button>
+              {state === "done" && (
+                <button
+                  type="button"
+                  onClick={handleNewConversion}
+                  className="flex h-12 items-center gap-2 rounded-full border border-[#2A2A2A] px-6 text-sm font-semibold text-[#888480] transition-all duration-300 hover:border-[#4A4A46] hover:text-[#F0EDE8]"
+                >
+                  <Plus className="h-4 w-4" />
+                  New
+                </button>
               )}
-            </button>
+            </div>
+            {remaining !== null && dailyLimit !== null && (
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-xs text-[#4A4A46]">
+                  {remaining} of {dailyLimit} conversions remaining today
+                </p>
+                {remaining === 0 && !user && (
+                  <Link
+                    href="/auth/sign-in"
+                    className="text-xs text-[#FF4800] underline underline-offset-2 hover:text-[#FF6633] transition-colors"
+                  >
+                    Sign in for up to 20 daily conversions
+                  </Link>
+                )}
+                {rateLimited && user && (
+                  <p className="text-xs text-[#4A4A46]">
+                    Your limit resets at midnight UTC
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Output */}
