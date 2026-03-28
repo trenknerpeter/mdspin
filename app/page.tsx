@@ -242,8 +242,20 @@ export default function MDSpinPage() {
               Beta
             </span>
             <Link
-              href="/blog"
+              href="/guides"
               className="ml-4 hidden text-sm text-[#888480] transition-colors hover:text-[#F0EDE8] sm:block"
+            >
+              Guides
+            </Link>
+            <Link
+              href="/formats"
+              className="hidden text-sm text-[#888480] transition-colors hover:text-[#F0EDE8] sm:block"
+            >
+              Formats
+            </Link>
+            <Link
+              href="/blog"
+              className="hidden text-sm text-[#888480] transition-colors hover:text-[#F0EDE8] sm:block"
             >
               Blog
             </Link>
@@ -880,6 +892,79 @@ expansion in EMEA.
         </div>
       </section>
 
+      {/* ── Guides ── */}
+      <section className="border-t border-[#1E1E1E] py-20">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="mb-10 text-center">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#FF4800]">
+              Learn
+            </p>
+            <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">
+              AI Document Processing Guides
+            </h2>
+            <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-[#888480]">
+              Practical tutorials on converting documents for ChatGPT, Claude, and
+              Gemini — reduce token costs, improve RAG accuracy, and streamline your
+              AI workflows.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Link
+              href="/guides/convert-pdf-for-chatgpt"
+              className="group rounded-xl border border-[#2A2A2A] bg-[#161616] p-6 transition-colors hover:border-[#3A3A3A]"
+            >
+              <h3 className="font-display text-sm font-semibold text-[#F0EDE8] transition-colors group-hover:text-white">
+                How to Convert PDFs for ChatGPT, Claude & Gemini
+              </h3>
+              <p className="mt-2 text-xs leading-relaxed text-[#888480]">
+                Stop losing context to messy PDF parsing. Convert to clean markdown first.
+              </p>
+            </Link>
+            <Link
+              href="/guides/reduce-ai-token-costs"
+              className="group rounded-xl border border-[#2A2A2A] bg-[#161616] p-6 transition-colors hover:border-[#3A3A3A]"
+            >
+              <h3 className="font-display text-sm font-semibold text-[#F0EDE8] transition-colors group-hover:text-white">
+                How to Cut AI Token Costs by 40%
+              </h3>
+              <p className="mt-2 text-xs leading-relaxed text-[#888480]">
+                Document format is the biggest lever for reducing AI costs at scale.
+              </p>
+            </Link>
+            <Link
+              href="/guides/markdown-for-rag"
+              className="group rounded-xl border border-[#2A2A2A] bg-[#161616] p-6 transition-colors hover:border-[#3A3A3A]"
+            >
+              <h3 className="font-display text-sm font-semibold text-[#F0EDE8] transition-colors group-hover:text-white">
+                Why Markdown is the Best Format for RAG Pipelines
+              </h3>
+              <p className="mt-2 text-xs leading-relaxed text-[#888480]">
+                Better chunking, better retrieval, better answers. It starts with format.
+              </p>
+            </Link>
+            <Link
+              href="/guides/document-preprocessing-for-ai"
+              className="group rounded-xl border border-[#2A2A2A] bg-[#161616] p-6 transition-colors hover:border-[#3A3A3A]"
+            >
+              <h3 className="font-display text-sm font-semibold text-[#F0EDE8] transition-colors group-hover:text-white">
+                Document Preprocessing for AI: The Complete Guide
+              </h3>
+              <p className="mt-2 text-xs leading-relaxed text-[#888480]">
+                The most overlooked step in AI quality. Here is how to get it right.
+              </p>
+            </Link>
+          </div>
+          <div className="mt-6 text-center">
+            <Link
+              href="/guides"
+              className="text-sm font-medium text-[#FF4800] transition-colors hover:text-[#e04200]"
+            >
+              View all guides
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* ── Footer ── */}
       <footer className="border-t border-[#1E1E1E] py-10">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 px-6 sm:flex-row sm:justify-between">
@@ -888,6 +973,12 @@ expansion in EMEA.
             <span className="text-xs text-[#4A4A46]">MDSpin</span>
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/guides" className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]">
+              Guides
+            </Link>
+            <Link href="/formats" className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]">
+              Formats
+            </Link>
             <Link href="/blog" className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]">
               Blog
             </Link>

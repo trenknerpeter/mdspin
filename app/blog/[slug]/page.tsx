@@ -4,7 +4,9 @@ import { ArrowLeft } from "lucide-react"
 import type { Metadata } from "next"
 import { getAllSlugs, getPostBySlug, markdownToHtml } from "@/lib/blog"
 import { SITE_URL, SITE_NAME } from "@/lib/seo"
-import { BlogNav } from "@/components/blog-nav"
+import { ContentNav } from "@/components/content-nav"
+import { SiteFooter } from "@/components/site-footer"
+import { GrainOverlay } from "@/components/grain-overlay"
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -59,22 +61,28 @@ export default async function BlogPostPage({ params }: Props) {
     image: `${SITE_URL}/blog/${slug}/opengraph-image`,
   }
 
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "Blog", item: `${SITE_URL}/blog` },
+      { "@type": "ListItem", position: 3, name: post.title },
+    ],
+  }
+
   return (
     <div className="min-h-screen bg-[#0C0C0C] font-sans text-[#F0EDE8]">
-      {/* Grain overlay */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 z-50 opacity-[0.03]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
-        }}
-      />
-
-      <BlogNav />
+      <GrainOverlay />
+      <ContentNav section="Blog" href="/blog" />
 
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
 
       <main className="pb-24 pt-32">
@@ -141,26 +149,7 @@ export default async function BlogPostPage({ params }: Props) {
         </article>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-[#1E1E1E] py-10">
-        <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 px-6 sm:flex-row sm:justify-between">
-          <div className="flex items-center gap-2.5">
-            <img src="/logo.png" alt="MDSpin" className="h-6 w-6 rounded-md opacity-50" />
-            <span className="text-xs text-[#4A4A46]">MDSpin</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/blog" className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]">
-              Blog
-            </Link>
-            <Link href="/privacy" className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]">
-              Privacy
-            </Link>
-            <p className="text-xs text-[#4A4A46]">
-              Drop, spin, done. &copy; {new Date().getFullYear()}
-            </p>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   )
 }

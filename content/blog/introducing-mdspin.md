@@ -97,3 +97,11 @@ The web converter is the starting point. MDSpin is expanding to the tools where 
 MDSpin is free during Beta. Head to [mdspin.app](https://mdspin.app) to convert your first document. Drop a file, hit Spin, and see for yourself what your AI has been missing.
 
 If you want early access to the Make.com App or Chrome Extension when they launch, [join the waitlist](https://mdspin.app#products).
+
+---
+
+**Keep reading:**
+- [How to Convert PDFs for ChatGPT, Claude & Gemini](/guides/convert-pdf-for-chatgpt)
+- [How to Cut AI Token Costs by 40% with Better Document Formatting](/guides/reduce-ai-token-costs)
+- [All supported formats and how each conversion works](/formats)
+- [MDSpin vs. the Competition](/blog/mdspin-vs-competitors)

@@ -101,3 +101,11 @@ That's where MDSpin is headed.
 The Make.com App is actively being built. The backend conversion API is live, the OAuth integration is in place, and the Make.com module spec is in development. The goal is to open early access soon — first to waitlist members, then to the broader Make.com community.
 
 If you're building AI workflows that hit a wall at document conversion — whether it's resume parsing, contract analysis, meeting note processing, or knowledge base ingestion — [join the waitlist](https://mdspin.app#products) to get access as soon as the Make.com App is ready.
+
+---
+
+**Keep reading:**
+- [Document Preprocessing for AI: The Complete Guide](/guides/document-preprocessing-for-ai)
+- [Why Markdown is the Best Format for RAG Pipelines](/guides/markdown-for-rag)
+- [All supported formats and how each conversion works](/formats)
+- [MDSpin vs. the Competition](/blog/mdspin-vs-competitors)
