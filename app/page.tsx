@@ -985,6 +985,9 @@ expansion in EMEA.
             <Link href="/privacy" className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]">
               Privacy
             </Link>
+            <Link href="https://github.com/trenknerpeter/mdspin" className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]">
+              GitHub
+            </Link>
             <p className="text-xs text-[#4A4A46]">Drop, spin, done. &copy; {new Date().getFullYear()}</p>
           </div>
         </div>
