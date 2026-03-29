@@ -20,7 +20,7 @@ MDSpin converts documents into clean Markdown optimised for LLMs, RAG pipelines,
 
 ## Tech Stack
 
-Next.js 15 · TypeScript · Tailwind CSS · Supabase · Vercel
+Next.js 16 · TypeScript · Tailwind CSS · Supabase · Vercel
 
 ## Local Development
 
