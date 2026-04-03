@@ -171,6 +171,13 @@ export default function MDSpinPage() {
       return
     }
 
+    // Capture file metadata before any state updates to avoid stale closure in DB inserts
+    const fileMetaForInserts = files.map(fi => ({
+      name: fi.file.name,
+      size: fi.file.size,
+      ext: fi.file.name.split('.').pop()?.toLowerCase() ?? ''
+    }))
+
     setBatchStatus('converting')
     setError(null)
     setShowMerged(false)
@@ -184,17 +191,27 @@ export default function MDSpinPage() {
 
       const res = await fetch('/api/convert/batch', { method: 'POST', body: fd })
 
-      // Update rate limit headers
+      // Read rate limit headers first
       const limitHeader = res.headers.get('X-RateLimit-Limit')
       const remainingHeader = res.headers.get('X-RateLimit-Remaining')
       if (limitHeader) setDailyLimit(Number(limitHeader))
       if (remainingHeader) setRemaining(Number(remainingHeader))
 
-      const data = await res.json()
-
+      // Check 429 before parsing body
       if (res.status === 429) {
         setRateLimited(true)
         setError(null)
+        setBatchStatus('idle')
+        setFiles(prev => prev.map(fi => ({ ...fi, status: 'queued' as const })))
+        return
+      }
+
+      // Now safe to parse JSON
+      let data: { results?: Array<{ status: string; markdown?: string; error?: string }>; message?: string }
+      try {
+        data = await res.json() as typeof data
+      } catch {
+        setError('Conversion service returned an unexpected response. Try again.')
         setBatchStatus('idle')
         setFiles(prev => prev.map(fi => ({ ...fi, status: 'queued' as const })))
         return
@@ -230,17 +247,17 @@ export default function MDSpinPage() {
 
       setBatchStatus('done')
 
-      // Fire-and-forget DB inserts
+      // Fire-and-forget DB inserts using pre-captured metadata (avoids stale closure)
       const supabaseClient = supabase
       results.forEach((result, idx) => {
         if (result.status === 'fulfilled' && result.markdown) {
-          const fi = files[idx]
-          const ext = fi.file.name.split('.').pop()?.toLowerCase() ?? ''
+          const meta = fileMetaForInserts[idx]
+          if (!meta) return
           const wordCount = result.markdown.split(/\s+/).filter(Boolean).length
           supabaseClient.from('conversions').insert({
             user_id: user?.id ?? null,
-            filename: fi.file.name,
-            file_type: ext,
+            filename: meta.name,
+            file_type: meta.ext,
             word_count: wordCount,
             markdown_text: result.markdown,
           }).then(({ error: insertError }) => {
@@ -262,6 +279,7 @@ export default function MDSpinPage() {
     setCopiedId(null)
     setShowMerged(false)
     setError(null)
+    setRateLimited(false)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -276,7 +294,7 @@ export default function MDSpinPage() {
 
   const mergedMarkdown = useMemo(() => {
     const successFiles = files.filter(fi => fi.status === 'done' && fi.markdown)
-    if (successFiles.length < 2) return null
+    if (successFiles.length < 2) return null // Merge only makes sense for 2+ files — single file users use per-file copy/download
     return successFiles
       .map(fi => {
         const nameNoExt = fi.file.name.replace(/\.[^/.]+$/, '')
@@ -912,7 +930,7 @@ expansion in EMEA.
               )}
               <button
                 type="button"
-                onClick={resetApp}
+                onClick={handleNewConversion}
                 className="flex items-center gap-2 text-sm text-[#4A4A46] transition-colors hover:text-[#888480]"
               >
                 <Zap className="h-3.5 w-3.5" /> Convert more files
