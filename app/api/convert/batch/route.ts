@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
         message:         `Some files are not supported. Please upload PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, or PAGES files.`,
         unsupportedFiles,
       },
-      { status: 400 }
+      { status: 415 }
     );
   }
 
@@ -190,6 +190,7 @@ export async function POST(req: NextRequest) {
       files.map(async (file) => {
         const arrayBuffer = await file.arrayBuffer();
         const file_data   = Buffer.from(arrayBuffer).toString('base64');
+        // mime_type is intentionally omitted — the batch endpoint infers it from filename.
         return { file_data, filename: file.name };
       })
     );
@@ -241,7 +242,8 @@ export async function POST(req: NextRequest) {
   if (backendRes.ok && Array.isArray(data.results)) {
     successCount = data.results.filter((r) => r.status === 'fulfilled').length;
 
-    // Fire-and-forget — don't block the response
+    // Fire-and-forget — don't block the response.
+    // Each call atomically increments by 1 via a Supabase RPC — N calls = N usages billed.
     for (let i = 0; i < successCount; i++) {
       incrementUsage(identifier, identifierType).catch((err) =>
         console.error('[/api/convert/batch] Usage increment failed:', err)
