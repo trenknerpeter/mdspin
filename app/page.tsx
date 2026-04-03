@@ -18,15 +18,6 @@ type FileItem = {
   fileType?: string
 }
 
-type ROIData = {
-  mdTokens: number
-  origTokens: number
-  reductionPct: number
-  savingsPerThousand: number
-  speedup: number
-  accuracyRange: string
-}
-
 const TEXT_DENSITY: Record<string, number> = {
   pdf: 0.35, docx: 0.45, doc: 0.30,
   txt: 0.90, rtf: 0.55, pages: 0.35,
@@ -34,18 +25,6 @@ const TEXT_DENSITY: Record<string, number> = {
 const ACCURACY_RANGE: Record<string, string> = {
   pdf: "+55–70%", docx: "+45–65%", doc: "+45–65%",
   txt: "+15–30%", rtf: "+40–60%", pages: "+45–65%",
-}
-
-function calculateROI(file: File, markdown: string): ROIData {
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "pdf"
-  const density = TEXT_DENSITY[ext] ?? 0.40
-  const mdTokens = Math.max(1, Math.round(markdown.length / 4))
-  const origTokens = Math.max(mdTokens + 1, Math.round(file.size * density / 4))
-  const reductionPct = Math.min(90, Math.max(5, Math.round((1 - mdTokens / origTokens) * 100)))
-  const savingsPerThousand = Math.round((origTokens - mdTokens) * 0.000015 * 1000 * 100) / 100
-  const speedup = Math.min(5.0, Math.max(1.1, origTokens / mdTokens))
-  const accuracyRange = ACCURACY_RANGE[ext] ?? "+40–60%"
-  return { mdTokens, origTokens, reductionPct, savingsPerThousand, speedup, accuracyRange }
 }
 
 const SUPPORTED_FORMATS = ["PDF", "DOC", "DOCX", "PPTX", "GSLIDES", "PAGES", "TXT", "RTF"]
@@ -174,7 +153,6 @@ export default function MDSpinPage() {
     // Capture file metadata before any state updates to avoid stale closure in DB inserts
     const fileMetaForInserts = files.map(fi => ({
       name: fi.file.name,
-      size: fi.file.size,
       ext: fi.file.name.split('.').pop()?.toLowerCase() ?? ''
     }))
 
@@ -226,6 +204,7 @@ export default function MDSpinPage() {
 
       // Map results back to FileItems
       const results: Array<{ status: string; markdown?: string; error?: string }> = data.results ?? []
+      // Results are positional: the backend preserves submission order
       setFiles(prev => prev.map((fi, idx) => {
         const result = results[idx]
         if (!result) return { ...fi, status: 'failed' as const, error: 'No result returned' }
