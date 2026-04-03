@@ -1,13 +1,22 @@
 "use client"
 
-import { useState, useRef, useCallback, useEffect } from "react"
-import { Upload, Copy, Download, Check, Sparkles, FileText, Zap, ArrowRight, LogOut, History, User, TrendingDown, Plus } from "lucide-react"
+import { useState, useRef, useCallback, useEffect, useMemo } from "react"
+import { Upload, Copy, Download, Check, Sparkles, FileText, Zap, ArrowRight, LogOut, History, User, TrendingDown, Plus, X } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/components/auth-provider"
 import { createClient } from "@/lib/supabase/client"
 
-type AppState = "idle" | "loaded" | "converting" | "done"
 type WaitlistStatus = "idle" | "loading" | "success" | "error"
+
+type FileItem = {
+  id: string
+  file: File
+  status: 'queued' | 'converting' | 'done' | 'failed'
+  markdown?: string
+  error?: string
+  wordCount?: number
+  fileType?: string
+}
 
 type ROIData = {
   mdTokens: number
@@ -47,12 +56,11 @@ export default function MDSpinPage() {
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   // --- converter state ---
-  const [state, setState] = useState<AppState>("idle")
-  const [fileName, setFileName] = useState<string>("")
-  const [markdown, setMarkdown] = useState<string>("")
-  const [copied, setCopied] = useState(false)
+  const [files, setFiles] = useState<FileItem[]>([])
+  const [batchStatus, setBatchStatus] = useState<'idle' | 'converting' | 'done'>('idle')
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [showMerged, setShowMerged] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
-  const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -63,8 +71,16 @@ export default function MDSpinPage() {
   const [dailyLimit, setDailyLimit] = useState<number | null>(null)
 
   // --- roi state ---
-  const [roi, setRoi] = useState<ROIData | null>(null)
   const [monthlyCalls, setMonthlyCalls] = useState(20)
+
+  // Derive appState for UI logic
+  const appState = batchStatus === 'idle' && files.length === 0
+    ? 'idle'
+    : batchStatus === 'converting'
+      ? 'converting'
+      : batchStatus === 'done'
+        ? 'done'
+        : 'loaded'
 
   // --- waitlist state ---
   const [waitlistEmail, setWaitlistEmail] = useState("")
@@ -74,23 +90,38 @@ export default function MDSpinPage() {
     setMounted(true)
   }, [])
 
-  // --- converter handlers (preserved exactly) ---
-  const handleFile = useCallback((droppedFile: File) => {
-    setFileName(droppedFile.name)
-    setFile(droppedFile)
-    setState("loaded")
-    setMarkdown("")
-    setError(null)
+  // --- converter handlers ---
+  const handleFiles = useCallback((newFiles: File[]) => {
+    const SUPPORTED_EXTS = ['pdf', 'docx', 'doc', 'pptx', 'gslides', 'rtf', 'txt', 'pages']
+    const MAX_SIZE = 20 * 1024 * 1024
+
+    const toAdd = newFiles.filter(f => {
+      const ext = f.name.split('.').pop()?.toLowerCase() ?? ''
+      if (!SUPPORTED_EXTS.includes(ext)) return false
+      if (f.size > MAX_SIZE) return false
+      return true
+    })
+
+    setFiles(prev => {
+      const existing = new Set(prev.map(fi => fi.file.name + fi.file.size))
+      const deduped = toAdd.filter(f => !existing.has(f.name + f.size))
+      const combined = [...prev, ...deduped.map(f => ({
+        id: crypto.randomUUID(),
+        file: f,
+        status: 'queued' as const,
+        fileType: f.name.split('.').pop()?.toLowerCase()
+      }))]
+      return combined.slice(0, 20)
+    })
   }, [])
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault()
       setIsDragOver(false)
-      const file = e.dataTransfer.files[0]
-      if (file) handleFile(file)
+      handleFiles(Array.from(e.dataTransfer.files))
     },
-    [handleFile]
+    [handleFiles]
   )
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -108,23 +139,54 @@ export default function MDSpinPage() {
   }
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) handleFile(file)
+    handleFiles(Array.from(e.target.files ?? []))
+  }
+
+  const removeFile = useCallback((id: string) => {
+    setFiles(prev => prev.filter(fi => fi.id !== id))
+  }, [])
+
+  const handleCopyFile = async (id: string, markdown: string) => {
+    await navigator.clipboard.writeText(markdown)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
+
+  const handleDownloadFile = (filename: string, markdown: string) => {
+    const blob = new Blob([markdown], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename.replace(/\.[^/.]+$/, '') + '.md'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
 
   const handleSpin = async () => {
-    if (state !== "loaded" || !file) return
-    setState("converting")
+    if (files.length === 0 || batchStatus === 'converting') return
+    if (remaining !== null && files.length > remaining) {
+      setError(`You have ${remaining} conversion${remaining !== 1 ? 's' : ''} remaining. Remove ${files.length - remaining} file${files.length - remaining !== 1 ? 's' : ''} to proceed.`)
+      return
+    }
+
+    setBatchStatus('converting')
     setError(null)
+    setShowMerged(false)
+
+    // Mark all as converting
+    setFiles(prev => prev.map(fi => ({ ...fi, status: 'converting' as const })))
 
     try {
       const fd = new FormData()
-      fd.append("file", file)
-      const res = await fetch("/api/convert", { method: "POST", body: fd })
+      files.forEach(fi => fd.append('files', fi.file))
 
-      // Update rate limit state from response headers
-      const limitHeader = res.headers.get("X-RateLimit-Limit")
-      const remainingHeader = res.headers.get("X-RateLimit-Remaining")
+      const res = await fetch('/api/convert/batch', { method: 'POST', body: fd })
+
+      // Update rate limit headers
+      const limitHeader = res.headers.get('X-RateLimit-Limit')
+      const remainingHeader = res.headers.get('X-RateLimit-Remaining')
       if (limitHeader) setDailyLimit(Number(limitHeader))
       if (remainingHeader) setRemaining(Number(remainingHeader))
 
@@ -133,67 +195,75 @@ export default function MDSpinPage() {
       if (res.status === 429) {
         setRateLimited(true)
         setError(null)
-        setState("loaded")
+        setBatchStatus('idle')
+        setFiles(prev => prev.map(fi => ({ ...fi, status: 'queued' as const })))
         return
       }
 
       if (!res.ok) {
-        setError(data.message ?? "Conversion failed. Please try again.")
-        setState("loaded")
+        setError(data.message ?? 'Conversion failed. Please try again.')
+        setBatchStatus('idle')
+        setFiles(prev => prev.map(fi => ({ ...fi, status: 'queued' as const })))
         return
       }
 
-      setMarkdown(data.markdown_text)
-      setRoi(calculateROI(file, data.markdown_text))
-      setState("done")
+      // Map results back to FileItems
+      const results: Array<{ status: string; markdown?: string; error?: string }> = data.results ?? []
+      setFiles(prev => prev.map((fi, idx) => {
+        const result = results[idx]
+        if (!result) return { ...fi, status: 'failed' as const, error: 'No result returned' }
+        if (result.status === 'fulfilled' && result.markdown) {
+          const wordCount = result.markdown.split(/\s+/).filter(Boolean).length
+          return {
+            ...fi,
+            status: 'done' as const,
+            markdown: result.markdown,
+            wordCount,
+          }
+        }
+        return {
+          ...fi,
+          status: 'failed' as const,
+          error: result.error ?? 'Conversion failed',
+        }
+      }))
 
-      // Save conversion (fire-and-forget; user_id null for anonymous)
-      if (file) {
-        const ext = file.name.split(".").pop()?.toLowerCase() ?? ""
-        const wordCount = data.markdown_text.split(/\s+/).filter(Boolean).length
-        supabase.from("conversions").insert({
-          user_id: user?.id ?? null,
-          filename: file.name,
-          file_type: ext,
-          word_count: wordCount,
-          markdown_text: data.markdown_text,
-        }).then(({ error }) => {
-          if (error) console.error("[conversions] insert failed:", error.message)
-        })
-      }
+      setBatchStatus('done')
+
+      // Fire-and-forget DB inserts
+      const supabaseClient = supabase
+      results.forEach((result, idx) => {
+        if (result.status === 'fulfilled' && result.markdown) {
+          const fi = files[idx]
+          const ext = fi.file.name.split('.').pop()?.toLowerCase() ?? ''
+          const wordCount = result.markdown.split(/\s+/).filter(Boolean).length
+          supabaseClient.from('conversions').insert({
+            user_id: user?.id ?? null,
+            filename: fi.file.name,
+            file_type: ext,
+            word_count: wordCount,
+            markdown_text: result.markdown,
+          }).then(({ error: insertError }) => {
+            if (insertError) console.error('[conversions] insert failed:', insertError.message)
+          })
+        }
+      })
+
     } catch {
-      setError("Network error. Check your connection and try again.")
-      setState("loaded")
+      setError('Network error. Check your connection and try again.')
+      setBatchStatus('idle')
+      setFiles(prev => prev.map(fi => ({ ...fi, status: 'queued' as const })))
     }
   }
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(markdown)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  const handleDownload = () => {
-    const blob = new Blob([markdown], { type: "text/markdown" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = fileName.replace(/\.[^/.]+$/, "") + ".md"
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
-
   const resetApp = () => {
-    setState("idle")
-    setFileName("")
-    setMarkdown("")
-    setFile(null)
+    setFiles([])
+    setBatchStatus('idle')
+    setCopiedId(null)
+    setShowMerged(false)
     setError(null)
-    setRoi(null)
     if (fileInputRef.current) {
-      fileInputRef.current.value = ""
+      fileInputRef.current.value = ''
     }
   }
 
@@ -203,6 +273,17 @@ export default function MDSpinPage() {
       fileInputRef.current?.click()
     }, 50)
   }
+
+  const mergedMarkdown = useMemo(() => {
+    const successFiles = files.filter(fi => fi.status === 'done' && fi.markdown)
+    if (successFiles.length < 2) return null
+    return successFiles
+      .map(fi => {
+        const nameNoExt = fi.file.name.replace(/\.[^/.]+$/, '')
+        return `# ${nameNoExt}\n\n${fi.markdown}`
+      })
+      .join('\n\n---\n\n')
+  }, [files])
 
   // --- waitlist handler ---
   const handleWaitlist = async (e: React.FormEvent) => {
@@ -513,26 +594,28 @@ expansion in EMEA.
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            onClick={state === "idle" ? handleBrowse : undefined}
+            onClick={appState === 'idle' && files.length === 0 ? handleBrowse : undefined}
             className={`
-              group relative flex min-h-[200px] flex-col items-center justify-center
+              group relative flex flex-col items-center justify-center
               rounded-xl border-2 border-dashed transition-all duration-300
+              ${files.length > 0 && batchStatus !== 'done' ? 'min-h-[100px]' : 'min-h-[200px]'}
               ${isDragOver
                 ? "scale-[1.01] border-[#FF4800] bg-[#FF4800]/5 shadow-lg shadow-[#FF4800]/10"
                 : "border-[#2A2A2A] bg-[#161616] hover:border-[#3A3A3A]"}
-              ${state === "converting" ? "opacity-60" : ""}
-              ${state === "idle" ? "cursor-pointer" : "cursor-default"}
+              ${appState === "converting" ? "opacity-60" : ""}
+              ${appState === "idle" && files.length === 0 ? "cursor-pointer" : "cursor-default"}
             `}
           >
             <input
               ref={fileInputRef}
               type="file"
+              multiple
               accept=".pdf,.doc,.docx,.pptx,.gslides,.pages,.txt,.rtf"
               onChange={handleFileInput}
               className="hidden"
             />
 
-            {state === "idle" && (
+            {appState === "idle" && files.length === 0 && (
               <div className="flex flex-col items-center">
                 <div
                   className={`mb-4 rounded-xl p-4 transition-all duration-300 ${
@@ -548,7 +631,7 @@ expansion in EMEA.
                     strokeWidth={1.5}
                   />
                 </div>
-                <p className="text-sm font-medium text-[#888480]">Drop your file here</p>
+                <p className="text-sm font-medium text-[#888480]">Drop your files here</p>
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); handleBrowse() }}
@@ -559,24 +642,48 @@ expansion in EMEA.
               </div>
             )}
 
-            {(state === "loaded" || state === "converting" || state === "done") && (
-              <div className="flex flex-col items-center">
-                <div className="mb-3 rounded-xl bg-[#2A2A2A] p-3">
-                  <FileText className="h-5 w-5 text-[#F0EDE8]" strokeWidth={1.5} />
-                </div>
-                <p className="text-sm font-medium text-[#F0EDE8]">{fileName}</p>
-                {state !== "done" && (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); resetApp() }}
-                    className="mt-2 text-xs text-[#4A4A46] transition-colors hover:text-[#888480]"
-                  >
-                    Remove
-                  </button>
-                )}
+            {files.length > 0 && batchStatus !== 'done' && (
+              <div className="flex flex-col items-center py-4">
+                <Upload className="h-5 w-5 text-[#4A4A46]" strokeWidth={1.5} />
+                <p className="mt-2 text-xs text-[#4A4A46]">Drop more files</p>
               </div>
             )}
           </div>
+
+          {/* File list (when files are staged and not done) */}
+          {files.length > 0 && batchStatus !== 'done' && (
+            <div className="mt-3 space-y-1.5">
+              {files.map(fi => (
+                <div key={fi.id} className="flex items-center justify-between rounded-lg border border-[#2A2A2A] bg-[#161616] px-4 py-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <FileText className="h-4 w-4 shrink-0 text-[#888480]" strokeWidth={1.5} />
+                    <span className="truncate text-sm text-[#F0EDE8]">{fi.file.name}</span>
+                    <span className="shrink-0 rounded-full border border-[#2A2A2A] bg-[#0C0C0C] px-2 py-0.5 font-mono text-[10px] uppercase text-[#4A4A46]">
+                      {fi.fileType}
+                    </span>
+                  </div>
+                  {batchStatus !== 'converting' && (
+                    <button
+                      type="button"
+                      onClick={() => removeFile(fi.id)}
+                      className="ml-2 shrink-0 rounded p-1 text-[#4A4A46] transition-colors hover:bg-[#2A2A2A] hover:text-[#888480]"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              {files.length < 20 && batchStatus !== 'converting' && (
+                <button
+                  type="button"
+                  onClick={handleBrowse}
+                  className="mt-1 text-xs text-[#4A4A46] underline underline-offset-4 transition-colors hover:text-[#FF4800]"
+                >
+                  Add more files
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Formats */}
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
@@ -601,16 +708,16 @@ expansion in EMEA.
               <button
                 type="button"
                 onClick={handleSpin}
-                disabled={state !== "loaded" || rateLimited}
+                disabled={files.length === 0 || batchStatus === 'converting' || rateLimited}
                 className={`
                   group relative flex h-12 min-w-[140px] items-center justify-center gap-2
                   rounded-full px-8 text-sm font-semibold transition-all duration-300
-                  ${state === "loaded" && !rateLimited
+                  ${files.length > 0 && batchStatus !== 'converting' && !rateLimited
                     ? "bg-[#FF4800] text-white shadow-lg shadow-[#FF4800]/25 hover:scale-105 hover:shadow-xl hover:shadow-[#FF4800]/30 active:scale-[0.98]"
                     : "cursor-not-allowed bg-[#1E1E1E] text-[#4A4A46]"}
                 `}
               >
-                {state === "converting" ? (
+                {batchStatus === "converting" ? (
                   <span className="flex items-center gap-2">
                     <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
@@ -620,21 +727,11 @@ expansion in EMEA.
                   </span>
                 ) : (
                   <>
-                    <Sparkles className={`h-4 w-4 transition-transform ${state === "loaded" && !rateLimited ? "group-hover:rotate-12" : ""}`} />
-                    Spin
+                    <Sparkles className={`h-4 w-4 transition-transform ${files.length > 0 && !rateLimited ? "group-hover:rotate-12" : ""}`} />
+                    {files.length > 0 ? `Spin ${files.length} file${files.length !== 1 ? 's' : ''}` : 'Spin'}
                   </>
                 )}
               </button>
-              {state === "done" && (
-                <button
-                  type="button"
-                  onClick={handleNewConversion}
-                  className="flex h-12 items-center gap-2 rounded-full border border-[#2A2A2A] px-6 text-sm font-semibold text-[#888480] transition-all duration-300 hover:border-[#4A4A46] hover:text-[#F0EDE8]"
-                >
-                  <Plus className="h-4 w-4" />
-                  New
-                </button>
-              )}
             </div>
             {remaining !== null && dailyLimit !== null && (
               <div className="flex flex-col items-center gap-2">
@@ -658,120 +755,168 @@ expansion in EMEA.
             )}
           </div>
 
-          {/* Output */}
-          {state === "done" && markdown && (
+          {/* Per-file results */}
+          {batchStatus === 'done' && !showMerged && (
+            <div className="mt-10 animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4">
+              {files.map(fi => (
+                <div key={fi.id} className="overflow-hidden rounded-xl border border-[#2A2A2A]">
+                  {/* Card header */}
+                  <div className="flex items-center justify-between border-b border-[#2A2A2A] bg-[#161616] px-5 py-3">
+                    <div className="flex items-center gap-2">
+                      {fi.status === 'done'
+                        ? <Check className="h-3.5 w-3.5 text-green-500" strokeWidth={2} />
+                        : <span className="h-3.5 w-3.5 text-red-400">&#x2715;</span>}
+                      <span className="text-sm font-medium text-[#F0EDE8] truncate max-w-[200px]">{fi.file.name}</span>
+                    </div>
+                    {fi.status === 'done' && fi.markdown && (
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadFile(fi.file.name, fi.markdown!)}
+                          className="flex items-center gap-1.5 rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-1.5 text-xs font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
+                        >
+                          <Download className="h-3.5 w-3.5" /> Save .md
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyFile(fi.id, fi.markdown!)}
+                          className="flex items-center gap-1.5 rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-1.5 text-xs font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
+                        >
+                          {copiedId === fi.id
+                            ? <><Check className="h-3.5 w-3.5 text-[#FF4800]" /> Copied</>
+                            : <><Copy className="h-3.5 w-3.5" /> Copy</>}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  {fi.status === 'done' && fi.markdown && (
+                    <details>
+                      <summary className="cursor-pointer px-5 py-2 text-xs text-[#4A4A46] hover:text-[#888480] transition-colors">
+                        Preview markdown
+                      </summary>
+                      <pre className="max-h-60 overflow-y-auto overflow-x-auto bg-[#0C0C0C] px-5 pb-5 font-mono text-xs leading-relaxed text-[#F0EDE8]/75">
+                        <code>{fi.markdown}</code>
+                      </pre>
+                    </details>
+                  )}
+                  {fi.status === 'failed' && (
+                    <p className="px-5 py-3 text-xs text-red-400">{fi.error ?? 'Conversion failed'}</p>
+                  )}
+                </div>
+              ))}
+
+              {/* Aggregate ROI panel */}
+              {(() => {
+                const successFiles = files.filter(fi => fi.status === 'done' && fi.markdown)
+                if (successFiles.length === 0) return null
+                const totalWordCount = successFiles.reduce((sum, fi) => sum + (fi.wordCount ?? 0), 0)
+                const totalMdTokens = Math.round(totalWordCount * 1.33)
+                const totalOrigTokens = successFiles.reduce((sum, fi) => {
+                  const ext = fi.file.name.split('.').pop()?.toLowerCase() ?? 'pdf'
+                  const density = TEXT_DENSITY[ext] ?? 0.40
+                  return sum + Math.round(fi.file.size * density / 4)
+                }, 0)
+                const reductionPct = totalOrigTokens > 0
+                  ? Math.min(90, Math.max(5, Math.round((1 - totalMdTokens / totalOrigTokens) * 100)))
+                  : 0
+                return (
+                  <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 overflow-hidden rounded-xl border border-[#2A2A2A] bg-[#161616]">
+                    <div className="flex items-center gap-2 border-b border-[#2A2A2A] px-5 py-3">
+                      <TrendingDown className="h-3.5 w-3.5 text-[#FF4800]" strokeWidth={2} />
+                      <span className="text-xs font-semibold uppercase tracking-[0.15em] text-[#FF4800]">Conversion Impact</span>
+                      <span className="ml-auto text-[10px] text-[#4A4A46]">{successFiles.length} file{successFiles.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="grid grid-cols-2 divide-x divide-y divide-[#1E1E1E]">
+                      <div className="p-4">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4A4A46]">Token Reduction</p>
+                        <p className="mt-1.5 font-display text-2xl font-bold text-[#FF4800]">&minus;{reductionPct}%</p>
+                        <p className="mt-0.5 font-mono text-[10px] text-[#888480]">~{totalOrigTokens.toLocaleString()} &rarr; ~{totalMdTokens.toLocaleString()} tokens</p>
+                      </div>
+                      <div className="p-4">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4A4A46]">Cost Savings</p>
+                        <p className="mt-1.5 font-display text-2xl font-bold text-[#FF4800]">
+                          ~${((totalOrigTokens - totalMdTokens) * 0.000015 * monthlyCalls).toFixed(2)}
+                          <span className="text-sm font-normal text-[#888480]">/mo</span>
+                        </p>
+                        <div className="mt-1.5 flex items-center gap-1.5">
+                          <span className="text-[10px] text-[#4A4A46]">at</span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={100000}
+                            value={monthlyCalls}
+                            onChange={(e) => setMonthlyCalls(Math.max(1, parseInt(e.target.value) || 1))}
+                            className="w-16 rounded border border-[#2A2A2A] bg-[#0C0C0C] px-1.5 py-0.5 text-center font-mono text-[10px] text-[#F0EDE8] outline-none focus:border-[#FF4800]/40"
+                          />
+                          <span className="text-[10px] text-[#4A4A46]">calls/mo</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+            </div>
+          )}
+
+          {/* Merged view */}
+          {batchStatus === 'done' && showMerged && mergedMarkdown && (
             <div className="mt-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="overflow-hidden rounded-xl border border-[#2A2A2A]">
                 <div className="flex items-center justify-between border-b border-[#2A2A2A] bg-[#161616] px-5 py-3">
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-[#FF4800]" />
-                    <span className="text-xs font-medium text-[#888480]">Output ready</span>
+                    <span className="text-xs font-medium text-[#888480]">Merged output ({files.filter(fi => fi.status === 'done').length} files)</span>
                   </div>
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={handleDownload}
+                      onClick={() => handleDownloadFile('merged', mergedMarkdown)}
                       className="flex items-center gap-1.5 rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-1.5 text-xs font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
                     >
-                      <Download className="h-3.5 w-3.5" />
-                      Save .md
+                      <Download className="h-3.5 w-3.5" /> Save .md
                     </button>
                     <button
                       type="button"
-                      onClick={handleCopy}
+                      onClick={() => handleCopyFile('merged', mergedMarkdown)}
                       className="flex items-center gap-1.5 rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-1.5 text-xs font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
                     >
-                      {copied ? (
-                        <>
-                          <Check className="h-3.5 w-3.5 text-[#FF4800]" />
-                          Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3.5 w-3.5" />
-                          Copy
-                        </>
-                      )}
+                      {copiedId === 'merged' ? <><Check className="h-3.5 w-3.5 text-[#FF4800]" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Copy</>}
                     </button>
                   </div>
                 </div>
                 <pre className="max-h-80 overflow-y-auto overflow-x-auto bg-[#0C0C0C] p-5 font-mono text-xs leading-relaxed text-[#F0EDE8]/75">
-                  <code>{markdown}</code>
+                  <code>{mergedMarkdown}</code>
                 </pre>
               </div>
-
-              {/* ROI Panel */}
-              {roi && (
-                <div className="mt-6 animate-in fade-in slide-in-from-bottom-2 duration-500 overflow-hidden rounded-xl border border-[#2A2A2A] bg-[#161616]">
-                  <div className="flex items-center gap-2 border-b border-[#2A2A2A] px-5 py-3">
-                    <TrendingDown className="h-3.5 w-3.5 text-[#FF4800]" strokeWidth={2} />
-                    <span className="text-xs font-semibold uppercase tracking-[0.15em] text-[#FF4800]">Conversion Impact</span>
-                    <span className="ml-auto text-[10px] text-[#4A4A46]">for {fileName}</span>
-                  </div>
-
-                  {/* 4 stat tiles */}
-                  <div className="grid grid-cols-2 divide-x divide-y divide-[#1E1E1E]">
-                    {/* Token reduction */}
-                    <div className="p-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4A4A46]">Token Reduction</p>
-                      <p className="mt-1.5 font-display text-2xl font-bold text-[#FF4800]">−{roi.reductionPct}%</p>
-                      <p className="mt-0.5 font-mono text-[10px] text-[#888480]">
-                        ~{roi.origTokens.toLocaleString()} → ~{roi.mdTokens.toLocaleString()} tokens
-                      </p>
-                    </div>
-
-                    {/* Processing speed */}
-                    <div className="p-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4A4A46]">Inference Speed</p>
-                      <p className="mt-1.5 font-display text-2xl font-bold text-[#FF4800]">~{roi.speedup.toFixed(1)}×</p>
-                      <p className="mt-0.5 font-mono text-[10px] text-[#888480]">faster processing</p>
-                    </div>
-
-                    {/* Cost savings */}
-                    <div className="p-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4A4A46]">Cost Savings</p>
-                      <p className="mt-1.5 font-display text-2xl font-bold text-[#FF4800]">
-                        ~${(roi.savingsPerThousand * monthlyCalls / 1000).toFixed(2)}
-                        <span className="text-sm font-normal text-[#888480]">/mo</span>
-                      </p>
-                      <div className="mt-1.5 flex items-center gap-1.5">
-                        <span className="text-[10px] text-[#4A4A46]">at</span>
-                        <input
-                          type="number"
-                          min={1}
-                          max={100000}
-                          value={monthlyCalls}
-                          onChange={(e) => setMonthlyCalls(Math.max(1, parseInt(e.target.value) || 1))}
-                          className="w-16 rounded border border-[#2A2A2A] bg-[#0C0C0C] px-1.5 py-0.5 text-center font-mono text-[10px] text-[#F0EDE8] outline-none focus:border-[#FF4800]/40"
-                        />
-                        <span className="text-[10px] text-[#4A4A46]">calls/mo</span>
-                      </div>
-                    </div>
-
-                    {/* Retrieval accuracy */}
-                    <div className="p-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4A4A46]">RAG Accuracy</p>
-                      <p className="mt-1.5 font-display text-2xl font-bold text-[#FF4800]">{roi.accuracyRange}</p>
-                      <p className="mt-0.5 font-mono text-[10px] text-[#888480]">retrieval improvement</p>
-                    </div>
-                  </div>
-
-                  <p className="border-t border-[#1E1E1E] px-5 py-2.5 text-[10px] leading-relaxed text-[#4A4A46]">
-                    Estimates based on file-type heuristics and the ~4 chars/token approximation. Actual results vary by content and model.
-                  </p>
-                </div>
-              )}
-
-              <div className="mt-6 flex justify-center">
-                <button
-                  type="button"
-                  onClick={resetApp}
-                  className="flex items-center gap-2 text-sm text-[#4A4A46] transition-colors hover:text-[#888480]"
-                >
-                  <Zap className="h-3.5 w-3.5" />
-                  Convert another file
+              <div className="mt-4 flex justify-center">
+                <button type="button" onClick={() => setShowMerged(false)} className="text-sm text-[#4A4A46] transition-colors hover:text-[#888480]">
+                  &larr; Back to individual files
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Merge All / New buttons */}
+          {batchStatus === 'done' && (
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              {mergedMarkdown && !showMerged && (
+                <button
+                  type="button"
+                  onClick={() => setShowMerged(true)}
+                  className="flex items-center gap-2 rounded-full bg-[#FF4800] px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#e04200]"
+                >
+                  <Sparkles className="h-4 w-4" /> Merge All
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={resetApp}
+                className="flex items-center gap-2 text-sm text-[#4A4A46] transition-colors hover:text-[#888480]"
+              >
+                <Zap className="h-3.5 w-3.5" /> Convert more files
+              </button>
             </div>
           )}
         </div>
