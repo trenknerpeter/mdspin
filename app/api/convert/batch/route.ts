@@ -160,6 +160,10 @@ export async function POST(req: NextRequest) {
       ? `You can only convert ${rateCheck.remaining} more file(s) today. Resets at midnight UTC.`
       : `Daily conversion limit reached. Sign in for more conversions.`;
 
+    // Intentional: the 429 body includes extra fields (message, limit, remaining,
+    // resetsAt) beyond what the spec minimum requires. This matches the pattern in
+    // app/api/convert/route.ts and gives the frontend everything it needs to render
+    // a meaningful error (e.g. countdown until reset, remaining quota).
     return NextResponse.json(
       {
         error:     'RATE_LIMITED',
@@ -230,6 +234,10 @@ export async function POST(req: NextRequest) {
 
   // ── 11. Increment usage for each successfully converted file ─
   let successCount = 0;
+  // Intentional: usage is only incremented when backendRes.ok is true (HTTP 2xx).
+  // If the backend returns a non-2xx status we must not bill the user — the
+  // conversion did not succeed from the service's perspective regardless of what
+  // the response body may contain.
   if (backendRes.ok && Array.isArray(data.results)) {
     successCount = data.results.filter((r) => r.status === 'fulfilled').length;
 
