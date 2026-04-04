@@ -36,10 +36,11 @@ function getClientIp(req: NextRequest): string {
 }
 
 interface BatchResult {
-  status: 'fulfilled' | 'rejected';
-  markdown?: string;
+  success: boolean;
+  markdown_text?: string;
   error?: string;
-  filename: string;
+  filename?: string;
+  index?: number;
 }
 
 interface BatchResponse {
@@ -240,7 +241,7 @@ export async function POST(req: NextRequest) {
   // conversion did not succeed from the service's perspective regardless of what
   // the response body may contain.
   if (backendRes.ok && Array.isArray(data.results)) {
-    successCount = data.results.filter((r) => r.status === 'fulfilled').length;
+    successCount = data.results.filter((r) => r.success === true).length;
 
     // Fire-and-forget — don't block the response.
     // Each call atomically increments by 1 via a Supabase RPC — N calls = N usages billed.

@@ -185,7 +185,7 @@ export default function MDSpinPage() {
       }
 
       // Now safe to parse JSON
-      let data: { results?: Array<{ status: string; markdown?: string; error?: string }>; message?: string }
+      let data: { results?: Array<{ success: boolean; markdown_text?: string; error?: string }>; message?: string }
       try {
         data = await res.json() as typeof data
       } catch {
@@ -203,17 +203,18 @@ export default function MDSpinPage() {
       }
 
       // Map results back to FileItems
-      const results: Array<{ status: string; markdown?: string; error?: string }> = data.results ?? []
+      // Backend returns { success: boolean, markdown_text?: string, error?: string, ... } per entry
+      const results: Array<{ success: boolean; markdown_text?: string; error?: string }> = data.results ?? []
       // Results are positional: the backend preserves submission order
       setFiles(prev => prev.map((fi, idx) => {
         const result = results[idx]
         if (!result) return { ...fi, status: 'failed' as const, error: 'No result returned' }
-        if (result.status === 'fulfilled' && result.markdown) {
-          const wordCount = result.markdown.split(/\s+/).filter(Boolean).length
+        if (result.success && result.markdown_text) {
+          const wordCount = result.markdown_text.split(/\s+/).filter(Boolean).length
           return {
             ...fi,
             status: 'done' as const,
-            markdown: result.markdown,
+            markdown: result.markdown_text,
             wordCount,
           }
         }
@@ -229,16 +230,16 @@ export default function MDSpinPage() {
       // Fire-and-forget DB inserts using pre-captured metadata (avoids stale closure)
       const supabaseClient = supabase
       results.forEach((result, idx) => {
-        if (result.status === 'fulfilled' && result.markdown) {
+        if (result.success && result.markdown_text) {
           const meta = fileMetaForInserts[idx]
           if (!meta) return
-          const wordCount = result.markdown.split(/\s+/).filter(Boolean).length
+          const wordCount = result.markdown_text.split(/\s+/).filter(Boolean).length
           supabaseClient.from('conversions').insert({
             user_id: user?.id ?? null,
             filename: meta.name,
             file_type: meta.ext,
             word_count: wordCount,
-            markdown_text: result.markdown,
+            markdown_text: result.markdown_text,
           }).then(({ error: insertError }) => {
             if (insertError) console.error('[conversions] insert failed:', insertError.message)
           })
