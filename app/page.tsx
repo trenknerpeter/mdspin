@@ -705,12 +705,12 @@ expansion in EMEA.
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={handleSpin}
-                disabled={files.length === 0 || batchStatus === 'converting' || rateLimited}
+                onClick={batchStatus === 'done' ? handleNewConversion : handleSpin}
+                disabled={batchStatus !== 'done' && (files.length === 0 || batchStatus === 'converting' || rateLimited)}
                 className={`
                   group relative flex h-12 min-w-[140px] items-center justify-center gap-2
                   rounded-full px-8 text-sm font-semibold transition-all duration-300
-                  ${files.length > 0 && batchStatus !== 'converting' && !rateLimited
+                  ${batchStatus === 'done' || (files.length > 0 && batchStatus !== 'converting' && !rateLimited)
                     ? "bg-[#FF4800] text-white shadow-lg shadow-[#FF4800]/25 hover:scale-105 hover:shadow-xl hover:shadow-[#FF4800]/30 active:scale-[0.98]"
                     : "cursor-not-allowed bg-[#1E1E1E] text-[#4A4A46]"}
                 `}
@@ -723,6 +723,11 @@ expansion in EMEA.
                     </svg>
                     Converting
                   </span>
+                ) : batchStatus === 'done' ? (
+                  <>
+                    <Plus className="h-4 w-4 transition-transform group-hover:rotate-90 duration-200" />
+                    Create new
+                  </>
                 ) : (
                   <>
                     <Sparkles className={`h-4 w-4 transition-transform ${files.length > 0 && !rateLimited ? "group-hover:rotate-12" : ""}`} />
