@@ -591,16 +591,17 @@ expansion in EMEA.
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            onClick={appState === 'idle' && files.length === 0 ? handleBrowse : undefined}
+            onClick={files.length === 0 && batchStatus === 'idle' ? handleBrowse : undefined}
             className={`
-              group relative flex flex-col items-center justify-center
-              rounded-xl border-2 border-dashed transition-all duration-300
-              ${files.length > 0 && batchStatus !== 'done' ? 'min-h-[100px]' : 'min-h-[200px]'}
+              group relative rounded-xl border-2 border-dashed transition-all duration-300
+              ${files.length > 0 && batchStatus !== 'done'
+                ? 'p-3'
+                : 'flex min-h-[200px] flex-col items-center justify-center'}
               ${isDragOver
                 ? "scale-[1.01] border-[#FF4800] bg-[#FF4800]/5 shadow-lg shadow-[#FF4800]/10"
                 : "border-[#2A2A2A] bg-[#161616] hover:border-[#3A3A3A]"}
               ${appState === "converting" ? "opacity-60" : ""}
-              ${appState === "idle" && files.length === 0 ? "cursor-pointer" : "cursor-default"}
+              ${files.length === 0 && batchStatus === 'idle' ? "cursor-pointer" : "cursor-default"}
             `}
           >
             <input
@@ -612,7 +613,8 @@ expansion in EMEA.
               className="hidden"
             />
 
-            {appState === "idle" && files.length === 0 && (
+            {/* Empty state */}
+            {files.length === 0 && (
               <div className="flex flex-col items-center">
                 <div
                   className={`mb-4 rounded-xl p-4 transition-all duration-300 ${
@@ -639,48 +641,46 @@ expansion in EMEA.
               </div>
             )}
 
+            {/* Files staged: card grid with inline + Add card */}
             {files.length > 0 && batchStatus !== 'done' && (
-              <div className="flex flex-col items-center py-4">
-                <Upload className="h-5 w-5 text-[#4A4A46]" strokeWidth={1.5} />
-                <p className="mt-2 text-xs text-[#4A4A46]">Drop more files</p>
+              <div className="flex flex-wrap gap-2">
+                {files.map(fi => (
+                  <div
+                    key={fi.id}
+                    className="flex items-center gap-2 rounded-lg border border-[#2A2A2A] bg-[#0C0C0C] px-3 py-2"
+                  >
+                    <FileText className="h-3.5 w-3.5 shrink-0 text-[#888480]" strokeWidth={1.5} />
+                    <div className="min-w-0">
+                      <p className="max-w-[120px] truncate text-xs font-medium text-[#F0EDE8]">
+                        {fi.file.name.replace(/\.[^/.]+$/, '')}
+                      </p>
+                      <span className="font-mono text-[10px] uppercase text-[#4A4A46]">{fi.fileType}</span>
+                    </div>
+                    {batchStatus !== 'converting' && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); removeFile(fi.id) }}
+                        className="shrink-0 rounded p-0.5 text-[#4A4A46] transition-colors hover:bg-[#2A2A2A] hover:text-[#888480]"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {/* + Add card — always visible while under limit and not converting */}
+                {files.length < 20 && batchStatus !== 'converting' && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleBrowse() }}
+                    className="flex items-center gap-1.5 rounded-lg border border-dashed border-[#2A2A2A] bg-[#0C0C0C] px-3 py-2 text-[#4A4A46] transition-all hover:border-[#FF4800]/50 hover:text-[#FF4800]"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span className="text-xs">Add file</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
-
-          {/* File list (when files are staged and not done) */}
-          {files.length > 0 && batchStatus !== 'done' && (
-            <div className="mt-3 space-y-1.5">
-              {files.map(fi => (
-                <div key={fi.id} className="flex items-center justify-between rounded-lg border border-[#2A2A2A] bg-[#161616] px-4 py-2.5">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <FileText className="h-4 w-4 shrink-0 text-[#888480]" strokeWidth={1.5} />
-                    <span className="truncate text-sm text-[#F0EDE8]">{fi.file.name}</span>
-                    <span className="shrink-0 rounded-full border border-[#2A2A2A] bg-[#0C0C0C] px-2 py-0.5 font-mono text-[10px] uppercase text-[#4A4A46]">
-                      {fi.fileType}
-                    </span>
-                  </div>
-                  {batchStatus !== 'converting' && (
-                    <button
-                      type="button"
-                      onClick={() => removeFile(fi.id)}
-                      className="ml-2 shrink-0 rounded p-1 text-[#4A4A46] transition-colors hover:bg-[#2A2A2A] hover:text-[#888480]"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-              ))}
-              {files.length < 20 && batchStatus !== 'converting' && (
-                <button
-                  type="button"
-                  onClick={handleBrowse}
-                  className="mt-1 text-xs text-[#4A4A46] underline underline-offset-4 transition-colors hover:text-[#FF4800]"
-                >
-                  Add more files
-                </button>
-              )}
-            </div>
-          )}
 
           {/* Formats */}
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
