@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react"
-import { Upload, Copy, Download, Check, Sparkles, FileText, Zap, ArrowRight, LogOut, History, User, TrendingDown, Plus, X } from "lucide-react"
+import { Upload, Copy, Download, Check, Sparkles, FileText, Zap, ArrowRight, Chrome, LogOut, History, User, TrendingDown, Plus, X } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/components/auth-provider"
 import { createClient } from "@/lib/supabase/client"
@@ -409,31 +409,43 @@ export default function MDSpinPage() {
         <div
           className={`relative z-10 mx-auto max-w-4xl px-6 text-center transition-all duration-700 ${mounted ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
         >
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#2A2A2A] bg-[#161616] px-4 py-1.5 text-xs text-[#888480]">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#FF4800]" />
-            Markdown is the input format your AI deserves
+          {/* Product Hunt badge — left-aligned */}
+          <div className="mb-6 flex justify-start">
+            <a
+              href="https://www.producthunt.com/products/mdspin?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-mdspin"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                alt="MDSpin - File to Markdown converter | Product Hunt"
+                width={250}
+                height={54}
+                src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1114548&theme=dark&t=1775293684923"
+              />
+            </a>
           </div>
 
           <h1 className="font-display text-5xl font-extrabold leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl">
-            Stop feeding your
+            The Markdown Layer
             <br />
-            AI{" "}
+            for your{" "}
             <span className="relative inline-block text-[#FF4800]">
-              garbage.
+              AI.
               <svg
                 className="absolute -bottom-1 left-0 h-[3px] w-full"
-                viewBox="0 0 300 3"
+                viewBox="0 0 60 3"
                 fill="none"
                 preserveAspectRatio="none"
               >
                 <path
-                  d="M0 1.5 Q75 0.5 150 1.5 Q225 2.5 300 1.5"
+                  d="M0 1.5 Q15 0.5 30 1.5 Q45 2.5 60 1.5"
                   stroke="#FF4800"
                   strokeWidth="2"
                   strokeLinecap="round"
                   style={{
-                    strokeDasharray: 320,
-                    strokeDashoffset: mounted ? 0 : 320,
+                    strokeDasharray: 65,
+                    strokeDashoffset: mounted ? 0 : 65,
                     transition: "stroke-dashoffset 1.2s ease-out 0.6s",
                   }}
                 />
@@ -442,25 +454,70 @@ export default function MDSpinPage() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-[#888480] sm:text-lg">
-            PDF and DOCX files waste{" "}
-            <span className="text-[#F0EDE8]">40% of your AI&apos;s token budget</span> on
-            layout artifacts and formatting noise. Markdown is pure signal. MDSpin converts
-            your docs into the format your AI actually reads.
+            Convert PDFs and Docs into clean, structured context directly inside ChatGPT, Claude, and Gemini.
+            Get smarter responses with{" "}
+            <span className="text-[#F0EDE8]">40% fewer tokens.</span>
           </p>
 
+          {/* CTA Buttons */}
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <a
-              href="#converter"
+              href="https://chromewebstore.google.com/detail/mdspin-%E2%80%94-file-to-markdown/jmiinicnfjhndcmmiominecphddngjae?hl=en-GB&authuser=0"
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center gap-2 rounded-full bg-[#FF4800] px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#e04200] hover:shadow-lg hover:shadow-[#FF4800]/20"
+            >
+              <Chrome className="h-4 w-4" />
+              Try the Chrome extension
+            </a>
+            <a
+              href="#converter"
+              className="flex items-center gap-2 rounded-full border border-[#2A2A2A] px-6 py-2.5 text-sm font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
             >
               Convert a file <ArrowRight className="h-4 w-4" />
             </a>
-            <a
-              href="#products"
-              className="flex items-center gap-2 rounded-full border border-[#2A2A2A] px-6 py-2.5 text-sm font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
-            >
-              Join the waitlist
-            </a>
+          </div>
+
+          {/* Social proof — AI platform icons */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm text-[#555250]">
+            <span>Works in your browser with</span>
+            {/* ChatGPT */}
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[#2A2A2A] bg-[#161616] text-[#888480]">
+              <svg viewBox="0 0 41 41" className="h-5 w-5" fill="currentColor" aria-label="ChatGPT">
+                <path d="M37.532 16.87a9.963 9.963 0 0 0-.856-8.184 10.078 10.078 0 0 0-10.855-4.835A9.964 9.964 0 0 0 18.306.5a10.079 10.079 0 0 0-9.614 6.977 9.967 9.967 0 0 0-6.664 4.834 10.08 10.08 0 0 0 1.24 11.817 9.965 9.965 0 0 0 .856 8.185 10.079 10.079 0 0 0 10.855 4.835 9.965 9.965 0 0 0 7.516 3.35 10.078 10.078 0 0 0 9.617-6.981 9.967 9.967 0 0 0 6.663-4.834 10.079 10.079 0 0 0-1.243-11.813zM22.498 37.886a7.474 7.474 0 0 1-4.799-1.735c.061-.033.168-.091.237-.134l7.964-4.6a1.294 1.294 0 0 0 .655-1.134V19.054l3.366 1.944a.12.12 0 0 1 .066.092v9.299a7.505 7.505 0 0 1-7.49 7.496zM6.392 31.006a7.471 7.471 0 0 1-.894-5.023c.06.036.162.099.237.141l7.964 4.6a1.297 1.297 0 0 0 1.308 0l9.724-5.614v3.888a.12.12 0 0 1-.048.103l-8.051 4.649a7.504 7.504 0 0 1-10.24-2.744zM4.297 13.62A7.469 7.469 0 0 1 8.2 10.333c0 .068-.004.19-.004.274v9.201a1.294 1.294 0 0 0 .654 1.132l9.723 5.614-3.366 1.944a.12.12 0 0 1-.114.012L7.044 23.86a7.504 7.504 0 0 1-2.747-10.24zm27.658 6.437l-9.724-5.615 3.367-1.943a.121.121 0 0 1 .114-.012l8.048 4.648a7.498 7.498 0 0 1-1.158 13.528v-9.476a1.293 1.293 0 0 0-.647-1.13zm3.35-5.043c-.059-.037-.162-.099-.236-.141l-7.965-4.6a1.298 1.298 0 0 0-1.308 0l-9.723 5.614v-3.888a.12.12 0 0 1 .048-.103l8.05-4.645a7.497 7.497 0 0 1 11.135 7.763zm-21.063 6.929l-3.367-1.944a.12.12 0 0 1-.065-.092v-9.299a7.497 7.497 0 0 1 12.293-5.756 6.94 6.94 0 0 0-.236.134l-7.965 4.6a1.294 1.294 0 0 0-.654 1.132l-.006 11.225zm1.829-3.943l4.33-2.501 4.332 2.497v4.998l-4.331 2.5-4.331-2.5V18z" />
+              </svg>
+            </div>
+            {/* Claude */}
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[#2A2A2A] bg-[#161616]">
+              <svg viewBox="0 0 100 100" className="h-5 w-5" fill="#C97B5A" aria-label="Claude">
+                <g transform="translate(50,50)">
+                  <rect x="-3.5" y="-46" width="7" height="34" rx="3.5"/>
+                  <rect x="-3.5" y="-46" width="7" height="34" rx="3.5" transform="rotate(30)"/>
+                  <rect x="-3.5" y="-46" width="7" height="34" rx="3.5" transform="rotate(60)"/>
+                  <rect x="-3.5" y="-46" width="7" height="34" rx="3.5" transform="rotate(90)"/>
+                  <rect x="-3.5" y="-46" width="7" height="34" rx="3.5" transform="rotate(120)"/>
+                  <rect x="-3.5" y="-46" width="7" height="34" rx="3.5" transform="rotate(150)"/>
+                  <rect x="-3.5" y="-46" width="7" height="34" rx="3.5" transform="rotate(180)"/>
+                  <rect x="-3.5" y="-46" width="7" height="34" rx="3.5" transform="rotate(210)"/>
+                  <rect x="-3.5" y="-46" width="7" height="34" rx="3.5" transform="rotate(240)"/>
+                  <rect x="-3.5" y="-46" width="7" height="34" rx="3.5" transform="rotate(270)"/>
+                  <rect x="-3.5" y="-46" width="7" height="34" rx="3.5" transform="rotate(300)"/>
+                  <rect x="-3.5" y="-46" width="7" height="34" rx="3.5" transform="rotate(330)"/>
+                </g>
+              </svg>
+            </div>
+            {/* Gemini */}
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[#2A2A2A] bg-[#161616]">
+              <svg viewBox="0 0 24 24" className="h-5 w-5" aria-label="Gemini">
+                <defs>
+                  <linearGradient id="geminiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#4285F4" />
+                    <stop offset="100%" stopColor="#9B72CB" />
+                  </linearGradient>
+                </defs>
+                <path fill="url(#geminiGrad)" d="M12 24A14.304 14.304 0 0 0 0 12 14.304 14.304 0 0 0 12 0a14.305 14.305 0 0 0 12 12 14.305 14.305 0 0 0-12 12" />
+              </svg>
+            </div>
           </div>
         </div>
       </section>
