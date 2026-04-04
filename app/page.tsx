@@ -5,6 +5,7 @@ import { Upload, Copy, Download, Check, Sparkles, FileText, Zap, ArrowRight, Chr
 import Link from "next/link"
 import { useAuth } from "@/components/auth-provider"
 import { createClient } from "@/lib/supabase/client"
+import { BuyCoffee } from "@/components/buy-coffee"
 
 type WaitlistStatus = "idle" | "loading" | "success" | "error"
 
@@ -340,12 +341,9 @@ export default function MDSpinPage() {
             </Link>
           </div>
           <div className="flex items-center gap-3">
-            <a
-              href="#products"
-              className="hidden text-sm text-[#888480] transition-colors hover:text-[#F0EDE8] sm:block"
-            >
-              Join waitlist
-            </a>
+            <div className="hidden sm:block">
+              <BuyCoffee />
+            </div>
             <a
               href="#converter"
               className="flex items-center gap-1.5 rounded-full bg-[#FF4800] px-4 py-1.5 text-xs font-semibold text-white transition-all hover:bg-[#e04200]"
@@ -792,6 +790,7 @@ expansion in EMEA.
                   </>
                 )}
               </button>
+              {batchStatus === 'done' && <BuyCoffee />}
             </div>
             {remaining !== null && dailyLimit !== null && (
               <div className="flex flex-col items-center gap-2">
