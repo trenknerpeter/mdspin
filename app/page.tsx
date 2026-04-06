@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react"
-import { Upload, Copy, Download, Check, Sparkles, FileText, Zap, ArrowRight, Chrome, LogOut, History, User, TrendingDown, Plus, X } from "lucide-react"
+import { Upload, Copy, Download, Check, Sparkles, FileText, Zap, ArrowRight, Chrome, TrendingDown, Plus, X } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/components/auth-provider"
 import { createClient } from "@/lib/supabase/client"
 import { BuyCoffee } from "@/components/buy-coffee"
+import { SiteNav } from "@/components/site-nav"
 
 type WaitlistStatus = "idle" | "loading" | "success" | "error"
 
@@ -31,10 +32,8 @@ const ACCURACY_RANGE: Record<string, string> = {
 const SUPPORTED_FORMATS = ["PDF", "DOC", "DOCX", "PPTX", "GSLIDES", "PAGES", "TXT", "RTF"]
 
 export default function MDSpinPage() {
-  const { user, isLoading: authLoading, signOut } = useAuth()
+  const { user } = useAuth()
   const supabase = createClient()
-  const [showUserMenu, setShowUserMenu] = useState(false)
-
   // --- converter state ---
   const [files, setFiles] = useState<FileItem[]>([])
   const [batchStatus, setBatchStatus] = useState<'idle' | 'converting' | 'done'>('idle')
@@ -313,91 +312,7 @@ export default function MDSpinPage() {
       />
 
       {/* ── Nav ── */}
-      <nav className="fixed left-0 right-0 top-0 z-40 border-b border-[#1E1E1E] bg-[#0C0C0C]/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2.5">
-            <img src="/logo.png" alt="MDSpin" className="h-7 w-7 rounded-md" />
-            <span className="font-display text-sm font-semibold tracking-tight text-white">MDSpin</span>
-            <span className="rounded-full bg-[#FF4800]/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-[#FF4800]">
-              Beta
-            </span>
-            <Link
-              href="/guides"
-              className="ml-4 hidden text-sm text-[#888480] transition-colors hover:text-[#F0EDE8] sm:block"
-            >
-              Guides
-            </Link>
-            <Link
-              href="/formats"
-              className="hidden text-sm text-[#888480] transition-colors hover:text-[#F0EDE8] sm:block"
-            >
-              Formats
-            </Link>
-            <Link
-              href="/blog"
-              className="hidden text-sm text-[#888480] transition-colors hover:text-[#F0EDE8] sm:block"
-            >
-              Blog
-            </Link>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:block">
-              <BuyCoffee />
-            </div>
-            <a
-              href="#converter"
-              className="flex items-center gap-1.5 rounded-full bg-[#FF4800] px-4 py-1.5 text-xs font-semibold text-white transition-all hover:bg-[#e04200]"
-            >
-              Try it <ArrowRight className="h-3 w-3" />
-            </a>
-            {!authLoading && (
-              user ? (
-                <div className="relative">
-                  <button
-                    onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FF4800]/20 text-xs font-semibold text-[#FF4800] transition-colors hover:bg-[#FF4800]/30"
-                  >
-                    {user.email?.[0]?.toUpperCase() ?? "U"}
-                  </button>
-                  {showUserMenu && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
-                      <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded-lg border border-[#2A2A2A] bg-[#161616] py-1 shadow-xl">
-                        <p className="truncate border-b border-[#2A2A2A] px-3 py-2 text-xs text-[#888480]">
-                          {user.email}
-                        </p>
-                        <Link
-                          href="/history"
-                          onClick={() => setShowUserMenu(false)}
-                          className="flex items-center gap-2 px-3 py-2 text-sm text-[#F0EDE8] transition-colors hover:bg-[#1E1E1E]"
-                        >
-                          <History className="h-3.5 w-3.5" />
-                          My Spins
-                        </Link>
-                        <button
-                          onClick={() => { setShowUserMenu(false); signOut() }}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#888480] transition-colors hover:bg-[#1E1E1E] hover:text-[#F0EDE8]"
-                        >
-                          <LogOut className="h-3.5 w-3.5" />
-                          Sign out
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <Link
-                  href="/auth/sign-in"
-                  className="flex items-center gap-1.5 rounded-full border border-[#2A2A2A] px-4 py-1.5 text-xs font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
-                >
-                  <User className="h-3 w-3" />
-                  Sign in
-                </Link>
-              )
-            )}
-          </div>
-        </div>
-      </nav>
+      <SiteNav />
 
       {/* ── Hero ── */}
       <section className="relative overflow-hidden pb-28 pt-36">
@@ -1040,7 +955,7 @@ expansion in EMEA.
           </div>
 
           {/* Email capture */}
-          <div className="mt-8 rounded-xl border border-[#2A2A2A] bg-[#161616] p-8">
+          <div id="waitlist" className="mt-8 rounded-xl border border-[#2A2A2A] bg-[#161616] p-8">
             <div className="mx-auto max-w-md text-center">
               {waitlistStatus === "success" ? (
                 <div className="flex flex-col items-center gap-3">

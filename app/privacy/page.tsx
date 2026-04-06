@@ -2,7 +2,7 @@ import Link from "next/link"
 import { ArrowLeft, ArrowRight } from "lucide-react"
 import type { Metadata } from "next"
 import { SITE_URL, SITE_NAME } from "@/lib/seo"
-import { BlogNav } from "@/components/blog-nav"
+import { SiteNav } from "@/components/site-nav"
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -25,7 +25,7 @@ export default function PrivacyPolicyPage() {
         }}
       />
 
-      <BlogNav />
+      <SiteNav />
 
       <main className="pb-24 pt-32">
         <article className="mx-auto max-w-2xl px-6">

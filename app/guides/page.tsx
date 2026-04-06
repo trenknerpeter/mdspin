@@ -1,7 +1,7 @@
 import Link from "next/link"
 import type { Metadata } from "next"
 import { getAllGuides } from "@/lib/guides"
-import { ContentNav } from "@/components/content-nav"
+import { SiteNav } from "@/components/site-nav"
 import { SiteFooter } from "@/components/site-footer"
 import { GrainOverlay } from "@/components/grain-overlay"
 import { SITE_URL } from "@/lib/seo"
@@ -34,7 +34,7 @@ export default function GuidesPage() {
   return (
     <div className="min-h-screen bg-[#0C0C0C] font-sans text-[#F0EDE8]">
       <GrainOverlay />
-      <ContentNav section="Guides" href="/guides" />
+      <SiteNav />
 
       <script
         type="application/ld+json"

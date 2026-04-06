@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react"
 import type { Metadata } from "next"
 import { getAllSlugs, getPostBySlug, markdownToHtml } from "@/lib/blog"
 import { SITE_URL, SITE_NAME } from "@/lib/seo"
-import { ContentNav } from "@/components/content-nav"
+import { SiteNav } from "@/components/site-nav"
 import { SiteFooter } from "@/components/site-footer"
 import { GrainOverlay } from "@/components/grain-overlay"
 
@@ -74,7 +74,7 @@ export default async function BlogPostPage({ params }: Props) {
   return (
     <div className="min-h-screen bg-[#0C0C0C] font-sans text-[#F0EDE8]">
       <GrainOverlay />
-      <ContentNav section="Blog" href="/blog" />
+      <SiteNav />
 
       <script
         type="application/ld+json"

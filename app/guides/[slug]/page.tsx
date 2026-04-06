@@ -9,7 +9,7 @@ import {
   guideMarkdownToHtml,
 } from "@/lib/guides"
 import { SITE_URL, SITE_NAME } from "@/lib/seo"
-import { ContentNav } from "@/components/content-nav"
+import { SiteNav } from "@/components/site-nav"
 import { SiteFooter } from "@/components/site-footer"
 import { GrainOverlay } from "@/components/grain-overlay"
 
@@ -85,7 +85,7 @@ export default async function GuidePage({ params }: Props) {
   return (
     <div className="min-h-screen bg-[#0C0C0C] font-sans text-[#F0EDE8]">
       <GrainOverlay />
-      <ContentNav section="Guides" href="/guides" />
+      <SiteNav />
 
       <script
         type="application/ld+json"
