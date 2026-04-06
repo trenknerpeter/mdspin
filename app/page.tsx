@@ -942,8 +942,8 @@ expansion in EMEA.
               </div>
               <div className="mb-3 flex items-center gap-2">
                 <h3 className="font-display text-lg font-semibold text-[#F0EDE8]">Chrome Extension</h3>
-                <span className="rounded-full bg-[#4285F4]/15 px-2 py-0.5 text-[10px] font-semibold text-[#4285F4]">
-                  Soon
+                <span className="rounded-full bg-[#4ADE80]/15 px-2 py-0.5 text-[10px] font-semibold text-[#4ADE80]">
+                  Released
                 </span>
               </div>
               <p className="text-sm leading-relaxed text-[#888480]">
@@ -951,6 +951,16 @@ expansion in EMEA.
                 file, MDSpin intercepts it and swaps in clean markdown — your AI gets signal,
                 not noise.
               </p>
+              <div className="mt-5">
+                <a
+                  href="https://chromewebstore.google.com/detail/mdspin-%E2%80%94-file-to-markdown/jmiinicnfjhndcmmiominecphddngjae?hl=en-GB&authuser=0"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#2A2A2A] px-6 py-2.5 text-sm font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
+                >
+                  Try it
+                </a>
+              </div>
             </div>
           </div>
 
@@ -966,7 +976,7 @@ expansion in EMEA.
                     You&apos;re on the list.
                   </p>
                   <p className="text-sm text-[#888480]">
-                    We&apos;ll reach out the moment Make.com and the Chrome Extension go live.
+                    We&apos;ll reach out the moment Make.com goes live.
                   </p>
                 </div>
               ) : (
@@ -975,7 +985,7 @@ expansion in EMEA.
                     Get early access
                   </p>
                   <p className="mt-1.5 text-sm text-[#888480]">
-                    Be first to know when Make.com and Chrome Extension launch.
+                    Be first to know when Make.com launches.
                   </p>
                   <form onSubmit={handleWaitlist} className="mt-6 flex gap-2">
                     <input
