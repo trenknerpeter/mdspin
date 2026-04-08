@@ -1,36 +1,4 @@
-"use client"
-
 import Link from "next/link"
-import { useState } from "react"
-
-function BuyCoffeeLink() {
-  const [loading, setLoading] = useState(false)
-
-  const handleClick = async () => {
-    if (loading) return
-    setLoading(true)
-    try {
-      const res = await fetch("/api/checkout", { method: "POST" })
-      const data = await res.json() as { url?: string; error?: string }
-      if (data.url) {
-        window.location.href = data.url
-      }
-    } catch {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={handleClick}
-      disabled={loading}
-      className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480] disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      {loading ? "Redirecting…" : "Buy coffee ☕"}
-    </button>
-  )
-}
 
 const productLinks = [
   { href: "/overview", label: "Overview" },
@@ -104,13 +72,15 @@ export function SiteFooter() {
               Company
             </p>
             <div className="flex flex-col gap-2">
+              <Link href="/pricing" className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]">
+                Pricing
+              </Link>
               <Link href="/privacy" className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]">
                 Privacy
               </Link>
               <Link href="https://github.com/trenknerpeter/mdspin" target="_blank" rel="noopener noreferrer" className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]">
                 GitHub
               </Link>
-              <BuyCoffeeLink />
             </div>
           </div>
         </div>

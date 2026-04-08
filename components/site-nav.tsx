@@ -102,6 +102,16 @@ export function SiteNav() {
                 </Link>
               </NavigationMenuItem>
 
+              {/* Pricing - direct link */}
+              <NavigationMenuItem>
+                <Link
+                  href="/pricing"
+                  className="inline-flex h-9 items-center justify-center rounded-md px-4 py-2 text-sm text-[#888480] transition-colors hover:text-[#F0EDE8]"
+                >
+                  Pricing
+                </Link>
+              </NavigationMenuItem>
+
               {/* Resources dropdown */}
               <NavigationMenuItem>
                 <NavigationMenuTrigger className="!bg-transparent text-sm text-[#888480] hover:!bg-transparent hover:text-[#F0EDE8] focus:!bg-transparent data-[state=open]:!bg-transparent data-[state=open]:text-[#F0EDE8]">
@@ -225,6 +235,15 @@ export function SiteNav() {
                   className="py-2 text-sm font-medium text-[#F0EDE8] transition-colors hover:text-white"
                 >
                   Use Cases
+                </Link>
+
+                {/* Pricing */}
+                <Link
+                  href="/pricing"
+                  onClick={() => setMobileOpen(false)}
+                  className="py-2 text-sm font-medium text-[#F0EDE8] transition-colors hover:text-white"
+                >
+                  Pricing
                 </Link>
 
                 {/* Resources section */}
