@@ -17,6 +17,7 @@ import {
   BookOpen,
   Newspaper,
   ChevronDown,
+  Key,
 } from "lucide-react"
 import {
   NavigationMenu,
@@ -172,6 +173,14 @@ export function SiteNav() {
                       >
                         <History className="h-3.5 w-3.5" />
                         My Spins
+                      </Link>
+                      <Link
+                        href="/api-keys"
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-[#F0EDE8] transition-colors hover:bg-[#1E1E1E]"
+                      >
+                        <Key className="h-3.5 w-3.5" />
+                        API Keys
                       </Link>
                       <button
                         onClick={() => { setShowUserMenu(false); signOut() }}
