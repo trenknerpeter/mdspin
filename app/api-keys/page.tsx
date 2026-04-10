@@ -1,10 +1,18 @@
 "use client"
 
-import { Fragment, useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Key, Plus, Copy, Check, Trash2, X, AlertCircle } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { createClient } from "@/lib/supabase/client"
+import {
+  saveKeyHint,
+  saveFullKey,
+  getAllKeyHints,
+  getAllFullKeys,
+  removeKeyData,
+  formatKeyHint,
+} from "@/lib/api-key-storage"
 
 type ApiKey = {
   id: string
@@ -41,7 +49,8 @@ export default function ApiKeysPage() {
   const [newKeyModal, setNewKeyModal] = useState<NewKeyModal | null>(null)
   const [revoking, setRevoking] = useState<string | null>(null)
   const [confirmRevoke, setConfirmRevoke] = useState<string | null>(null)
-  const [revealedKeys, setRevealedKeys] = useState<Record<string, string>>({})
+  const [keyHints, setKeyHints] = useState<Record<string, string>>({})
+  const [fullKeys, setFullKeys] = useState<Record<string, string>>({})
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
   const getToken = async () => {
@@ -75,6 +84,11 @@ export default function ApiKeysPage() {
   }
 
   useEffect(() => {
+    setKeyHints(getAllKeyHints())
+    setFullKeys(getAllFullKeys())
+  }, [])
+
+  useEffect(() => {
     if (authLoading) return
     if (!user) { setLoading(false); return }
     fetchKeys()
@@ -98,7 +112,10 @@ export default function ApiKeysPage() {
         setNameInput("")
         await fetchKeys()
         if (data.id && data.key) {
-          setRevealedKeys((prev) => ({ ...prev, [data.id]: data.key }))
+          saveKeyHint(data.id, data.key)
+          saveFullKey(data.id, data.key)
+          setKeyHints((prev) => ({ ...prev, [data.id]: formatKeyHint(data.key) }))
+          setFullKeys((prev) => ({ ...prev, [data.id]: data.key }))
         }
       } else {
         setGenerateError(data?.message ?? "Failed to generate key.")
@@ -142,6 +159,9 @@ export default function ApiKeysPage() {
       })
       if (res.ok) {
         setKeys((prev) => prev.map((k) => k.id === id ? { ...k, revoked: true } : k))
+        removeKeyData(id)
+        setKeyHints((prev) => { const next = { ...prev }; delete next[id]; return next })
+        setFullKeys((prev) => { const next = { ...prev }; delete next[id]; return next })
       }
     } catch {
       // network error — button unfreezes via finally
@@ -335,6 +355,7 @@ export default function ApiKeysPage() {
               <thead>
                 <tr className="border-b border-[#2A2A2A] bg-[#161616]">
                   <th className="px-4 py-3 text-left text-xs font-medium text-[#4A4A46] uppercase tracking-wide">Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-[#4A4A46] uppercase tracking-wide">Key</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-[#4A4A46] uppercase tracking-wide">Created</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-[#4A4A46] uppercase tracking-wide">Last used</th>
                   <th className="px-4 py-3" />
@@ -342,13 +363,37 @@ export default function ApiKeysPage() {
               </thead>
               <tbody className="bg-[#0C0C0C]">
                 {activeKeys.map((k, i) => {
-                  const rawKey = revealedKeys[k.id]
+                  const hint = keyHints[k.id]
+                  const fullKey = fullKeys[k.id]
                   const isLast = i === activeKeys.length - 1
                   return (
-                    <Fragment key={k.id}>
-                      <tr className={`${!rawKey && !isLast ? "border-b border-[#1E1E1E]" : ""} hover:bg-[#161616] transition-colors`}>
+                    <tr key={k.id} className={`${!isLast ? "border-b border-[#1E1E1E]" : ""} hover:bg-[#161616] transition-colors`}>
                         <td className="px-4 py-3 text-[#F0EDE8]">
                           {k.name ?? <span className="text-[#4A4A46] italic">Unnamed</span>}
+                        </td>
+                        <td className="px-4 py-3">
+                          {hint ? (
+                            <button
+                              onClick={fullKey ? () => handleCopyInline(k.id, fullKey) : undefined}
+                              className={`inline-flex items-center gap-1.5 font-mono text-xs rounded-md px-2 py-1 transition-colors ${
+                                fullKey
+                                  ? "text-[#F0EDE8] bg-[#1E1E1E] hover:bg-[#2A2A2A] cursor-pointer"
+                                  : "text-[#4A4A46] bg-[#141414] cursor-default"
+                              }`}
+                              title={fullKey ? "Click to copy" : "Full key not available"}
+                            >
+                              {hint}
+                              {copiedId === k.id ? (
+                                <Check className="h-3 w-3 text-[#FF4800]" />
+                              ) : (
+                                <Copy className="h-3 w-3 opacity-40" />
+                              )}
+                            </button>
+                          ) : (
+                            <span className="font-mono text-xs text-[#4A4A46] px-2 py-1">
+                              ••••••••••••
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-[#888480]">{formatDate(k.created_at)}</td>
                         <td className="px-4 py-3 text-[#888480]">{formatDate(k.last_used_at)}</td>
@@ -363,25 +408,7 @@ export default function ApiKeysPage() {
                             Revoke
                           </button>
                         </td>
-                      </tr>
-                      {rawKey && (
-                        <tr className={`${!isLast ? "border-b border-[#1E1E1E]" : ""} bg-[#0C0C0C]`}>
-                          <td colSpan={4} className="px-4 pb-3">
-                            <div className="flex items-center gap-2 rounded-md border border-[#FF4800]/20 bg-[#FF4800]/5 px-3 py-2">
-                              <code className="flex-1 text-xs text-[#FF4800] font-mono break-all">{rawKey}</code>
-                              <button
-                                onClick={() => handleCopyInline(k.id, rawKey)}
-                                className="shrink-0 flex h-6 w-6 items-center justify-center rounded text-[#FF4800]/60 hover:text-[#FF4800] transition-colors"
-                                title="Copy key"
-                              >
-                                {copiedId === k.id ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                              </button>
-                            </div>
-                            <p className="mt-1 text-[10px] text-[#4A4A46]">Visible this session only — copy it now</p>
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
+                    </tr>
                   )
                 })}
               </tbody>
