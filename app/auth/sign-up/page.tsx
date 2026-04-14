@@ -39,7 +39,7 @@ export default function SignUpPage() {
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        scopes: "https://www.googleapis.com/auth/documents.readonly https://www.googleapis.com/auth/drive.readonly",
+        scopes: "https://www.googleapis.com/auth/documents.readonly https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file",
         queryParams: {
           access_type: "offline",
           prompt: "consent",

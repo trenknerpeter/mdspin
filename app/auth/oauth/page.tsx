@@ -119,7 +119,7 @@ function OAuthConsentForm() {
         redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(
           `/auth/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri!)}&state=${state}`
         )}`,
-        scopes: "https://www.googleapis.com/auth/documents.readonly https://www.googleapis.com/auth/drive.readonly",
+        scopes: "https://www.googleapis.com/auth/documents.readonly https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file",
         queryParams: {
           access_type: "offline",
           prompt: "consent",
