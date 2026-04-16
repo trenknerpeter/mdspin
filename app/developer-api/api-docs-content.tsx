@@ -195,6 +195,53 @@ export function ApiDocsContent() {
         </div>
       </section>
 
+      {/* Scopes & Permissions */}
+      <section id="scopes" className="mb-10 scroll-mt-32">
+        <h2 className="mb-4 font-display text-2xl font-bold text-white">
+          Scopes &amp; Permissions
+        </h2>
+        <p className="mb-4 text-sm leading-relaxed text-[#888480]">
+          Each API key carries a set of scopes that determine which endpoints it
+          can access. All API keys include all scopes by default.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-[#2A2A2A] text-[#888480]">
+                <th className="pb-2 pr-4 font-medium">Scope</th>
+                <th className="pb-2 pr-4 font-medium">Description</th>
+                <th className="pb-2 font-medium">Endpoints</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                {
+                  scope: "convert",
+                  description: "Convert documents to Markdown",
+                  endpoints: "/v1/convert/*",
+                },
+                {
+                  scope: "drive",
+                  description: "Save files to Google Drive",
+                  endpoints: "/v1/save/drive",
+                },
+                {
+                  scope: "read:account",
+                  description: "Verify API key and read account info",
+                  endpoints: "/oauth/me",
+                },
+              ].map((s) => (
+                <tr key={s.scope} className="border-b border-[#2A2A2A]/50">
+                  <td className="py-2.5 pr-4 font-mono text-[#FF4800]">{s.scope}</td>
+                  <td className="py-2.5 pr-4 text-[#F0EDE8]">{s.description}</td>
+                  <td className="py-2.5 font-mono text-[#888480]">{s.endpoints}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       {/* Quick Nav */}
       <section className="mb-10">
         <h2 className="mb-4 font-display text-2xl font-bold text-white">
