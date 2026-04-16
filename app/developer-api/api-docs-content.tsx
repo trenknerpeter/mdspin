@@ -271,33 +271,81 @@ export function ApiDocsContent() {
         <h2 className="mb-4 font-display text-2xl font-bold text-white">
           Error Codes
         </h2>
+        <p className="mb-4 text-sm leading-relaxed text-[#888480]">
+          The REST API returns standard HTTP status codes with a JSON body of the
+          shape <code className="rounded bg-[#1E1E1E] px-1.5 py-0.5 font-mono text-xs text-[#F0EDE8]">{`{ "error": "...", "message": "..." }`}</code>.
+          The <span className="text-[#F0EDE8]">Make error type</span> column shows
+          which class our Make.com custom app raises for that status — useful if
+          you are branching on error type inside a Make scenario.
+        </p>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-[#2A2A2A] text-[#888480]">
                 <th className="pb-2 pr-4 font-medium">Status</th>
                 <th className="pb-2 pr-4 font-medium">Meaning</th>
+                <th className="pb-2 pr-4 font-medium">Make error type</th>
                 <th className="pb-2 font-medium">What to do</th>
               </tr>
             </thead>
             <tbody>
               {[
-                { status: "400", meaning: "Bad Request", action: "Check your request body — a required parameter is missing or malformed." },
-                { status: "401", meaning: "Unauthorized", action: "Your API key is missing, invalid, or expired. Verify the Authorization header." },
-                { status: "403", meaning: "Forbidden", action: "Your API key does not have access to this resource." },
-                { status: "404", meaning: "Not Found", action: "The document or endpoint does not exist. Check the URL or document ID." },
-                { status: "413", meaning: "Payload Too Large", action: "The file exceeds the size limit. Reduce file size or use batch endpoint for multiple smaller files." },
-                { status: "429", meaning: "Too Many Requests", action: "Rate limit exceeded. Wait and retry with exponential backoff." },
-                { status: "500", meaning: "Internal Server Error", action: "Unexpected server error. Retry the request. If it persists, contact support." },
+                { status: "400", meaning: "Bad Request",           makeType: "DataError",               action: "Check your request body — a required parameter is missing or malformed." },
+                { status: "401", meaning: "Unauthorized",          makeType: "InvalidConnectionError",  action: "Your API key is missing, invalid, or expired. In Make, the scenario prompts a reconnect." },
+                { status: "403", meaning: "Forbidden",             makeType: "InvalidAccessTokenError", action: "Your API key does not have access to this resource, or the Drive folder is not shared with the connected account." },
+                { status: "404", meaning: "Not Found",             makeType: "DataError",               action: "The document, folder, or endpoint does not exist. Check the URL or ID." },
+                { status: "413", meaning: "Payload Too Large",     makeType: "DataError",               action: "The file exceeds the size limit. Reduce file size or use the batch endpoint for multiple smaller files." },
+                { status: "429", meaning: "Too Many Requests",     makeType: "RateLimitError",          action: "Rate limit exceeded. Wait and retry with exponential backoff. Make retries automatically." },
+                { status: "500", meaning: "Internal Server Error", makeType: "RuntimeError",            action: "Unexpected server error. Retry the request. If it persists, contact support." },
+                { status: "502", meaning: "Bad Gateway",           makeType: "RuntimeError",            action: "Upstream error. Retry." },
+                { status: "503", meaning: "Service Unavailable",   makeType: "RuntimeError",            action: "Temporary outage or maintenance. Retry after a short delay." },
               ].map((e) => (
                 <tr key={e.status} className="border-b border-[#2A2A2A]/50">
                   <td className="py-2.5 pr-4 font-mono text-[#FF4800]">{e.status}</td>
                   <td className="py-2.5 pr-4 font-medium text-[#F0EDE8]">{e.meaning}</td>
+                  <td className="py-2.5 pr-4 font-mono text-[#888480]">{e.makeType}</td>
                   <td className="py-2.5 text-[#888480]">{e.action}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Batch partial failures */}
+        <div className="mt-6 rounded-xl border border-[#2A2A2A] bg-[#161616] p-5">
+          <h3 className="mb-2 font-display text-sm font-bold text-white">
+            Partial failures in batch conversion
+          </h3>
+          <p className="mb-3 text-xs leading-relaxed text-[#888480]">
+            <code className="rounded bg-[#1E1E1E] px-1.5 py-0.5 font-mono text-[11px] text-[#FF4800]">POST /v1/convert/attachments/batch</code>{" "}
+            always returns <code className="text-[#F0EDE8]">200</code>, even when some files
+            fail. Inspect the response body to handle them:
+          </p>
+          <ul className="mb-3 space-y-1 text-xs text-[#888480]">
+            <li>• <code className="text-[#F0EDE8]">total</code>, <code className="text-[#F0EDE8]">succeeded</code>, <code className="text-[#F0EDE8]">failed</code> — summary counts</li>
+            <li>• <code className="text-[#F0EDE8]">results[].success</code> — per-file boolean</li>
+            <li>• <code className="text-[#F0EDE8]">results[].error</code>, <code className="text-[#F0EDE8]">results[].message</code> — populated when <code>success</code> is false</li>
+          </ul>
+          <p className="text-xs leading-relaxed text-[#888480]">
+            Inside the Make app, this module raises a <code className="font-mono text-[#F0EDE8]">DataError</code> when
+            <code className="mx-1 font-mono text-[#F0EDE8]">failed &gt; 0</code>, surfacing the
+            first failure&apos;s message so the scenario halts rather than silently
+            passing partial data downstream.
+          </p>
+        </div>
+
+        {/* Error body example */}
+        <div className="mt-4">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-[#888480]">
+            Example error response
+          </h3>
+          <CodeBlock>{`HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+
+{
+  "error": "invalid_api_key",
+  "message": "API key invalid or expired. Reconnect your MDSpin account."
+}`}</CodeBlock>
         </div>
       </section>
 
