@@ -49,7 +49,7 @@ export default function PrivacyPolicyPage() {
             </h1>
 
             <p className="mt-4 text-sm text-[#888480]">
-              Last updated: March 23, 2026
+              Last updated: April 21, 2026
             </p>
           </header>
 
@@ -58,102 +58,121 @@ export default function PrivacyPolicyPage() {
             {/* Introduction */}
             <section>
               <p>
-                This Privacy Policy describes how MDSpin (&ldquo;we&rdquo;,
-                &ldquo;our&rdquo;, or &ldquo;us&rdquo;) handles information
-                when you use the MDSpin website and the MDSpin Chrome Extension
-                (collectively, &ldquo;the Service&rdquo;). We are committed to
-                protecting your privacy and being transparent about our data
-                practices.
+                MDSpin (&ldquo;we&rdquo;, &ldquo;our&rdquo;) is a Chrome
+                Extension and web service that converts document files into
+                Markdown. This policy describes, in full, what data we collect,
+                how we use it, who we share it with, and how long we keep it.
               </p>
             </section>
 
-            {/* What MDSpin Does */}
+            {/* 1. Data we collect */}
             <section>
               <h2 className="mb-4 font-display text-xl font-bold text-white">
-                What MDSpin Does
+                1. Data we collect
               </h2>
-              <p>
-                MDSpin converts document files (PDF, DOCX, PPTX, TXT, HTML,
-                RTF, CSV) into clean Markdown format. The Chrome Extension
-                integrates directly into ChatGPT, Claude, and Gemini, allowing
-                you to convert files to Markdown before sending them to the AI
-                &mdash; improving context quality and reducing token costs.
-              </p>
-            </section>
-
-            {/* Data We Process */}
-            <section>
-              <h2 className="mb-4 font-display text-xl font-bold text-white">
-                Data We Process
-              </h2>
-              <div className="space-y-6">
-                <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-6">
-                  <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-[#FF4800]">
-                    File Contents
-                  </h3>
-                  <p>
-                    When you click the MDSpin convert button, the file you
-                    uploaded is read from your browser, encoded, and sent to our
-                    conversion API for processing. The file is converted to
-                    Markdown and the result is returned to your browser.{" "}
-                    <strong className="text-white">
-                      We do not permanently store the contents of your files on
-                      our servers.
-                    </strong>{" "}
-                    Files are processed in-memory for the sole purpose of
-                    conversion and are not retained after the response is sent.
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-6">
-                  <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-[#FF4800]">
-                    Authentication Data
-                  </h3>
-                  <p>
-                    If you sign in to MDSpin, we use Supabase as our
-                    authentication provider. This may include your email address
-                    and a session token. This data is used solely to manage your
-                    account and is governed by{" "}
-                    <a
-                      href="https://supabase.com/privacy"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#FF4800] underline decoration-[#FF4800]/30 underline-offset-2 transition-colors hover:text-[#e04200]"
-                    >
-                      Supabase&apos;s Privacy Policy
-                    </a>
-                    .
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-6">
-                  <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-[#FF4800]">
-                    Local Preferences
-                  </h3>
-                  <p>
-                    The Chrome Extension stores a small amount of data locally in
-                    your browser (using Chrome&apos;s storage API) to remember
-                    your settings, such as whether inline buttons are enabled.
-                    This data never leaves your device.
-                  </p>
-                </div>
+              <div className="overflow-hidden rounded-xl border border-[#2A2A2A]">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-[#2A2A2A] bg-[#161616]">
+                      <th className="px-4 py-3 text-left font-semibold text-white">
+                        Category
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-white">
+                        What
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-white">
+                        Where it comes from
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-[#111111]">
+                    <tr className="border-b border-[#2A2A2A] align-top">
+                      <td className="px-4 py-3">
+                        Personally identifiable information
+                      </td>
+                      <td className="px-4 py-3">
+                        Email address, Google account ID
+                      </td>
+                      <td className="px-4 py-3">Google OAuth sign-in</td>
+                    </tr>
+                    <tr className="border-b border-[#2A2A2A] align-top">
+                      <td className="px-4 py-3">Authentication information</td>
+                      <td className="px-4 py-3">Supabase session tokens</td>
+                      <td className="px-4 py-3">Created when you sign in</td>
+                    </tr>
+                    <tr className="border-b border-[#2A2A2A] align-top">
+                      <td className="px-4 py-3">
+                        Website content (user-uploaded files)
+                      </td>
+                      <td className="px-4 py-3">
+                        The contents, filename, and file type of documents you
+                        choose to convert (PDF, DOCX, PPTX, TXT, HTML, RTF, CSV)
+                      </td>
+                      <td className="px-4 py-3">
+                        You, when you trigger a conversion
+                      </td>
+                    </tr>
+                    <tr className="border-b border-[#2A2A2A] align-top">
+                      <td className="px-4 py-3">User activity</td>
+                      <td className="px-4 py-3">
+                        Count of conversions performed per day, tied to your
+                        account
+                      </td>
+                      <td className="px-4 py-3">
+                        Generated by the extension when you convert a file
+                      </td>
+                    </tr>
+                    <tr className="align-top">
+                      <td className="px-4 py-3">Local preferences</td>
+                      <td className="px-4 py-3">
+                        UI settings such as inline-mode toggle
+                      </td>
+                      <td className="px-4 py-3">
+                        Stored locally in your browser via chrome.storage
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
+              <p className="mt-4">
+                <strong className="text-white">We do not collect:</strong>{" "}
+                browsing history, page content from ChatGPT/Claude/Gemini
+                conversations, mouse/keystroke telemetry, location, financial
+                data, health data, or extension usage analytics.
+              </p>
             </section>
 
-            {/* Data We Do NOT Collect */}
+            {/* 2. How we use data */}
             <section>
               <h2 className="mb-4 font-display text-xl font-bold text-white">
-                Data We Do NOT Collect
+                2. How we use data
               </h2>
               <ul className="space-y-2.5">
                 {[
-                  "We do not track your browsing history",
-                  "We do not collect analytics or telemetry from the Chrome Extension",
-                  "We do not read or access the content of your conversations on ChatGPT, Claude, or Gemini",
-                  "We do not sell, rent, or share any personal data with third parties for advertising purposes",
-                  "We do not use cookies or tracking pixels in the Chrome Extension",
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-3">
+                  <>
+                    <strong className="text-white">File contents</strong> &mdash;
+                    transmitted to our conversion API solely to produce Markdown
+                    output, then returned to you. Used for no other purpose.
+                  </>,
+                  <>
+                    <strong className="text-white">Email + account ID</strong>{" "}
+                    &mdash; to identify your account and enforce daily conversion
+                    quotas.
+                  </>,
+                  <>
+                    <strong className="text-white">Session tokens</strong>{" "}
+                    &mdash; to keep you signed in.
+                  </>,
+                  <>
+                    <strong className="text-white">Conversion counts</strong>{" "}
+                    &mdash; to enforce per-user daily limits across devices.
+                  </>,
+                  <>
+                    <strong className="text-white">Local preferences</strong>{" "}
+                    &mdash; to remember your UI settings. Never transmitted.
+                  </>,
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#FF4800]" />
                     <span>{item}</span>
                   </li>
@@ -161,169 +180,145 @@ export default function PrivacyPolicyPage() {
               </ul>
             </section>
 
-            {/* Third-Party Services */}
+            {/* 3. Who we share data with */}
             <section>
               <h2 className="mb-4 font-display text-xl font-bold text-white">
-                Third-Party Services
+                3. Who we share data with
               </h2>
               <p className="mb-4">
-                The Service communicates with the following third-party services:
+                We share data only with the following infrastructure providers,
+                strictly for the purposes listed:
               </p>
               <div className="overflow-hidden rounded-xl border border-[#2A2A2A]">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-[#2A2A2A] bg-[#161616]">
                       <th className="px-4 py-3 text-left font-semibold text-white">
-                        Service
+                        Recipient
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-white">
+                        What is sent
                       </th>
                       <th className="px-4 py-3 text-left font-semibold text-white">
                         Purpose
                       </th>
                       <th className="px-4 py-3 text-left font-semibold text-white">
-                        Data Sent
+                        Retention
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-[#111111]">
-                    <tr className="border-b border-[#2A2A2A]">
-                      <td className="px-4 py-3 font-mono text-xs text-[#888480]">
-                        MDSpin Conversion API
-                      </td>
-                      <td className="px-4 py-3">File-to-Markdown conversion</td>
+                    <tr className="border-b border-[#2A2A2A] align-top">
                       <td className="px-4 py-3">
-                        File contents (temporarily), filename, file type
+                        MDSpin Conversion API (hosted on Vercel,{" "}
+                        <span className="font-mono text-xs text-[#888480]">
+                          mdc-api-murex.vercel.app
+                        </span>
+                        )
+                      </td>
+                      <td className="px-4 py-3">
+                        File contents, filename, file type
+                      </td>
+                      <td className="px-4 py-3">Convert the file to Markdown</td>
+                      <td className="px-4 py-3">
+                        Processed in memory; not stored. Discarded immediately
+                        after the response is returned.
                       </td>
                     </tr>
-                    <tr>
-                      <td className="px-4 py-3 font-mono text-xs text-[#888480]">
-                        Supabase
-                      </td>
-                      <td className="px-4 py-3">User authentication</td>
+                    <tr className="border-b border-[#2A2A2A] align-top">
                       <td className="px-4 py-3">
-                        Email address, session tokens
+                        Supabase (
+                        <span className="font-mono text-xs text-[#888480]">
+                          ixdsddfxkrkytiitfici.supabase.co
+                        </span>
+                        )
+                      </td>
+                      <td className="px-4 py-3">
+                        Email, account ID, session tokens, daily conversion
+                        counter
+                      </td>
+                      <td className="px-4 py-3">
+                        Authentication, quota enforcement
+                      </td>
+                      <td className="px-4 py-3">
+                        Retained until you delete your account. Quota counters
+                        reset every 24 hours.
+                      </td>
+                    </tr>
+                    <tr className="align-top">
+                      <td className="px-4 py-3">
+                        Google (OAuth identity provider)
+                      </td>
+                      <td className="px-4 py-3">Standard OAuth flow</td>
+                      <td className="px-4 py-3">
+                        Verify your identity when you sign in
+                      </td>
+                      <td className="px-4 py-3">
+                        Governed by Google&apos;s privacy policy
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              <p className="mt-4 text-sm text-[#888480]">
-                We do not share your data with any other third parties.
+              <p className="mt-4">
+                We do not sell, rent, or transfer user data to any other party.
+                We do not use user data for advertising, profiling, or any
+                purpose unrelated to MDSpin&apos;s single purpose
+                (file-to-Markdown conversion).
               </p>
             </section>
 
-            {/* Browser Permissions */}
+            {/* 4. Google Limited Use */}
             <section>
               <h2 className="mb-4 font-display text-xl font-bold text-white">
-                Browser Permissions (Chrome Extension)
-              </h2>
-              <p className="mb-4">
-                The Chrome Extension requests the following permissions, each for
-                a specific purpose:
-              </p>
-              <div className="space-y-3">
-                {[
-                  {
-                    perm: "activeTab",
-                    reason:
-                      "To detect when you are on a supported site (ChatGPT, Claude, or Gemini) and interact with the current tab",
-                  },
-                  {
-                    perm: "storage",
-                    reason:
-                      "To save your preferences (e.g., inline button toggle) locally on your device",
-                  },
-                  {
-                    perm: "clipboardWrite",
-                    reason:
-                      "To copy converted Markdown to your clipboard as a fallback when direct file injection is not possible",
-                  },
-                  {
-                    perm: "scripting",
-                    reason:
-                      "To inject the MDSpin conversion button into supported chat interfaces",
-                  },
-                  {
-                    perm: "identity",
-                    reason: "To authenticate your MDSpin account",
-                  },
-                  {
-                    perm: "Host access",
-                    reason:
-                      "Access to ChatGPT, Claude, and Gemini domains is required to display the conversion button and inject converted files within these specific sites",
-                  },
-                ].map(({ perm, reason }) => (
-                  <div
-                    key={perm}
-                    className="rounded-lg border border-[#2A2A2A] bg-[#161616] px-4 py-3"
-                  >
-                    <span className="font-mono text-xs font-medium text-[#FF4800]">
-                      {perm}
-                    </span>
-                    <p className="mt-1 text-sm text-[#B0ADA8]">{reason}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Data Security */}
-            <section>
-              <h2 className="mb-4 font-display text-xl font-bold text-white">
-                Data Security
+                4. Google API Services &mdash; Limited Use disclosure
               </h2>
               <p>
-                All communication between the Extension and our servers is
-                encrypted using HTTPS/TLS. File data is transmitted securely and
-                processed in-memory without permanent storage. Authentication is
-                handled through Supabase&apos;s secure infrastructure.
+                MDSpin&apos;s use and transfer of information received from
+                Google APIs to any other app will adhere to the{" "}
+                <a
+                  href="https://developer.chrome.com/docs/webstore/user_data"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#FF4800] underline decoration-[#FF4800]/30 underline-offset-2 transition-colors hover:text-[#e04200]"
+                >
+                  Chrome Web Store User Data Policy
+                </a>
+                , including the Limited Use requirements.
               </p>
             </section>
 
-            {/* Data Retention */}
+            {/* 5. Data retention */}
             <section>
               <h2 className="mb-4 font-display text-xl font-bold text-white">
-                Data Retention
+                5. Data retention
               </h2>
-              <ul className="space-y-2.5">
-                <li className="flex items-start gap-3">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#FF4800]" />
-                  <span>
-                    <strong className="text-white">File contents:</strong> Not
-                    retained. Files are processed in real-time and discarded
-                    immediately after conversion.
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#FF4800]" />
-                  <span>
-                    <strong className="text-white">Account data:</strong>{" "}
-                    Retained as long as your account is active. You may request
-                    account deletion at any time.
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#FF4800]" />
-                  <span>
-                    <strong className="text-white">Local preferences:</strong>{" "}
-                    Stored on your device only. Cleared when you uninstall the
-                    Extension.
-                  </span>
-                </li>
-              </ul>
-            </section>
-
-            {/* Your Rights */}
-            <section>
-              <h2 className="mb-4 font-display text-xl font-bold text-white">
-                Your Rights
-              </h2>
-              <p className="mb-4">You may:</p>
               <ul className="space-y-2.5">
                 {[
-                  "Uninstall the Extension at any time to stop all data processing",
-                  "Request deletion of your account and associated data",
-                  "Contact us with any privacy questions or concerns",
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-3">
+                  <>
+                    <strong className="text-white">File contents:</strong> 0
+                    seconds (in-memory only; discarded after response).
+                  </>,
+                  <>
+                    <strong className="text-white">
+                      Account data (email, ID):
+                    </strong>{" "}
+                    until you delete your account.
+                  </>,
+                  <>
+                    <strong className="text-white">Session tokens:</strong> until
+                    you sign out or they expire.
+                  </>,
+                  <>
+                    <strong className="text-white">Quota counters:</strong>{" "}
+                    24-hour rolling window.
+                  </>,
+                  <>
+                    <strong className="text-white">Local preferences:</strong>{" "}
+                    until you uninstall the extension or clear browser storage.
+                  </>,
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#FF4800]" />
                     <span>{item}</span>
                   </li>
@@ -331,26 +326,88 @@ export default function PrivacyPolicyPage() {
               </ul>
             </section>
 
-            {/* Changes */}
+            {/* 6. Security */}
             <section>
               <h2 className="mb-4 font-display text-xl font-bold text-white">
-                Changes to This Policy
+                6. Security
               </h2>
               <p>
-                We may update this Privacy Policy from time to time. We will
-                notify users of significant changes by updating the &ldquo;Last
-                updated&rdquo; date at the top of this page.
+                All communication between the extension, the conversion API, and
+                Supabase uses HTTPS/TLS encryption.
               </p>
             </section>
 
-            {/* Contact */}
-            <section className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-6">
-              <h2 className="mb-3 font-display text-xl font-bold text-white">
-                Contact
+            {/* 7. Your rights and controls */}
+            <section>
+              <h2 className="mb-4 font-display text-xl font-bold text-white">
+                7. Your rights and controls
+              </h2>
+              <ul className="space-y-2.5">
+                <li className="flex items-start gap-3">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#FF4800]" />
+                  <span>
+                    <strong className="text-white">
+                      Access or delete your account data:
+                    </strong>{" "}
+                    email{" "}
+                    <a
+                      href="mailto:trenkner.peter@gmail.com"
+                      className="text-[#FF4800] underline decoration-[#FF4800]/30 underline-offset-2 transition-colors hover:text-[#e04200]"
+                    >
+                      trenkner.peter@gmail.com
+                    </a>{" "}
+                    and we will delete your account and all associated data
+                    within 30 days.
+                  </span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#FF4800]" />
+                  <span>
+                    <strong className="text-white">Sign out:</strong> available
+                    from the extension popup. Ends the session immediately.
+                  </span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#FF4800]" />
+                  <span>
+                    <strong className="text-white">Stop local storage:</strong>{" "}
+                    uninstalling the extension clears all locally stored
+                    preferences.
+                  </span>
+                </li>
+              </ul>
+            </section>
+
+            {/* 8. Children */}
+            <section>
+              <h2 className="mb-4 font-display text-xl font-bold text-white">
+                8. Children
               </h2>
               <p>
-                If you have questions about this Privacy Policy, please contact
-                us at:{" "}
+                MDSpin is not directed at children under 13 and we do not
+                knowingly collect data from them.
+              </p>
+            </section>
+
+            {/* 9. Changes */}
+            <section>
+              <h2 className="mb-4 font-display text-xl font-bold text-white">
+                9. Changes to this policy
+              </h2>
+              <p>
+                We will update the &ldquo;Last updated&rdquo; date above when
+                the policy changes. Material changes will be announced in the
+                extension&apos;s release notes.
+              </p>
+            </section>
+
+            {/* 10. Contact */}
+            <section className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-6">
+              <h2 className="mb-3 font-display text-xl font-bold text-white">
+                10. Contact
+              </h2>
+              <p>
+                Questions about this policy:{" "}
                 <a
                   href="mailto:trenkner.peter@gmail.com"
                   className="text-[#FF4800] underline decoration-[#FF4800]/30 underline-offset-2 transition-colors hover:text-[#e04200]"
