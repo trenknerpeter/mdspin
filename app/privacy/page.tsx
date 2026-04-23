@@ -49,7 +49,7 @@ export default function PrivacyPolicyPage() {
             </h1>
 
             <p className="mt-4 text-sm text-[#888480]">
-              Last updated: April 21, 2026
+              Last updated: April 23, 2026
             </p>
           </header>
 
@@ -264,7 +264,8 @@ export default function PrivacyPolicyPage() {
                 We do not sell, rent, or transfer user data to any other party.
                 We do not use user data for advertising, profiling, or any
                 purpose unrelated to MDSpin&apos;s single purpose
-                (file-to-Markdown conversion).
+                (file-to-Markdown conversion). We do not use or transfer user
+                data to determine creditworthiness or for lending purposes.
               </p>
             </section>
 
