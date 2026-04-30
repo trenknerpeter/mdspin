@@ -49,7 +49,7 @@ export default function PrivacyPolicyPage() {
             </h1>
 
             <p className="mt-4 text-sm text-[#888480]">
-              Last updated: April 23, 2026
+              Last updated: April 30, 2026
             </p>
           </header>
 
@@ -93,12 +93,56 @@ export default function PrivacyPolicyPage() {
                       <td className="px-4 py-3">
                         Email address, Google account ID
                       </td>
-                      <td className="px-4 py-3">Google OAuth sign-in</td>
+                      <td className="px-4 py-3">
+                        Sign-up form (email + password) or Google OAuth sign-in
+                      </td>
+                    </tr>
+                    <tr className="border-b border-[#2A2A2A] align-top">
+                      <td className="px-4 py-3">Authentication credentials</td>
+                      <td className="px-4 py-3">
+                        Password (only when you sign up with email + password).
+                        Submitted from the sign-up form directly to Supabase
+                        Auth over TLS, where it is stored only in hashed form.
+                        MDSpin&apos;s backend never receives the password, and
+                        neither MDSpin nor anyone else can read the stored
+                        hash.
+                      </td>
+                      <td className="px-4 py-3">
+                        You, when you create an account with email and password
+                      </td>
                     </tr>
                     <tr className="border-b border-[#2A2A2A] align-top">
                       <td className="px-4 py-3">Authentication information</td>
                       <td className="px-4 py-3">Supabase session tokens</td>
                       <td className="px-4 py-3">Created when you sign in</td>
+                    </tr>
+                    <tr className="border-b border-[#2A2A2A] align-top">
+                      <td className="px-4 py-3">
+                        Third-party authentication tokens
+                      </td>
+                      <td className="px-4 py-3">
+                        Google OAuth access token and refresh token (only if
+                        you sign in with Google and grant Drive/Docs scopes)
+                      </td>
+                      <td className="px-4 py-3">
+                        Returned by Google after OAuth consent; stored
+                        server-side so the extension can import files from
+                        your Drive on your behalf
+                      </td>
+                    </tr>
+                    <tr className="border-b border-[#2A2A2A] align-top">
+                      <td className="px-4 py-3">
+                        Network identifier (anonymous use only)
+                      </td>
+                      <td className="px-4 py-3">
+                        Your IP address, used solely to enforce the
+                        3-conversions-per-day limit for non-signed-in users.
+                        Not stored against signed-in accounts.
+                      </td>
+                      <td className="px-4 py-3">
+                        Sent automatically by your browser when you make a
+                        conversion request without being signed in
+                      </td>
                     </tr>
                     <tr className="border-b border-[#2A2A2A] align-top">
                       <td className="px-4 py-3">
@@ -158,6 +202,25 @@ export default function PrivacyPolicyPage() {
                     <strong className="text-white">Email + account ID</strong>{" "}
                     &mdash; to identify your account and enforce daily conversion
                     quotas.
+                  </>,
+                  <>
+                    <strong className="text-white">Password</strong> &mdash;
+                    verified by Supabase Auth at sign-in. Used only to
+                    authenticate you. Not used for any other purpose. We have
+                    no ability to read it.
+                  </>,
+                  <>
+                    <strong className="text-white">Google OAuth tokens</strong>{" "}
+                    &mdash; used server-side to fetch documents from your
+                    Google Drive when you choose to import a file. Tokens are
+                    never shared with third parties.
+                  </>,
+                  <>
+                    <strong className="text-white">
+                      IP address (anonymous users only)
+                    </strong>{" "}
+                    &mdash; counted against the per-IP daily quota and
+                    discarded after 24 hours. Not linked to an account.
                   </>,
                   <>
                     <strong className="text-white">Session tokens</strong>{" "}
@@ -234,11 +297,14 @@ export default function PrivacyPolicyPage() {
                         )
                       </td>
                       <td className="px-4 py-3">
-                        Email, account ID, session tokens, daily conversion
-                        counter
+                        Email, account ID, hashed password (email signup only),
+                        Google OAuth tokens (Google signup only), session
+                        tokens, daily conversion counter, IP address (anonymous
+                        quota only)
                       </td>
                       <td className="px-4 py-3">
-                        Authentication, quota enforcement
+                        Authentication, password verification, OAuth token
+                        storage for Drive/Docs imports, quota enforcement
                       </td>
                       <td className="px-4 py-3">
                         Retained until you delete your account. Quota counters
@@ -307,6 +373,26 @@ export default function PrivacyPolicyPage() {
                     until you delete your account.
                   </>,
                   <>
+                    <strong className="text-white">Password (hashed):</strong>{" "}
+                    stored by Supabase Auth until you delete your account or
+                    change your password.
+                  </>,
+                  <>
+                    <strong className="text-white">
+                      Google OAuth tokens:
+                    </strong>{" "}
+                    until you revoke access in your Google account settings or
+                    delete your MDSpin account. Refresh tokens are rotated
+                    automatically by Google.
+                  </>,
+                  <>
+                    <strong className="text-white">
+                      IP addresses (anonymous quota):
+                    </strong>{" "}
+                    24-hour rolling window; deleted when the daily quota row is
+                    reset.
+                  </>,
+                  <>
                     <strong className="text-white">Session tokens:</strong> until
                     you sign out or they expire.
                   </>,
@@ -333,8 +419,14 @@ export default function PrivacyPolicyPage() {
                 6. Security
               </h2>
               <p>
-                All communication between the extension, the conversion API, and
-                Supabase uses HTTPS/TLS encryption.
+                All communication between the extension, the conversion API,
+                and Supabase uses HTTPS/TLS encryption. Passwords are never
+                stored in plaintext: when you sign up with email + password,
+                the password is sent directly from your browser to Supabase
+                Auth over TLS and hashed there using bcrypt before storage.
+                MDSpin&apos;s backend never receives the plaintext password,
+                and neither MDSpin nor anyone else can read the stored hash.
+                Authentication is performed entirely by Supabase Auth.
               </p>
             </section>
 
