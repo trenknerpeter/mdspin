@@ -1,1 +1,1 @@
-export const BACKEND_URL = process.env.BACKEND_URL ?? "https://mdc-api-murex.vercel.app"
+export const BACKEND_URL = process.env.BACKEND_URL ?? "https://api.mdspin.app"

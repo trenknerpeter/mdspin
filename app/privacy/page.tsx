@@ -275,7 +275,7 @@ export default function PrivacyPolicyPage() {
                       <td className="px-4 py-3">
                         MDSpin Conversion API (hosted on Vercel,{" "}
                         <span className="font-mono text-xs text-[#888480]">
-                          mdc-api-murex.vercel.app
+                          api.mdspin.app
                         </span>
                         )
                       </td>

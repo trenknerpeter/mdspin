@@ -8,7 +8,7 @@
 // Limits: 1–20 files per request, each file must be < 20 MB
 //
 // Requires env vars in .env.local (and in Vercel project settings):
-//   BACKEND_URL=https://mdc-api-murex.vercel.app
+//   BACKEND_URL=https://api.mdspin.app
 //   BACKEND_API_KEY=<your 64-char key>
 //   SUPABASE_SERVICE_ROLE_KEY=<service role key>
 

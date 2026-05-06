@@ -21,7 +21,7 @@ function OAuthConsentForm() {
   const redirectUri = searchParams.get("redirect_uri")
   const state = searchParams.get("state")
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://mdc-api-murex.vercel.app"
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.mdspin.app"
 
   // Validate required OAuth params
   useEffect(() => {

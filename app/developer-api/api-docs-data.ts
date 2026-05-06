@@ -23,7 +23,7 @@ export interface Endpoint {
   exampleResponse: string
 }
 
-export const BASE_URL = "https://mdc-api-murex.vercel.app"
+export const BASE_URL = "https://api.mdspin.app"
 
 export const endpoints: Endpoint[] = [
   {
@@ -37,7 +37,7 @@ export const endpoints: Endpoint[] = [
     responseFields: [
       { name: "email", type: "string", description: "The email address associated with the API key." },
     ],
-    exampleRequest: `curl -X GET https://mdc-api-murex.vercel.app/oauth/me \\
+    exampleRequest: `curl -X GET https://api.mdspin.app/oauth/me \\
   -H "Authorization: Bearer mdspin_your_api_key"`,
     exampleResponse: `{
   "email": "user@example.com"
@@ -62,7 +62,7 @@ export const endpoints: Endpoint[] = [
       { name: "word_count", type: "number", description: "Total word count of the converted text." },
       { name: "converted_at", type: "string", description: "ISO 8601 timestamp of the conversion." },
     ],
-    exampleRequest: `curl -X POST https://mdc-api-murex.vercel.app/v1/convert/google-doc \\
+    exampleRequest: `curl -X POST https://api.mdspin.app/v1/convert/google-doc \\
   -H "Authorization: Bearer mdspin_your_api_key" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -98,7 +98,7 @@ export const endpoints: Endpoint[] = [
       { name: "word_count", type: "number", description: "Total word count of the converted text." },
       { name: "converted_at", type: "string", description: "ISO 8601 timestamp of the conversion." },
     ],
-    exampleRequest: `curl -X POST https://mdc-api-murex.vercel.app/v1/convert/google-slides \\
+    exampleRequest: `curl -X POST https://api.mdspin.app/v1/convert/google-slides \\
   -H "Authorization: Bearer mdspin_your_api_key" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -136,7 +136,7 @@ export const endpoints: Endpoint[] = [
       { name: "converted_at", type: "string", description: "ISO 8601 timestamp of the conversion." },
       { name: "warning", type: "string", description: "Optional warning message if the conversion had issues." },
     ],
-    exampleRequest: `curl -X POST https://mdc-api-murex.vercel.app/v1/convert/attachment \\
+    exampleRequest: `curl -X POST https://api.mdspin.app/v1/convert/attachment \\
   -H "Authorization: Bearer mdspin_your_api_key" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -173,7 +173,7 @@ export const endpoints: Endpoint[] = [
       { name: "converted_at", type: "string", description: "ISO 8601 timestamp of the conversion." },
       { name: "warning", type: "string", description: "Optional warning message if the conversion had issues." },
     ],
-    exampleRequest: `curl -X POST https://mdc-api-murex.vercel.app/v1/convert/url \\
+    exampleRequest: `curl -X POST https://api.mdspin.app/v1/convert/url \\
   -H "Authorization: Bearer mdspin_your_api_key" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -211,7 +211,7 @@ export const endpoints: Endpoint[] = [
       { name: "succeeded", type: "number", description: "Number of files successfully converted." },
       { name: "failed", type: "number", description: "Number of files that failed conversion." },
     ],
-    exampleRequest: `curl -X POST https://mdc-api-murex.vercel.app/v1/convert/attachments/batch \\
+    exampleRequest: `curl -X POST https://api.mdspin.app/v1/convert/attachments/batch \\
   -H "Authorization: Bearer mdspin_your_api_key" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -276,7 +276,7 @@ export const endpoints: Endpoint[] = [
       { name: "folder_id", type: "string", description: "The folder ID where the file was saved." },
       { name: "saved_at", type: "string", description: "ISO 8601 timestamp of when the file was saved." },
     ],
-    exampleRequest: `curl -X POST https://mdc-api-murex.vercel.app/v1/save/drive \\
+    exampleRequest: `curl -X POST https://api.mdspin.app/v1/save/drive \\
   -H "Authorization: Bearer mdspin_your_api_key" \\
   -H "Content-Type: application/json" \\
   -d '{

@@ -7,7 +7,7 @@
 // Supported formats: PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, PAGES
 //
 // Requires env vars in .env.local (and in Vercel project settings):
-//   BACKEND_URL=https://mdc-api-murex.vercel.app
+//   BACKEND_URL=https://api.mdspin.app
 //   BACKEND_API_KEY=<your 64-char key>
 //   SUPABASE_SERVICE_ROLE_KEY=<service role key>
 
