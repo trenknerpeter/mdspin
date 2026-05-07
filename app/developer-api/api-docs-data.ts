@@ -48,9 +48,9 @@ export const endpoints: Endpoint[] = [
     id: "convert-google-doc",
     method: "POST",
     path: "/v1/convert/google-doc",
-    title: "Convert Google Doc",
+    title: "Convert Google Doc (Deprecated)",
     description:
-      "Converts a Google Doc to clean Markdown. Accepts a full Google Docs URL or just the document ID. The document must be publicly accessible or shared with MDSpin's service account.",
+      "Deprecated. This endpoint relied on Google Drive/Docs scopes that are no longer requested at sign-in. New users will not have a usable Google token on file. Workaround: export the Doc yourself (e.g. via Google's API or Make.com's Google Docs/Drive modules) and convert the resulting file with /v1/convert/attachment or /v1/convert/url.",
     parameters: [
       { name: "doc_id_or_url", type: "string", required: true, description: "Full Google Docs URL (e.g. https://docs.google.com/document/d/...) or the document ID." },
       { name: "include_metadata", type: "boolean", required: false, description: "When true, response includes character count and heading count. Defaults to false." },
@@ -82,9 +82,9 @@ export const endpoints: Endpoint[] = [
     id: "convert-google-slides",
     method: "POST",
     path: "/v1/convert/google-slides",
-    title: "Convert Google Slides",
+    title: "Convert Google Slides (Deprecated)",
     description:
-      "Converts a Google Slides presentation to Markdown. Each slide becomes a section. Optionally includes speaker notes.",
+      "Deprecated. This endpoint relied on Google Drive/Docs scopes that are no longer requested at sign-in. New users will not have a usable Google token on file. Workaround: export the deck as PDF or PPTX yourself (e.g. via Google's API or Make.com's Google Drive module) and convert the resulting file with /v1/convert/attachment or /v1/convert/url.",
     parameters: [
       { name: "presentation_id_or_url", type: "string", required: true, description: "Full Google Slides URL or just the presentation ID." },
       { name: "include_notes", type: "boolean", required: false, description: "When true, speaker notes are included under each slide. Defaults to false." },
@@ -260,9 +260,9 @@ export const endpoints: Endpoint[] = [
     id: "save-to-drive",
     method: "POST",
     path: "/v1/save/drive",
-    title: "Save Markdown to Google Drive",
+    title: "Save Markdown to Google Drive (Deprecated)",
     description:
-      "Saves Markdown text as a .md file in a specified Google Drive folder. Useful for archiving conversion results.",
+      "Deprecated. This endpoint relied on Google Drive scopes that are no longer requested at sign-in. New users will not have a usable Google token on file. Workaround: take the markdown_text returned by any conversion endpoint and upload it to Drive yourself (e.g. via Google's API or Make.com's Google Drive 'Upload a File' module).",
     parameters: [
       { name: "markdown_text", type: "string", required: true, description: "The Markdown content to save." },
       { name: "folder_id", type: "string", required: true, description: "Google Drive folder ID (the last segment of the folder's URL)." },
