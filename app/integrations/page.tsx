@@ -8,12 +8,12 @@ import { GrainOverlay } from "@/components/grain-overlay"
 export const metadata: Metadata = {
   title: "Integrations — Make.com Automation for Document Conversion",
   description:
-    "Automate document-to-Markdown conversion with MDSpin's Make.com integration. Convert attachments, Google Docs, Google Slides, and URLs to Markdown automatically.",
+    "Automate document-to-Markdown conversion with the MDSpin Make.com app. Convert attachments, files from URLs, and custom API requests to Markdown automatically.",
   alternates: { canonical: `${SITE_URL}/integrations` },
   openGraph: {
     title: "Integrations — Make.com Automation | MDSpin",
     description:
-      "Automate document-to-Markdown conversion with MDSpin's Make.com integration.",
+      "Automate document-to-Markdown conversion with MDSpin's Make.com app.",
     url: `${SITE_URL}/integrations`,
   },
 }
@@ -35,19 +35,9 @@ const modules = [
       "Fetch a document from a URL and convert it to structured Markdown.",
   },
   {
-    name: "Convert Google Doc to Markdown",
+    name: "Make an API Call",
     description:
-      "Convert Google Docs directly to Markdown without downloading first.",
-  },
-  {
-    name: "Convert Google Slide to Markdown",
-    description:
-      "Extract content from Google Slides presentations into readable Markdown.",
-  },
-  {
-    name: "Save Markdown to Google Drive",
-    description:
-      "Save converted Markdown files directly to a Google Drive folder.",
+      "Send a custom request to the MDSpin API for advanced or non-standard conversions.",
   },
 ]
 
@@ -78,7 +68,7 @@ export default function IntegrationsPage() {
     "@type": "WebPage",
     name: "Integrations — MDSpin",
     description:
-      "Automate document-to-Markdown conversion with MDSpin's Make.com integration.",
+      "Automate document-to-Markdown conversion with the MDSpin Make.com app.",
     url: `${SITE_URL}/integrations`,
     publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
   }
@@ -128,8 +118,8 @@ export default function IntegrationsPage() {
               <h2 className="font-display text-2xl font-bold text-white">
                 Make.com Integration
               </h2>
-              <span className="rounded-full bg-yellow-500/15 px-3 py-1 text-xs font-semibold text-yellow-500">
-                Coming Soon
+              <span className="rounded-full bg-[#4ADE80]/15 px-3 py-1 text-xs font-semibold text-[#4ADE80]">
+                Released
               </span>
             </div>
             <p className="text-sm leading-relaxed text-[#888480]">
@@ -150,14 +140,9 @@ export default function IntegrationsPage() {
                   key={mod.name}
                   className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-6"
                 >
-                  <div className="mb-3 flex items-start justify-between gap-2">
-                    <h3 className="text-sm font-medium text-[#F0EDE8]">
-                      {mod.name}
-                    </h3>
-                    <span className="shrink-0 rounded-full bg-yellow-500/15 px-2 py-0.5 text-[10px] font-semibold text-yellow-500">
-                      In Development
-                    </span>
-                  </div>
+                  <h3 className="mb-3 text-sm font-medium text-[#F0EDE8]">
+                    {mod.name}
+                  </h3>
                   <p className="text-xs leading-relaxed text-[#888480]">
                     {mod.description}
                   </p>
@@ -213,21 +198,17 @@ export default function IntegrationsPage() {
               Can&apos;t wait for automations?
             </h2>
             <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[#888480]">
-              Convert your documents now with the MDSpin web app or Chrome extension.
+              Convert your documents now with the MDSpin Make app.
             </p>
-            <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-              <Link
-                href="/#converter"
-                className="rounded-full bg-[#FF4800] px-6 py-2 text-sm font-semibold text-white transition-all hover:bg-[#e04200]"
+            <div className="mt-6">
+              <a
+                href="https://www.make.com/en"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block rounded-full bg-[#FF4800] px-6 py-2 text-sm font-semibold text-white transition-all hover:bg-[#e04200]"
               >
-                Try MDSpin free
-              </Link>
-              <Link
-                href="/how-it-works"
-                className="rounded-full border border-[#2A2A2A] px-6 py-2 text-sm font-medium text-[#888480] transition-colors hover:border-[#3A3A3A] hover:text-white"
-              >
-                See how it works
-              </Link>
+                Try MDSpin Make App
+              </a>
             </div>
           </div>
         </div>

@@ -8,8 +8,6 @@ import { createClient } from "@/lib/supabase/client"
 import { BuyCoffee } from "@/components/buy-coffee"
 import { SiteNav } from "@/components/site-nav"
 
-type WaitlistStatus = "idle" | "loading" | "success" | "error"
-
 type FileItem = {
   id: string
   file: File
@@ -60,10 +58,6 @@ export default function MDSpinPage() {
       : batchStatus === 'done'
         ? 'done'
         : 'loaded'
-
-  // --- waitlist state ---
-  const [waitlistEmail, setWaitlistEmail] = useState("")
-  const [waitlistStatus, setWaitlistStatus] = useState<WaitlistStatus>("idle")
 
   useEffect(() => {
     setMounted(true)
@@ -282,23 +276,6 @@ export default function MDSpinPage() {
       })
       .join('\n\n---\n\n')
   }, [files])
-
-  // --- waitlist handler ---
-  const handleWaitlist = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!waitlistEmail || waitlistStatus === "loading" || waitlistStatus === "success") return
-    setWaitlistStatus("loading")
-    try {
-      const res = await fetch("/api/waitlist", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: waitlistEmail }),
-      })
-      setWaitlistStatus(res.ok ? "success" : "error")
-    } catch {
-      setWaitlistStatus("error")
-    }
-  }
 
   return (
     <div className="min-h-screen bg-[#0C0C0C] font-sans text-[#F0EDE8]">
@@ -896,19 +873,19 @@ expansion in EMEA.
         </div>
       </section>
 
-      {/* ── Products + Waitlist ── */}
+      {/* ── Products ── */}
       <section id="products" className="border-t border-[#1E1E1E] py-24">
         <div className="mx-auto max-w-5xl px-6">
           <div className="mb-12 text-center">
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#FF4800]">
-              Coming to Your Workflow
+              In Your Workflow
             </p>
             <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">
               MDSpin everywhere you work
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#888480]">
-              The web converter is just the start. MDSpin is coming to the tools where your AI
-              workflows actually live.
+              The web converter is just the start. MDSpin lives in the tools where your AI
+              workflows already run.
             </p>
           </div>
 
@@ -922,8 +899,8 @@ expansion in EMEA.
               </div>
               <div className="mb-3 flex items-center gap-2">
                 <h3 className="font-display text-lg font-semibold text-[#F0EDE8]">Make.com App</h3>
-                <span className="rounded-full bg-[#6D28D9]/15 px-2 py-0.5 text-[10px] font-semibold text-[#8B5CF6]">
-                  Soon
+                <span className="rounded-full bg-[#4ADE80]/15 px-2 py-0.5 text-[10px] font-semibold text-[#4ADE80]">
+                  Released
                 </span>
               </div>
               <p className="text-sm leading-relaxed text-[#888480]">
@@ -931,6 +908,16 @@ expansion in EMEA.
                 markdown directly to Claude, GPT, or any AI node in your workflow.
                 Zero-friction document intelligence at scale.
               </p>
+              <div className="mt-5">
+                <a
+                  href="https://www.make.com/en"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#2A2A2A] px-6 py-2.5 text-sm font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
+                >
+                  Try it
+                </a>
+              </div>
             </div>
 
             {/* Chrome Extension */}
@@ -964,60 +951,6 @@ expansion in EMEA.
             </div>
           </div>
 
-          {/* Email capture */}
-          <div id="waitlist" className="mt-8 rounded-xl border border-[#2A2A2A] bg-[#161616] p-8">
-            <div className="mx-auto max-w-md text-center">
-              {waitlistStatus === "success" ? (
-                <div className="flex flex-col items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FF4800]/15">
-                    <Check className="h-6 w-6 text-[#FF4800]" />
-                  </div>
-                  <p className="font-display text-lg font-semibold text-[#F0EDE8]">
-                    You&apos;re on the list.
-                  </p>
-                  <p className="text-sm text-[#888480]">
-                    We&apos;ll reach out the moment Make.com goes live.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <p className="font-display text-lg font-semibold text-[#F0EDE8]">
-                    Get early access
-                  </p>
-                  <p className="mt-1.5 text-sm text-[#888480]">
-                    Be first to know when Make.com launches.
-                  </p>
-                  <form onSubmit={handleWaitlist} className="mt-6 flex gap-2">
-                    <input
-                      type="email"
-                      value={waitlistEmail}
-                      onChange={(e) => setWaitlistEmail(e.target.value)}
-                      placeholder="your@email.com"
-                      required
-                      className="flex-1 rounded-lg border border-[#2A2A2A] bg-[#0C0C0C] px-4 py-2.5 text-sm text-[#F0EDE8] placeholder-[#4A4A46] outline-none transition-all focus:border-[#FF4800]/40 focus:ring-1 focus:ring-[#FF4800]/15"
-                    />
-                    <button
-                      type="submit"
-                      disabled={waitlistStatus === "loading"}
-                      className="flex items-center gap-2 rounded-lg bg-[#FF4800] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#e04200] disabled:opacity-60"
-                    >
-                      {waitlistStatus === "loading" ? (
-                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                      ) : (
-                        "Notify me"
-                      )}
-                    </button>
-                  </form>
-                  {waitlistStatus === "error" && (
-                    <p className="mt-2 text-xs text-red-400">Something went wrong. Try again.</p>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
         </div>
       </section>
 
