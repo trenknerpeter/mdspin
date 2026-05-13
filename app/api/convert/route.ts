@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, incrementUsage } from '@/lib/rate-limit';
+import { getPostHogClient } from '@/lib/posthog-server';
 
 export const runtime    = 'nodejs'; // Buffer is required — cannot run on Edge
 export const maxDuration = 30;      // seconds — large PDFs can be slow
@@ -52,6 +53,14 @@ export async function POST(req: NextRequest) {
     const message = user
       ? `Daily limit of ${rateCheck.limit} conversions reached. Resets at midnight UTC.`
       : `Daily conversion limit reached. Sign in for more conversions.`;
+
+    const posthog = getPostHogClient()
+    posthog.capture({
+      distinctId: identifier,
+      event: 'conversion_rate_limited',
+      properties: { identifier_type: identifierType, limit: rateCheck.limit },
+    })
+    await posthog.shutdown()
 
     return NextResponse.json(
       {

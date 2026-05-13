@@ -7,6 +7,7 @@ import { useAuth } from "@/components/auth-provider"
 import { createClient } from "@/lib/supabase/client"
 import { BuyCoffee } from "@/components/buy-coffee"
 import { SiteNav } from "@/components/site-nav"
+import posthog from "posthog-js"
 
 type FileItem = {
   id: string
@@ -121,11 +122,13 @@ export default function MDSpinPage() {
 
   const handleCopyFile = async (id: string, markdown: string) => {
     await navigator.clipboard.writeText(markdown)
+    posthog.capture("markdown_copied", { source: "converter" })
     setCopiedId(id)
     setTimeout(() => setCopiedId(null), 2000)
   }
 
   const handleDownloadFile = (filename: string, markdown: string) => {
+    posthog.capture("markdown_downloaded", { source: "converter", filename })
     const blob = new Blob([markdown], { type: 'text/markdown' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -150,6 +153,10 @@ export default function MDSpinPage() {
       ext: fi.file.name.split('.').pop()?.toLowerCase() ?? ''
     }))
 
+    posthog.capture("file_conversion_started", {
+      file_count: files.length,
+      file_types: files.map(fi => fi.file.name.split('.').pop()?.toLowerCase()),
+    })
     setBatchStatus('converting')
     setError(null)
     setShowMerged(false)
@@ -219,6 +226,16 @@ export default function MDSpinPage() {
         }
       }))
 
+      results.forEach((result, idx) => {
+        const fi = files[idx]
+        const ext = fi?.file.name.split('.').pop()?.toLowerCase()
+        if (result.success && result.markdown_text) {
+          const wordCount = result.markdown_text.split(/\s+/).filter(Boolean).length
+          posthog.capture("file_conversion_completed", { file_type: ext, word_count: wordCount })
+        } else {
+          posthog.capture("file_conversion_failed", { file_type: ext, error: result.error ?? 'Conversion failed' })
+        }
+      })
       setBatchStatus('done')
 
       // Fire-and-forget DB inserts using pre-captured metadata (avoids stale closure)

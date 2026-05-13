@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
+import posthog from "posthog-js"
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("")
@@ -17,7 +18,9 @@ export default function SignUpPage() {
     setError(null)
     setLoading(true)
 
-    const { error } = await supabase.auth.signUp({
+    posthog.capture("sign_up_submitted", { method: "email" })
+
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -26,15 +29,20 @@ export default function SignUpPage() {
     })
 
     if (error) {
+      posthog.captureException(error)
       setError(error.message)
       setLoading(false)
     } else {
+      if (data.user) {
+        posthog.identify(data.user.id, { email: data.user.email })
+      }
       setSuccess(true)
       setLoading(false)
     }
   }
 
   const handleGoogleSignIn = async () => {
+    posthog.capture("sign_up_submitted", { method: "google" })
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {

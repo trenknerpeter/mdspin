@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Key, Plus, Copy, Check, Trash2, X, AlertCircle } from "lucide-react"
+import posthog from "posthog-js"
 import { useAuth } from "@/components/auth-provider"
 import { createClient } from "@/lib/supabase/client"
 import {
@@ -108,6 +109,7 @@ export default function ApiKeysPage() {
       })
       const data = await res.json()
       if (res.ok) {
+        posthog.capture("api_key_generated", { key_name: nameInput.trim() || null })
         setNewKeyModal({ key: data.key, copied: false })
         setNameInput("")
         await fetchKeys()
@@ -120,7 +122,8 @@ export default function ApiKeysPage() {
       } else {
         setGenerateError(data?.message ?? "Failed to generate key.")
       }
-    } catch {
+    } catch (err) {
+      posthog.captureException(err)
       setGenerateError("Network error — could not generate key.")
     } finally {
       setGenerating(false)
@@ -158,6 +161,7 @@ export default function ApiKeysPage() {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok) {
+        posthog.capture("api_key_revoked")
         setKeys((prev) => prev.map((k) => k.id === id ? { ...k, revoked: true } : k))
         removeKeyData(id)
         setKeyHints((prev) => { const next = { ...prev }; delete next[id]; return next })

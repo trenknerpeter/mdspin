@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import posthog from "posthog-js"
 
 export function BuyCoffee({ fullWidth }: { fullWidth?: boolean }) {
   const [loading, setLoading] = useState(false)
@@ -10,8 +11,12 @@ export function BuyCoffee({ fullWidth }: { fullWidth?: boolean }) {
     if (loading) return
     setLoading(true)
     setError(null)
+    posthog.capture("buy_coffee_clicked")
     try {
-      const res = await fetch("/api/checkout", { method: "POST" })
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "X-POSTHOG-DISTINCT-ID": posthog.get_distinct_id() },
+      })
       const data = await res.json() as { url?: string; error?: string }
       if (data.url) {
         window.location.href = data.url
@@ -19,7 +24,8 @@ export function BuyCoffee({ fullWidth }: { fullWidth?: boolean }) {
         setError("Something went wrong — please try again.")
         setLoading(false)
       }
-    } catch {
+    } catch (err) {
+      posthog.captureException(err)
       setError("Something went wrong — please try again.")
       setLoading(false)
     }

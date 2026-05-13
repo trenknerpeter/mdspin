@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { stripe } from "@/lib/stripe"
 import Stripe from "stripe"
+import { getPostHogClient } from "@/lib/posthog-server"
 
 export async function POST(req: NextRequest) {
   const body = await req.text()
@@ -22,6 +23,20 @@ export async function POST(req: NextRequest) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session
     console.log("[stripe webhook] payment completed:", session.id, "amount:", session.amount_total)
+
+    const distinctId = session.client_reference_id ?? session.customer_email ?? session.id
+    const posthog = getPostHogClient()
+    posthog.capture({
+      distinctId,
+      event: "payment_completed",
+      properties: {
+        stripe_session_id: session.id,
+        amount_total: session.amount_total,
+        currency: session.currency,
+        customer_email: session.customer_email,
+      },
+    })
+    await posthog.shutdown()
   }
 
   return NextResponse.json({ received: true })
