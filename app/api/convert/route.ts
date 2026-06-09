@@ -41,8 +41,26 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 2. Rate limit check ────────────────────────────────────
+  // Identity precedence: bearer token (extension) → session cookie (website) → anonymous IP.
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+
+  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] = null;
+
+  const authHeader = req.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7).trim();
+    try {
+      const { data, error } = await supabase.auth.getUser(token);
+      if (!error && data.user) user = data.user;
+    } catch {
+      // Malformed/expired token — fall through to cookie/IP. Never 500 on this.
+    }
+  }
+
+  if (!user) {
+    const { data } = await supabase.auth.getUser(); // cookie-based session
+    user = data.user;
+  }
 
   const identifier = user ? user.id : getClientIp(req);
   const identifierType: 'user' | 'ip' = user ? 'user' : 'ip';
