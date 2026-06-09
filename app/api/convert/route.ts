@@ -44,16 +44,21 @@ export async function POST(req: NextRequest) {
   // Identity precedence: bearer token (extension) → session cookie (website) → anonymous IP.
   const supabase = await createClient();
 
-  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] = null;
+  let user: { id: string } | null = null;
 
   const authHeader = req.headers.get('authorization');
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.slice(7).trim();
-    try {
-      const { data, error } = await supabase.auth.getUser(token);
-      if (!error && data.user) user = data.user;
-    } catch {
-      // Malformed/expired token — fall through to cookie/IP. Never 500 on this.
+    if (token) {
+      try {
+        const { data, error } = await supabase.auth.getUser(token);
+        if (!error && data.user) user = data.user;
+      } catch (err) {
+        // getUser(token) rarely throws for a bad token; a network failure to
+        // Supabase Auth lands here. Log it (so a transient outage demoting users
+        // to anonymous is visible) and fall through to cookie/IP. Never 500.
+        console.warn('[/api/convert] Bearer token validation failed:', err);
+      }
     }
   }
 
