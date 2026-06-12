@@ -4,7 +4,7 @@
 // base64, and forwards it to the Vercel backend for Markdown conversion.
 // The BACKEND_API_KEY never leaves the server.
 //
-// Supported formats: PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, PAGES
+// Supported formats: PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, PAGES, HTML
 //
 // Requires env vars in .env.local (and in Vercel project settings):
 //   BACKEND_URL=https://api.mdspin.app
@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, incrementUsage } from '@/lib/rate-limit';
 import { getPostHogClient } from '@/lib/posthog-server';
+import { isSupportedExt, MIME_TYPES } from '@/lib/formats';
 
 export const runtime    = 'nodejs'; // Buffer is required — cannot run on Edge
 export const maxDuration = 30;      // seconds — large PDFs can be slow
@@ -124,12 +125,11 @@ export async function POST(req: NextRequest) {
 
   // ── 4. Validate file type ───────────────────────────────────
   const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-  const SUPPORTED_EXTS = ['pdf', 'docx', 'doc', 'pptx', 'gslides', 'rtf', 'txt', 'pages'];
-  if (!SUPPORTED_EXTS.includes(ext)) {
+  if (!isSupportedExt(ext)) {
     return NextResponse.json(
       {
         error:   'UNSUPPORTED_FILE_TYPE',
-        message: `".${ext}" files are not supported. Please upload a PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, or PAGES file.`,
+        message: `".${ext}" files are not supported. Please upload a PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, PAGES, or HTML file.`,
       },
       { status: 415 }
     );
@@ -147,16 +147,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const MIME_TYPES: Record<string, string> = {
-    pdf:     'application/pdf',
-    docx:    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    doc:     'application/msword',
-    pptx:    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    gslides: 'application/vnd.google-apps.presentation',
-    rtf:     'application/rtf',
-    txt:     'text/plain',
-    pages:   'application/x-iwork-pages-sffpages',
-  };
   const mimeType = MIME_TYPES[ext] ?? 'application/octet-stream';
 
   // ── 6. Call the Vercel backend ──────────────────────────────
