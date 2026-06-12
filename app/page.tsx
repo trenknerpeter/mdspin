@@ -81,7 +81,7 @@ export default function MDSpinPage() {
     })
 
     setFiles(prev => {
-      const existing = new Set(prev.map(fi => fi.file?.name + String(fi.file?.size)))
+      const existing = new Set(prev.map(fi => fi.file ? fi.file.name + String(fi.file.size) : fi.id))
       const deduped = toAdd.filter(f => !existing.has(f.name + String(f.size)))
       const combined = [...prev, ...deduped.map(f => ({
         id: crypto.randomUUID(),
@@ -361,6 +361,8 @@ export default function MDSpinPage() {
     setShowMerged(false)
     setError(null)
     setRateLimited(false)
+    setInputMode('upload')
+    setUrl('')
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -921,14 +923,15 @@ expansion in EMEA.
 
               {/* Aggregate ROI panel */}
               {(() => {
-                const successFiles = files.filter(fi => fi.status === 'done' && fi.markdown)
+                // Token-savings is derived from source byte size; URL conversions have no source size, so the panel is omitted for them rather than showing a fabricated number.
+                const successFiles = files.filter(fi => fi.status === 'done' && fi.markdown && fi.file)
                 if (successFiles.length === 0) return null
                 const totalWordCount = successFiles.reduce((sum, fi) => sum + (fi.wordCount ?? 0), 0)
                 const totalMdTokens = Math.round(totalWordCount * 1.33)
                 const totalOrigTokens = successFiles.reduce((sum, fi) => {
                   const ext = fi.name.split('.').pop()?.toLowerCase() ?? 'pdf'
                   const density = TEXT_DENSITY[ext] ?? 0.40
-                  const sizeBytes = fi.file?.size ?? (fi.wordCount ?? 0) * 6
+                  const sizeBytes = fi.file!.size
                   return sum + Math.round(sizeBytes * density / 4)
                 }, 0)
                 const reductionPct = totalOrigTokens > 0
