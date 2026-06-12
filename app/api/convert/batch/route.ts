@@ -4,7 +4,7 @@
 // each to base64, and forwards them to the Vercel backend for batch Markdown
 // conversion. The BACKEND_API_KEY never leaves the server.
 //
-// Supported formats: PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, PAGES
+// Supported formats: PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, PAGES, HTML
 // Limits: 1–20 files per request, each file must be < 20 MB
 //
 // Requires env vars in .env.local (and in Vercel project settings):
@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, incrementUsage } from '@/lib/rate-limit';
+import { isSupportedExt } from '@/lib/formats';
 
 export const runtime     = 'nodejs'; // Buffer is required — cannot run on Edge
 export const maxDuration = 120;      // seconds — batch conversions can be slow
@@ -22,7 +23,6 @@ export const maxDuration = 120;      // seconds — batch conversions can be slo
 const BACKEND_URL     = process.env.BACKEND_URL;
 const BACKEND_API_KEY = process.env.BACKEND_API_KEY;
 
-const SUPPORTED_EXTS  = ['pdf', 'docx', 'doc', 'pptx', 'gslides', 'rtf', 'txt', 'pages'] as const;
 const MAX_FILE_SIZE   = 20 * 1024 * 1024; // 20 MB
 const MAX_FILES       = 20;
 const MIN_FILES       = 1;
@@ -125,14 +125,14 @@ export async function POST(req: NextRequest) {
 
   // ── 5. Validate file types ──────────────────────────────────
   const unsupportedFiles = files
-    .filter((f) => !SUPPORTED_EXTS.includes((f.name.split('.').pop()?.toLowerCase() ?? '') as typeof SUPPORTED_EXTS[number]))
+    .filter((f) => !isSupportedExt(f.name.split('.').pop() ?? ''))
     .map((f) => f.name);
 
   if (unsupportedFiles.length > 0) {
     return NextResponse.json(
       {
         error:           'UNSUPPORTED_FILE_TYPE',
-        message:         `Some files are not supported. Please upload PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, or PAGES files.`,
+        message:         `Some files are not supported. Please upload PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, PAGES, or HTML files.`,
         unsupportedFiles,
       },
       { status: 415 }
