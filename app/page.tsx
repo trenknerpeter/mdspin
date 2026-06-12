@@ -8,10 +8,13 @@ import { createClient } from "@/lib/supabase/client"
 import { BuyCoffee } from "@/components/buy-coffee"
 import { SiteNav } from "@/components/site-nav"
 import posthog from "posthog-js"
+import { SUPPORTED_FORMATS, ACCEPT_ATTR, isSupportedExt } from "@/lib/formats"
 
 type FileItem = {
   id: string
-  file: File
+  name: string          // display name — filename for uploads, host+path for URLs
+  file?: File           // present for uploaded files; absent for URL conversions
+  sourceUrl?: string    // present for URL conversions
   status: 'queued' | 'converting' | 'done' | 'failed'
   markdown?: string
   error?: string
@@ -28,8 +31,6 @@ const ACCURACY_RANGE: Record<string, string> = {
   txt: "+15–30%", rtf: "+40–60%", pages: "+45–65%",
 }
 
-const SUPPORTED_FORMATS = ["PDF", "DOC", "DOCX", "PPTX", "GSLIDES", "PAGES", "TXT", "RTF"]
-
 export default function MDSpinPage() {
   const { user } = useAuth()
   const supabase = createClient()
@@ -42,6 +43,10 @@ export default function MDSpinPage() {
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // --- input mode state ---
+  const [inputMode, setInputMode] = useState<'upload' | 'url'>('upload')
+  const [url, setUrl] = useState('')
 
   // --- rate limit state ---
   const [rateLimited, setRateLimited] = useState(false)
@@ -66,21 +71,21 @@ export default function MDSpinPage() {
 
   // --- converter handlers ---
   const handleFiles = useCallback((newFiles: File[]) => {
-    const SUPPORTED_EXTS = ['pdf', 'docx', 'doc', 'pptx', 'gslides', 'rtf', 'txt', 'pages']
     const MAX_SIZE = 20 * 1024 * 1024
 
     const toAdd = newFiles.filter(f => {
       const ext = f.name.split('.').pop()?.toLowerCase() ?? ''
-      if (!SUPPORTED_EXTS.includes(ext)) return false
+      if (!isSupportedExt(ext)) return false
       if (f.size > MAX_SIZE) return false
       return true
     })
 
     setFiles(prev => {
-      const existing = new Set(prev.map(fi => fi.file.name + fi.file.size))
-      const deduped = toAdd.filter(f => !existing.has(f.name + f.size))
+      const existing = new Set(prev.map(fi => fi.file?.name + String(fi.file?.size)))
+      const deduped = toAdd.filter(f => !existing.has(f.name + String(f.size)))
       const combined = [...prev, ...deduped.map(f => ({
         id: crypto.randomUUID(),
+        name: f.name,
         file: f,
         status: 'queued' as const,
         fileType: f.name.split('.').pop()?.toLowerCase()
@@ -149,13 +154,14 @@ export default function MDSpinPage() {
 
     // Capture file metadata before any state updates to avoid stale closure in DB inserts
     const fileMetaForInserts = files.map(fi => ({
-      name: fi.file.name,
-      ext: fi.file.name.split('.').pop()?.toLowerCase() ?? ''
+      name: fi.name,
+      ext: fi.name.split('.').pop()?.toLowerCase() ?? ''
     }))
 
     posthog.capture("file_conversion_started", {
+      source: 'upload',
       file_count: files.length,
-      file_types: files.map(fi => fi.file.name.split('.').pop()?.toLowerCase()),
+      file_types: files.map(fi => fi.name.split('.').pop()?.toLowerCase()),
     })
     setBatchStatus('converting')
     setError(null)
@@ -166,7 +172,7 @@ export default function MDSpinPage() {
 
     try {
       const fd = new FormData()
-      files.forEach(fi => fd.append('files', fi.file))
+      files.forEach(fi => { if (fi.file) fd.append('files', fi.file) })
 
       const res = await fetch('/api/convert/batch', { method: 'POST', body: fd })
 
@@ -228,12 +234,12 @@ export default function MDSpinPage() {
 
       results.forEach((result, idx) => {
         const fi = files[idx]
-        const ext = fi?.file.name.split('.').pop()?.toLowerCase()
+        const ext = fi?.name.split('.').pop()?.toLowerCase()
         if (result.success && result.markdown_text) {
           const wordCount = result.markdown_text.split(/\s+/).filter(Boolean).length
-          posthog.capture("file_conversion_completed", { file_type: ext, word_count: wordCount })
+          posthog.capture("file_conversion_completed", { source: 'upload', file_type: ext, word_count: wordCount })
         } else {
-          posthog.capture("file_conversion_failed", { file_type: ext, error: result.error ?? 'Conversion failed' })
+          posthog.capture("file_conversion_failed", { source: 'upload', file_type: ext, error: result.error ?? 'Conversion failed' })
         }
       })
       setBatchStatus('done')
@@ -264,6 +270,90 @@ export default function MDSpinPage() {
     }
   }
 
+  const handleConvertUrl = async () => {
+    const trimmed = url.trim()
+    if (!trimmed || batchStatus === 'converting') return
+
+    let parsed: URL
+    try {
+      parsed = new URL(trimmed)
+      if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('not http(s)')
+    } catch {
+      setError('Enter a valid http(s) URL.')
+      return
+    }
+
+    posthog.capture('file_conversion_started', { file_count: 1, source: 'url' })
+    setError(null)
+    setRateLimited(false)
+    setShowMerged(false)
+    setBatchStatus('converting')
+
+    try {
+      const res = await fetch('/api/convert/url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: trimmed }),
+      })
+
+      const limitHeader = res.headers.get('X-RateLimit-Limit')
+      const remainingHeader = res.headers.get('X-RateLimit-Remaining')
+      if (limitHeader) setDailyLimit(Number(limitHeader))
+      if (remainingHeader) setRemaining(Number(remainingHeader))
+
+      if (res.status === 429) {
+        setRateLimited(true)
+        setBatchStatus('idle')
+        return
+      }
+
+      let data: { markdown_text?: string; file_type?: string; word_count?: number; message?: string }
+      try {
+        data = await res.json() as typeof data
+      } catch {
+        setError('Conversion service returned an unexpected response. Try again.')
+        setBatchStatus('idle')
+        return
+      }
+
+      if (!res.ok || !data.markdown_text) {
+        setError(data.message ?? 'Conversion failed. Please try again.')
+        setBatchStatus('idle')
+        posthog.capture('file_conversion_failed', { source: 'url', error: data.message ?? 'Conversion failed' })
+        return
+      }
+
+      const wordCount = data.word_count ?? data.markdown_text.split(/\s+/).filter(Boolean).length
+      const fileType = data.file_type ?? 'html'
+      const displayName = parsed.hostname.replace(/^www\./, '') + parsed.pathname.replace(/\/$/, '')
+
+      setFiles([{
+        id: crypto.randomUUID(),
+        name: displayName,
+        sourceUrl: trimmed,
+        status: 'done',
+        markdown: data.markdown_text,
+        wordCount,
+        fileType,
+      }])
+      setBatchStatus('done')
+      posthog.capture('file_conversion_completed', { source: 'url', file_type: fileType, word_count: wordCount })
+
+      supabase.from('conversions').insert({
+        user_id: user?.id ?? null,
+        filename: displayName,
+        file_type: fileType,
+        word_count: wordCount,
+        markdown_text: data.markdown_text,
+      }).then(({ error: insertError }) => {
+        if (insertError) console.error('[conversions] insert failed:', insertError.message)
+      })
+    } catch {
+      setError('Network error. Check your connection and try again.')
+      setBatchStatus('idle')
+    }
+  }
+
   const resetApp = () => {
     setFiles([])
     setBatchStatus('idle')
@@ -288,7 +378,7 @@ export default function MDSpinPage() {
     if (successFiles.length < 2) return null // Merge only makes sense for 2+ files — single file users use per-file copy/download
     return successFiles
       .map(fi => {
-        const nameNoExt = fi.file.name.replace(/\.[^/.]+$/, '')
+        const nameNoExt = fi.name.replace(/\.[^/.]+$/, '')
         return `# ${nameNoExt}\n\n${fi.markdown}`
       })
       .join('\n\n---\n\n')
@@ -551,7 +641,30 @@ expansion in EMEA.
             </p>
           </div>
 
+          {/* Input mode toggle */}
+          {files.length === 0 && batchStatus === 'idle' && (
+            <div className="mb-4 flex justify-center">
+              <div className="inline-flex gap-1 rounded-lg border border-[#2A2A2A] bg-[#161616] p-1">
+                {(['upload', 'url'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => { setInputMode(mode); setError(null) }}
+                    className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                      inputMode === mode
+                        ? 'bg-[#FF4800] text-white'
+                        : 'text-[#888480] hover:text-[#F0EDE8]'
+                    }`}
+                  >
+                    {mode === 'upload' ? 'Upload files' : 'From URL'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Upload zone */}
+          {inputMode === 'upload' && (
           <div
             onDrop={handleDrop}
             onDragOver={handleDragOver}
@@ -573,7 +686,7 @@ expansion in EMEA.
               ref={fileInputRef}
               type="file"
               multiple
-              accept=".pdf,.doc,.docx,.pptx,.gslides,.pages,.txt,.rtf"
+              accept={ACCEPT_ATTR}
               onChange={handleFileInput}
               className="hidden"
             />
@@ -617,7 +730,7 @@ expansion in EMEA.
                     <FileText className="h-3.5 w-3.5 shrink-0 text-[#888480]" strokeWidth={1.5} />
                     <div className="min-w-0">
                       <p className="max-w-[120px] truncate text-xs font-medium text-[#F0EDE8]">
-                        {fi.file.name.replace(/\.[^/.]+$/, '')}
+                        {fi.name.replace(/\.[^/.]+$/, '')}
                       </p>
                       <span className="font-mono text-[10px] uppercase text-[#4A4A46]">{fi.fileType}</span>
                     </div>
@@ -646,6 +759,37 @@ expansion in EMEA.
               </div>
             )}
           </div>
+          )}
+
+          {/* URL input */}
+          {inputMode === 'url' && files.length === 0 && batchStatus !== 'done' && (
+            <div className="rounded-xl border-2 border-dashed border-[#2A2A2A] bg-[#161616] p-6">
+              <label htmlFor="url-input" className="mb-2 block text-sm font-medium text-[#888480]">
+                Paste a link to a web page or file
+              </label>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  id="url-input"
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://example.com/article"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleConvertUrl() }}
+                  disabled={batchStatus === 'converting'}
+                  className="flex-1 rounded-lg border border-[#2A2A2A] bg-[#0C0C0C] px-3 py-2 text-sm text-[#F0EDE8] placeholder:text-[#4A4A46] focus:border-[#FF4800] focus:outline-none disabled:opacity-50"
+                />
+                <button
+                  type="button"
+                  onClick={handleConvertUrl}
+                  disabled={batchStatus === 'converting' || url.trim() === ''}
+                  className="rounded-lg bg-[#FF4800] px-5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                >
+                  {batchStatus === 'converting' ? 'Converting…' : 'Convert'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Formats */}
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
@@ -734,13 +878,13 @@ expansion in EMEA.
                       {fi.status === 'done'
                         ? <Check className="h-3.5 w-3.5 text-green-500" strokeWidth={2} />
                         : <span className="h-3.5 w-3.5 text-red-400">&#x2715;</span>}
-                      <span className="text-sm font-medium text-[#F0EDE8] truncate max-w-[200px]">{fi.file.name}</span>
+                      <span className="text-sm font-medium text-[#F0EDE8] truncate max-w-[200px]">{fi.name}</span>
                     </div>
                     {fi.status === 'done' && fi.markdown && (
                       <div className="flex gap-2">
                         <button
                           type="button"
-                          onClick={() => handleDownloadFile(fi.file.name, fi.markdown!)}
+                          onClick={() => handleDownloadFile(fi.name, fi.markdown!)}
                           className="flex items-center gap-1.5 rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-1.5 text-xs font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
                         >
                           <Download className="h-3.5 w-3.5" /> Save .md
@@ -782,9 +926,10 @@ expansion in EMEA.
                 const totalWordCount = successFiles.reduce((sum, fi) => sum + (fi.wordCount ?? 0), 0)
                 const totalMdTokens = Math.round(totalWordCount * 1.33)
                 const totalOrigTokens = successFiles.reduce((sum, fi) => {
-                  const ext = fi.file.name.split('.').pop()?.toLowerCase() ?? 'pdf'
+                  const ext = fi.name.split('.').pop()?.toLowerCase() ?? 'pdf'
                   const density = TEXT_DENSITY[ext] ?? 0.40
-                  return sum + Math.round(fi.file.size * density / 4)
+                  const sizeBytes = fi.file?.size ?? (fi.wordCount ?? 0) * 6
+                  return sum + Math.round(sizeBytes * density / 4)
                 }, 0)
                 const reductionPct = totalOrigTokens > 0
                   ? Math.min(90, Math.max(5, Math.round((1 - totalMdTokens / totalOrigTokens) * 100)))
