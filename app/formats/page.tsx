@@ -6,14 +6,14 @@ import { SiteFooter } from "@/components/site-footer"
 import { GrainOverlay } from "@/components/grain-overlay"
 
 export const metadata: Metadata = {
-  title: "Supported Formats — PDF, DOCX, PPTX to Markdown",
+  title: "Supported Formats — PDF, DOCX, PPTX, HTML to Markdown",
   description:
-    "MDSpin converts PDF, DOCX, DOC, PPTX, Google Slides, Apple Pages, RTF, and TXT to clean, AI-ready Markdown. See how each format is handled.",
+    "MDSpin converts PDF, DOCX, DOC, PPTX, HTML, RTF, and TXT to clean, AI-ready Markdown. Paste a URL to convert any live web page. See how each format is handled.",
   alternates: { canonical: `${SITE_URL}/formats` },
   openGraph: {
-    title: "Supported Formats — PDF, DOCX, PPTX to Markdown | MDSpin",
+    title: "Supported Formats — PDF, DOCX, PPTX, HTML to Markdown | MDSpin",
     description:
-      "MDSpin converts PDF, DOCX, DOC, PPTX, Google Slides, Apple Pages, RTF, and TXT to clean, AI-ready Markdown.",
+      "MDSpin converts PDF, DOCX, DOC, PPTX, HTML, RTF, and TXT to clean, AI-ready Markdown. Paste a URL to convert any live web page.",
     url: `${SITE_URL}/formats`,
   },
 }
@@ -69,11 +69,12 @@ const formats = [
     slug: "html",
     ext: ".html",
     description:
-      "Web content, saved pages, and exported emails often come as HTML files. While HTML preserves document structure through tags, it carries massive overhead — CSS styles, JavaScript, navigation elements, advertisements, and metadata that inflate token counts by 2-5x without adding information.",
+      "Web content, saved pages, and exported emails often come as HTML files. MDSpin accepts uploaded .html/.htm files and also lets you paste any URL to convert a live web page directly — no manual saving required. HTML carries massive overhead: CSS styles, JavaScript, navigation elements, and metadata that inflate token counts by 2-5x without adding information.",
     details:
       "MDSpin strips HTML to its semantic core, converting headings, paragraphs, tables, lists, and links to clean Markdown. All presentational markup, scripts, and styles are removed. The result is a token-efficient representation of the content that preserves structure without the noise.",
     useCases: [
       "Converting saved web research for AI analysis",
+      "Pasting a URL to turn any live web page into Markdown",
       "Processing email exports for AI-powered search",
       "Cleaning web scraping output for RAG pipelines",
       "Preparing documentation exports for knowledge bases",
@@ -83,10 +84,11 @@ const formats = [
     name: "CSV to Markdown",
     slug: "csv",
     ext: ".csv",
+    comingSoon: true,
     description:
       "Spreadsheet data exported as CSV is one of the most common data interchange formats. But raw CSV text — comma-separated values with no visual structure — is difficult for LLMs to interpret accurately. Models struggle to associate values with column headers and often misinterpret row boundaries.",
     details:
-      "MDSpin converts CSV files to properly formatted Markdown tables with aligned columns and clear header rows. This gives LLMs the visual structure they need to accurately read tabular data, answer questions about specific cells, and perform data analysis tasks.",
+      "MDSpin will convert CSV files to properly formatted Markdown tables with aligned columns and clear header rows. This gives LLMs the visual structure they need to accurately read tabular data, answer questions about specific cells, and perform data analysis tasks.",
     useCases: [
       "Converting data exports for AI-powered analysis",
       "Preparing spreadsheet data for LLM-based reporting",
@@ -132,7 +134,7 @@ export default function FormatsPage() {
     "@type": "WebPage",
     name: "Supported Formats — MDSpin Document to Markdown Converter",
     description:
-      "MDSpin converts PDF, DOCX, PPTX, HTML, CSV, TXT, and RTF to clean, AI-ready Markdown.",
+      "MDSpin converts PDF, DOCX, PPTX, HTML, TXT, and RTF to clean, AI-ready Markdown.",
     url: `${SITE_URL}/formats`,
     publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
   }
@@ -188,6 +190,11 @@ export default function FormatsPage() {
                   <h2 className="font-display text-2xl font-bold text-white">
                     {format.name}
                   </h2>
+                  {format.comingSoon && (
+                    <span className="rounded-md bg-[#2A2A2A] px-2.5 py-1 text-xs font-semibold text-[#888480]">
+                      Coming soon
+                    </span>
+                  )}
                 </div>
 
                 <p className="text-sm leading-relaxed text-[#888480]">
@@ -216,12 +223,18 @@ export default function FormatsPage() {
                 </div>
 
                 <div className="mt-6">
-                  <Link
-                    href="/#converter"
-                    className="inline-flex items-center gap-1.5 rounded-full bg-[#FF4800]/10 px-4 py-1.5 text-xs font-semibold text-[#FF4800] transition-colors hover:bg-[#FF4800]/20"
-                  >
-                    Convert {format.ext} now
-                  </Link>
+                  {format.comingSoon ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#2A2A2A] px-4 py-1.5 text-xs font-semibold text-[#4A4A46]">
+                      Coming soon
+                    </span>
+                  ) : (
+                    <Link
+                      href="/#converter"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-[#FF4800]/10 px-4 py-1.5 text-xs font-semibold text-[#FF4800] transition-colors hover:bg-[#FF4800]/20"
+                    >
+                      Convert {format.ext} now
+                    </Link>
+                  )}
                 </div>
               </section>
             ))}
