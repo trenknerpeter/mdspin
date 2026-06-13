@@ -11,6 +11,7 @@ export default function SignUpPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [alreadyExists, setAlreadyExists] = useState(false)
   const supabase = createClient()
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -33,6 +34,15 @@ export default function SignUpPage() {
       setError(error.message)
       setLoading(false)
     } else {
+      // Supabase anti-enumeration: signing up with an already-registered email
+      // returns no error but an obfuscated user with an empty identities array.
+      if (data.user && data.user.identities && data.user.identities.length === 0) {
+        // TODO(posthog): capture "sign_up_existing_email" to measure how often
+        // returning users hit the sign-up form by mistake.
+        setAlreadyExists(true)
+        setLoading(false)
+        return
+      }
       if (data.user) {
         posthog.identify(data.user.id, { email: data.user.email })
       }
@@ -49,6 +59,30 @@ export default function SignUpPage() {
         redirectTo: `${window.location.origin}/auth/callback`,
       },
     })
+  }
+
+  if (alreadyExists) {
+    return (
+      <div className="min-h-screen bg-[#0C0C0C] flex items-center justify-center px-4">
+        <div className="w-full max-w-sm text-center">
+          <div className="w-12 h-12 bg-[#FF4800]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6 text-[#FF4800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-[#F0EDE8] font-[family-name:var(--font-syne)] mb-2">This email is already registered</h1>
+          <p className="text-[#999] text-sm font-[family-name:var(--font-dm-sans)] mb-6">
+            An account with <span className="text-[#F0EDE8]">{email}</span> already exists. Sign in instead.
+          </p>
+          <Link
+            href={`/auth/sign-in?email=${encodeURIComponent(email)}`}
+            className="inline-block w-full py-2.5 rounded-lg bg-[#FF4800] text-white font-semibold text-sm hover:bg-[#E04000] transition-colors font-[family-name:var(--font-dm-sans)]"
+          >
+            Sign in
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   if (success) {
