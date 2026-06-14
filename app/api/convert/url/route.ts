@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, incrementUsage } from '@/lib/rate-limit';
+import { requiresSignIn } from '@/lib/gating';
 import { getPostHogClient } from '@/lib/posthog-server';
 
 export const runtime     = 'nodejs';
@@ -38,6 +39,14 @@ export async function POST(req: NextRequest) {
 
   const identifier = user ? user.id : getClientIp(req);
   const identifierType: 'user' | 'ip' = user ? 'user' : 'ip';
+
+  // ── Capability gate: URL conversion requires sign-in ───────
+  if (requiresSignIn({ authenticated: !!user, mode: 'url', fileCount: 0 })) {
+    return NextResponse.json(
+      { error: 'AUTH_REQUIRED', message: 'Sign in to convert from a URL — it’s free with an account.' },
+      { status: 401 }
+    );
+  }
 
   const rateCheck = await checkRateLimit(identifier, identifierType);
 
