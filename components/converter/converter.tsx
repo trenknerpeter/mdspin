@@ -27,6 +27,19 @@ export function Converter({ context, options, onAuthRequired }: {
     return false
   }
 
+  // Drag-and-drop is another path to add files — gate it the same way the "Add file"
+  // button is gated: anonymous teaser users may drop a single file, but a drop that
+  // would result in more than one file opens the sign-in wall instead.
+  const handleDropGated = (e: React.DragEvent) => {
+    const dropped = e.dataTransfer?.files?.length ?? 0
+    if (context === "teaser" && !c.user && c.files.length + dropped > 1) {
+      e.preventDefault()
+      onAuthRequired?.()
+      return
+    }
+    c.handleDrop(e)
+  }
+
   return (
     <div id="converter">
       <div className="mx-auto max-w-2xl px-6">
@@ -70,7 +83,7 @@ export function Converter({ context, options, onAuthRequired }: {
         {/* Upload zone */}
         {c.inputMode === 'upload' && (
         <div
-          onDrop={c.handleDrop}
+          onDrop={handleDropGated}
           onDragOver={c.handleDragOver}
           onDragLeave={c.handleDragLeave}
           onClick={c.files.length === 0 && c.batchStatus === 'idle' ? c.handleBrowse : undefined}
