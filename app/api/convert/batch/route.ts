@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, incrementUsage } from '@/lib/rate-limit';
+import { requiresSignIn } from '@/lib/gating';
 import { isSupportedExt } from '@/lib/formats';
 
 export const runtime     = 'nodejs'; // Buffer is required — cannot run on Edge
@@ -120,6 +121,17 @@ export async function POST(req: NextRequest) {
         message: `Too many files. Maximum is ${MAX_FILES} files per request.`,
       },
       { status: 400 }
+    );
+  }
+
+  // ── Capability gate: multi-file (batch) requires sign-in ───
+  if (requiresSignIn({ authenticated: !!user, mode: 'file', fileCount: files.length })) {
+    return NextResponse.json(
+      {
+        error: 'AUTH_REQUIRED',
+        message: 'Sign in to convert multiple files at once — it’s free with an account.',
+      },
+      { status: 401 }
     );
   }
 
