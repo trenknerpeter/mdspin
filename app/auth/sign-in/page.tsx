@@ -1,17 +1,19 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import posthog from "posthog-js"
 
-export default function SignInPage() {
+function SignInForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const next = searchParams.get("next") ?? "/app"
   const supabase = createClient()
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -31,7 +33,7 @@ export default function SignInPage() {
       if (data.user) {
         posthog.identify(data.user.id, { email: data.user.email })
       }
-      router.push("/")
+      router.push(next)
       router.refresh()
     }
   }
@@ -41,7 +43,7 @@ export default function SignInPage() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     })
   }
@@ -124,5 +126,13 @@ export default function SignInPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignInForm />
+    </Suspense>
   )
 }
