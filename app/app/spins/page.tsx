@@ -24,6 +24,8 @@ export default function SpinsPage() {
   const [limit, setLimit] = useState(PAGE)
   const [hasMore, setHasMore] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [retry, setRetry] = useState(0)
   const supabase = createClient()
 
   useEffect(() => {
@@ -33,18 +35,24 @@ export default function SpinsPage() {
       return
     }
 
+    setLoadError(null)
     supabase
       .from("conversions")
       .select("*")
       .order("converted_at", { ascending: false })
       .range(0, limit - 1)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          setLoadError(error.message)
+          setLoading(false)
+          return
+        }
         const rows = data ?? []
         setConversions(rows)
         setHasMore(rows.length === limit)
         setLoading(false)
       })
-  }, [user, authLoading, limit])
+  }, [user, authLoading, limit, retry])
 
   const handleCopy = async (id: string, text: string) => {
     await navigator.clipboard.writeText(text)
@@ -94,7 +102,22 @@ export default function SpinsPage() {
         </p>
       </div>
 
-      {conversions.length === 0 ? (
+      {loadError ? (
+        <div className="rounded-xl border border-[#FF4800]/30 bg-[#161616] p-12 text-center">
+          <p className="text-sm text-[#FF4800] font-[family-name:var(--font-dm-sans)]">
+            Couldn&apos;t load your spins: {loadError}
+          </p>
+          <button
+            onClick={() => {
+              setLoading(true)
+              setRetry((n) => n + 1)
+            }}
+            className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#2A2A2A] px-5 py-2 text-sm font-semibold text-[#F0EDE8] hover:border-[#4A4A46] transition-colors"
+          >
+            Try again
+          </button>
+        </div>
+      ) : conversions.length === 0 ? (
         <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-12 text-center">
           <FileText className="mx-auto h-8 w-8 text-[#4A4A46] mb-3" />
           <p className="text-sm text-[#888480] font-[family-name:var(--font-dm-sans)]">
