@@ -4,6 +4,7 @@ import { Suspense, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
+import { safeNext } from "@/lib/safe-redirect"
 import posthog from "posthog-js"
 
 function SignInForm() {
@@ -13,7 +14,7 @@ function SignInForm() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
-  const next = searchParams.get("next") ?? "/app"
+  const next = safeNext(searchParams.get("next"))
   const supabase = createClient()
 
   const handleSignIn = async (e: React.FormEvent) => {

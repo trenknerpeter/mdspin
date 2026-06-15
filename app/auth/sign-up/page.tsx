@@ -4,6 +4,7 @@ import { Suspense, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
+import { safeNext } from "@/lib/safe-redirect"
 import posthog from "posthog-js"
 
 function SignUpForm() {
@@ -13,7 +14,7 @@ function SignUpForm() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const searchParams = useSearchParams()
-  const next = searchParams.get("next") ?? "/app"
+  const next = safeNext(searchParams.get("next"))
   const supabase = createClient()
 
   const handleSignUp = async (e: React.FormEvent) => {
