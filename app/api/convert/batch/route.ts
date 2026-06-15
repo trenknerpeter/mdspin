@@ -107,6 +107,9 @@ export async function POST(req: NextRequest) {
   const rawFiles = formData.getAll('files');
   const files = rawFiles.filter((f): f is File => f instanceof File);
 
+  // Optional conversion options (from a saved preset). This is a forward-compat
+  // no-op until the backend honors it, so malformed JSON is intentionally ignored
+  // (drop the field) rather than failing the conversion with a 400.
   const optionsRaw = formData.get('options');
   let options: unknown = undefined;
   if (typeof optionsRaw === 'string') {
