@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 3. Parse + validate the URL ────────────────────────────
-  let body: { url?: string; filename?: string };
+  let body: { url?: string; filename?: string; options?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
     backendRes = await fetch(`${BACKEND_URL}/v1/convert/url`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${BACKEND_API_KEY}` },
-      body: JSON.stringify({ file_url: url, ...(body.filename ? { filename: body.filename } : {}) }),
+      body: JSON.stringify({ file_url: url, ...(body.filename ? { filename: body.filename } : {}), ...(body.options ? { options: body.options } : {}) }),
     });
   } catch (err) {
     console.error('[/api/convert/url] Backend unreachable:', err);

@@ -107,6 +107,12 @@ export async function POST(req: NextRequest) {
   const rawFiles = formData.getAll('files');
   const files = rawFiles.filter((f): f is File => f instanceof File);
 
+  const optionsRaw = formData.get('options');
+  let options: unknown = undefined;
+  if (typeof optionsRaw === 'string') {
+    try { options = JSON.parse(optionsRaw); } catch {}
+  }
+
   // ── 4. Validate file count ──────────────────────────────────
   if (files.length < MIN_FILES) {
     return NextResponse.json(
@@ -223,7 +229,7 @@ export async function POST(req: NextRequest) {
         'Content-Type':  'application/json',
         'Authorization': `Bearer ${BACKEND_API_KEY}`,
       },
-      body: JSON.stringify({ files: filePayloads }),
+      body: JSON.stringify({ files: filePayloads, ...(options ? { options } : {}) }),
     });
   } catch (err) {
     console.error('[/api/convert/batch] Backend unreachable:', err);
