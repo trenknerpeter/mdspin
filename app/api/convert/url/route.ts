@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, incrementUsage } from '@/lib/rate-limit';
+import { requiresSignIn } from '@/lib/gating';
 import { getPostHogClient } from '@/lib/posthog-server';
 
 export const runtime     = 'nodejs';
@@ -39,12 +40,20 @@ export async function POST(req: NextRequest) {
   const identifier = user ? user.id : getClientIp(req);
   const identifierType: 'user' | 'ip' = user ? 'user' : 'ip';
 
+  // ── Capability gate: URL conversion requires sign-in ───────
+  if (requiresSignIn({ authenticated: !!user, mode: 'url', fileCount: 0 })) {
+    return NextResponse.json(
+      { error: 'AUTH_REQUIRED', message: 'Sign in to convert from a URL — it’s free with an account.' },
+      { status: 401 }
+    );
+  }
+
   const rateCheck = await checkRateLimit(identifier, identifierType);
 
   if (!rateCheck.allowed) {
     const message = user
       ? `Daily limit of ${rateCheck.limit} conversions reached. Resets at midnight UTC.`
-      : `Daily conversion limit reached. Sign in for more conversions.`;
+      : `You've used all your free conversions. Sign in for more.`;
 
     const posthog = getPostHogClient();
     posthog.capture({
@@ -61,7 +70,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 3. Parse + validate the URL ────────────────────────────
-  let body: { url?: string; filename?: string };
+  let body: { url?: string; filename?: string; options?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -91,7 +100,7 @@ export async function POST(req: NextRequest) {
     backendRes = await fetch(`${BACKEND_URL}/v1/convert/url`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${BACKEND_API_KEY}` },
-      body: JSON.stringify({ file_url: url, ...(body.filename ? { filename: body.filename } : {}) }),
+      body: JSON.stringify({ file_url: url, ...(body.filename ? { filename: body.filename } : {}), ...(body.options ? { options: body.options } : {}) }),
     });
   } catch (err) {
     console.error('[/api/convert/url] Backend unreachable:', err);

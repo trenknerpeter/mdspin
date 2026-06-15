@@ -1,17 +1,21 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
+import { safeNext } from "@/lib/safe-redirect"
 import posthog from "posthog-js"
 
-export default function SignUpPage() {
+function SignUpForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [alreadyExists, setAlreadyExists] = useState(false)
+  const searchParams = useSearchParams()
+  const next = safeNext(searchParams.get("next"))
   const supabase = createClient()
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -25,7 +29,7 @@ export default function SignUpPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     })
 
@@ -37,8 +41,6 @@ export default function SignUpPage() {
       // Supabase anti-enumeration: signing up with an already-registered email
       // returns no error but an obfuscated user with an empty identities array.
       if (data.user && data.user.identities && data.user.identities.length === 0) {
-        // TODO(posthog): capture "sign_up_existing_email" to measure how often
-        // returning users hit the sign-up form by mistake.
         setAlreadyExists(true)
         setLoading(false)
         return
@@ -56,7 +58,7 @@ export default function SignUpPage() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     })
   }
@@ -75,7 +77,7 @@ export default function SignUpPage() {
             An account with <span className="text-[#F0EDE8]">{email}</span> already exists. Sign in instead.
           </p>
           <Link
-            href={`/auth/sign-in?email=${encodeURIComponent(email)}`}
+            href={`/auth/sign-in?email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`}
             className="inline-block w-full py-2.5 rounded-lg bg-[#FF4800] text-white font-semibold text-sm hover:bg-[#E04000] transition-colors font-[family-name:var(--font-dm-sans)]"
           >
             Sign in
@@ -185,5 +187,13 @@ export default function SignUpPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignUpForm />
+    </Suspense>
   )
 }

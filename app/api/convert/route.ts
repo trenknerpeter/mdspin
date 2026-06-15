@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
   if (!rateCheck.allowed) {
     const message = user
       ? `Daily limit of ${rateCheck.limit} conversions reached. Resets at midnight UTC.`
-      : `Daily conversion limit reached. Sign in for more conversions.`;
+      : `You've used all your free conversions. Sign in for more.`;
 
     const posthog = getPostHogClient()
     posthog.capture({

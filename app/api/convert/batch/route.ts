@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, incrementUsage } from '@/lib/rate-limit';
+import { requiresSignIn } from '@/lib/gating';
 import { isSupportedExt } from '@/lib/formats';
 
 export const runtime     = 'nodejs'; // Buffer is required — cannot run on Edge
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
   if (!rateCheck.allowed) {
     const message = user
       ? `Daily limit of ${rateCheck.limit} conversions reached. Resets at midnight UTC.`
-      : `Daily conversion limit reached. Sign in for more conversions.`;
+      : `You've used all your free conversions. Sign in for more.`;
 
     return NextResponse.json(
       {
@@ -106,6 +107,15 @@ export async function POST(req: NextRequest) {
   const rawFiles = formData.getAll('files');
   const files = rawFiles.filter((f): f is File => f instanceof File);
 
+  // Optional conversion options (from a saved preset). This is a forward-compat
+  // no-op until the backend honors it, so malformed JSON is intentionally ignored
+  // (drop the field) rather than failing the conversion with a 400.
+  const optionsRaw = formData.get('options');
+  let options: unknown = undefined;
+  if (typeof optionsRaw === 'string') {
+    try { options = JSON.parse(optionsRaw); } catch {}
+  }
+
   // ── 4. Validate file count ──────────────────────────────────
   if (files.length < MIN_FILES) {
     return NextResponse.json(
@@ -120,6 +130,17 @@ export async function POST(req: NextRequest) {
         message: `Too many files. Maximum is ${MAX_FILES} files per request.`,
       },
       { status: 400 }
+    );
+  }
+
+  // ── Capability gate: multi-file (batch) requires sign-in ───
+  if (requiresSignIn({ authenticated: !!user, mode: 'file', fileCount: files.length })) {
+    return NextResponse.json(
+      {
+        error: 'AUTH_REQUIRED',
+        message: 'Sign in to convert multiple files at once — it’s free with an account.',
+      },
+      { status: 401 }
     );
   }
 
@@ -159,7 +180,7 @@ export async function POST(req: NextRequest) {
   if (files.length > rateCheck.remaining) {
     const message = user
       ? `You can only convert ${rateCheck.remaining} more file(s) today. Resets at midnight UTC.`
-      : `Daily conversion limit reached. Sign in for more conversions.`;
+      : `You've used all your free conversions. Sign in for more.`;
 
     // Intentional: the 429 body includes extra fields (message, limit, remaining,
     // resetsAt) beyond what the spec minimum requires. This matches the pattern in
@@ -211,7 +232,7 @@ export async function POST(req: NextRequest) {
         'Content-Type':  'application/json',
         'Authorization': `Bearer ${BACKEND_API_KEY}`,
       },
-      body: JSON.stringify({ files: filePayloads }),
+      body: JSON.stringify({ files: filePayloads, ...(options ? { options } : {}) }),
     });
   } catch (err) {
     console.error('[/api/convert/batch] Backend unreachable:', err);

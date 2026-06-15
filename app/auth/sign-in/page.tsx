@@ -4,6 +4,7 @@ import { Suspense, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
+import { safeNext } from "@/lib/safe-redirect"
 import posthog from "posthog-js"
 
 function SignInForm() {
@@ -13,6 +14,7 @@ function SignInForm() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const next = safeNext(searchParams.get("next"))
   const supabase = createClient()
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -32,7 +34,7 @@ function SignInForm() {
       if (data.user) {
         posthog.identify(data.user.id, { email: data.user.email })
       }
-      router.push("/")
+      router.push(next)
       router.refresh()
     }
   }
@@ -42,7 +44,7 @@ function SignInForm() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     })
   }
@@ -130,7 +132,7 @@ function SignInForm() {
 
 export default function SignInPage() {
   return (
-    <Suspense>
+    <Suspense fallback={null}>
       <SignInForm />
     </Suspense>
   )
