@@ -18,6 +18,7 @@ import {
   Newspaper,
   ChevronDown,
   Key,
+  LayoutDashboard,
 } from "lucide-react"
 import {
   NavigationMenu,
@@ -167,7 +168,15 @@ export function SiteNav() {
                         {user.email}
                       </p>
                       <Link
-                        href="/history"
+                        href="/app"
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-[#F0EDE8] transition-colors hover:bg-[#1E1E1E]"
+                      >
+                        <LayoutDashboard className="h-3.5 w-3.5" />
+                        Open app
+                      </Link>
+                      <Link
+                        href="/app/spins"
                         onClick={() => setShowUserMenu(false)}
                         className="flex items-center gap-2 px-3 py-2 text-sm text-[#F0EDE8] transition-colors hover:bg-[#1E1E1E]"
                       >
@@ -175,7 +184,7 @@ export function SiteNav() {
                         My Spins
                       </Link>
                       <Link
-                        href="/api-keys"
+                        href="/app/api-keys"
                         onClick={() => setShowUserMenu(false)}
                         className="flex items-center gap-2 px-3 py-2 text-sm text-[#F0EDE8] transition-colors hover:bg-[#1E1E1E]"
                       >
