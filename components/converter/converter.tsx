@@ -265,11 +265,13 @@ export function Converter({ context, options, onAuthRequired }: {
           {c.remaining !== null && c.dailyLimit !== null && (
             <div className="flex flex-col items-center gap-2">
               <p className="text-xs text-[#4A4A46]">
-                {c.remaining} of {c.dailyLimit} conversions remaining today
+                {c.user
+                  ? `${c.remaining} of ${c.dailyLimit} conversions remaining today`
+                  : `${c.remaining} of ${c.dailyLimit} free conversions remaining`}
               </p>
               {c.remaining === 0 && !c.user && (
                 <Link
-                  href="/auth/sign-in"
+                  href="/auth/sign-in?next=/app"
                   className="text-xs text-[#FF4800] underline underline-offset-2 hover:text-[#FF6633] transition-colors"
                 >
                   Sign in for up to 20 daily conversions
