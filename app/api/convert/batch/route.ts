@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
   if (!rateCheck.allowed) {
     const message = user
       ? `Daily limit of ${rateCheck.limit} conversions reached. Resets at midnight UTC.`
-      : `Daily conversion limit reached. Sign in for more conversions.`;
+      : `You've used all your free conversions. Sign in for more.`;
 
     return NextResponse.json(
       {
@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
   if (files.length > rateCheck.remaining) {
     const message = user
       ? `You can only convert ${rateCheck.remaining} more file(s) today. Resets at midnight UTC.`
-      : `Daily conversion limit reached. Sign in for more conversions.`;
+      : `You've used all your free conversions. Sign in for more.`;
 
     // Intentional: the 429 body includes extra fields (message, limit, remaining,
     // resetsAt) beyond what the spec minimum requires. This matches the pattern in
