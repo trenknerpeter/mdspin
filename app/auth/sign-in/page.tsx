@@ -8,12 +8,12 @@ import { safeNext } from "@/lib/safe-redirect"
 import posthog from "posthog-js"
 
 function SignInForm() {
-  const [email, setEmail] = useState("")
+  const searchParams = useSearchParams()
+  const [email, setEmail] = useState(searchParams.get("email") ?? "")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const searchParams = useSearchParams()
   const next = safeNext(searchParams.get("next"))
   const supabase = createClient()
 
