@@ -3,40 +3,47 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * MDSpin is a dark-only product. These tokens hold the brand dark palette so
+ * every shadcn/ui primitive that reads them (Dialog, Popover, Sheet, Drawer,
+ * Toast, Sonner, Command, etc.) renders on-brand dark instead of default white.
+ * Brand surfaces: page #0C0C0C, card/modal #161616, border #2A2A2A,
+ * text #F0EDE8 / muted #888480, accent #FF4800.
+ */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --background: #0c0c0c;
+  --foreground: #f0ede8;
+  --card: #161616;
+  --card-foreground: #f0ede8;
+  --popover: #161616;
+  --popover-foreground: #f0ede8;
+  --primary: #ff4800;
+  --primary-foreground: #ffffff;
+  --secondary: #1e1e1e;
+  --secondary-foreground: #f0ede8;
+  --muted: #1e1e1e;
+  --muted-foreground: #888480;
+  --accent: #1e1e1e;
+  --accent-foreground: #f0ede8;
   --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --destructive-foreground: #f0ede8;
+  --border: #2a2a2a;
+  --input: #2a2a2a;
+  --ring: #ff4800;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #0c0c0c;
+  --sidebar-foreground: #f0ede8;
+  --sidebar-primary: #ff4800;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1e1e1e;
+  --sidebar-accent-foreground: #f0ede8;
+  --sidebar-border: #2a2a2a;
+  --sidebar-ring: #ff4800;
 }
 
 .dark {
