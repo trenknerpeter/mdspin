@@ -6,6 +6,7 @@ import Link from "next/link"
 import { BuyCoffee } from "@/components/buy-coffee"
 import { SUPPORTED_FORMATS, ACCEPT_ATTR } from "@/lib/formats"
 import { useConverter } from "./use-converter"
+import { AddToVaultPanel } from "./add-to-vault-panel"
 import type { ConverterContext, ConversionOptions } from "./types"
 
 const TEXT_DENSITY: Record<string, number> = {
@@ -289,6 +290,14 @@ export function Converter({ context, options, onAuthRequired }: {
         {/* Per-file results */}
         {c.batchStatus === 'done' && !c.showMerged && (
           <div className="mt-10 animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4">
+            <AddToVaultPanel
+              files={c.successfulFiles}
+              user={c.user}
+              onAuthRequired={onAuthRequired}
+              stashForSignIn={c.stashPendingVaultAdd}
+              resumeOpen={c.resumeVaultAdd}
+              onResumeHandled={c.clearResumeVaultAdd}
+            />
             {c.files.map(fi => (
               <div key={fi.id} className="overflow-hidden rounded-xl border border-[#2A2A2A]">
                 {/* Card header */}
@@ -306,7 +315,7 @@ export function Converter({ context, options, onAuthRequired }: {
                         onClick={() => c.handleDownloadFile(fi.name, fi.markdown!)}
                         className="flex items-center gap-1.5 rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-1.5 text-xs font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
                       >
-                        <Download className="h-3.5 w-3.5" /> Save .md
+                        <Download className="h-3.5 w-3.5" /> Download .md
                       </button>
                       <button
                         type="button"
@@ -408,7 +417,7 @@ export function Converter({ context, options, onAuthRequired }: {
                     onClick={() => c.handleDownloadFile('merged', c.mergedMarkdown!)}
                     className="flex items-center gap-1.5 rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-1.5 text-xs font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
                   >
-                    <Download className="h-3.5 w-3.5" /> Save .md
+                    <Download className="h-3.5 w-3.5" /> Download .md
                   </button>
                   <button
                     type="button"
