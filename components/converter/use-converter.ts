@@ -38,6 +38,11 @@ export function useConverter(opts: {
   const [dailyLimit, setDailyLimit] = useState<number | null>(null)
 
   const [resumeVaultAdd, setResumeVaultAdd] = useState(false)
+  // True once all signed-in auto-save inserts have resolved. The Add-to-Vault panel
+  // waits on this so it never falls back to an insert before the row id is captured
+  // (which would create a duplicate History row).
+  const [autoSaveSettled, setAutoSaveSettled] = useState(true)
+  const pendingInserts = useRef(0)
 
   // Derive appState for UI logic
   const appState = batchStatus === 'idle' && files.length === 0
@@ -235,22 +240,31 @@ export function useConverter(opts: {
 
       // Auto-save to history — signed-in users only. Capture row ids for "Add to Vault".
       if (user) {
+        const insertCount = results.filter(
+          (r, idx) => r.success && r.markdown_text && fileMetaForInserts[idx]
+        ).length
+        if (insertCount > 0) {
+          pendingInserts.current = insertCount
+          setAutoSaveSettled(false)
+        }
         results.forEach((result, idx) => {
           if (!(result.success && result.markdown_text)) return
           const meta = fileMetaForInserts[idx]
           if (!meta) return
           const wordCount = result.markdown_text.split(/\s+/).filter(Boolean).length
-          supabase
-            .from("conversions")
-            .insert({
-              user_id: user.id,
-              filename: meta.name,
-              file_type: meta.ext,
-              word_count: wordCount,
-              markdown_text: result.markdown_text,
-            })
-            .select("id")
-            .single()
+          Promise.resolve(
+            supabase
+              .from("conversions")
+              .insert({
+                user_id: user.id,
+                filename: meta.name,
+                file_type: meta.ext,
+                word_count: wordCount,
+                markdown_text: result.markdown_text,
+              })
+              .select("id")
+              .single()
+          )
             .then(({ data, error: insertError }) => {
               if (insertError) {
                 console.error("[conversions] insert failed:", insertError.message)
@@ -261,6 +275,10 @@ export function useConverter(opts: {
                   prev.map((fi) => (fi.id === meta.id ? { ...fi, conversionId: data.id } : fi))
                 )
               }
+            })
+            .finally(() => {
+              pendingInserts.current -= 1
+              if (pendingInserts.current <= 0) setAutoSaveSettled(true)
             })
         })
       }
@@ -349,17 +367,21 @@ export function useConverter(opts: {
       posthog.capture('file_conversion_completed', { source: 'url', file_type: fileType, word_count: wordCount })
 
       if (user) {
-        supabase
-          .from("conversions")
-          .insert({
-            user_id: user.id,
-            filename: displayName,
-            file_type: fileType,
-            word_count: wordCount,
-            markdown_text: data.markdown_text,
-          })
-          .select("id")
-          .single()
+        pendingInserts.current = 1
+        setAutoSaveSettled(false)
+        Promise.resolve(
+          supabase
+            .from("conversions")
+            .insert({
+              user_id: user.id,
+              filename: displayName,
+              file_type: fileType,
+              word_count: wordCount,
+              markdown_text: data.markdown_text,
+            })
+            .select("id")
+            .single()
+        )
           .then(({ data: row, error: insertError }) => {
             if (insertError) {
               console.error("[conversions] insert failed:", insertError.message)
@@ -370,6 +392,10 @@ export function useConverter(opts: {
                 prev.map((fi) => (fi.markdown === data.markdown_text ? { ...fi, conversionId: row.id } : fi))
               )
             }
+          })
+          .finally(() => {
+            pendingInserts.current -= 1
+            if (pendingInserts.current <= 0) setAutoSaveSettled(true)
           })
       }
     } catch {
@@ -387,6 +413,9 @@ export function useConverter(opts: {
     setRateLimited(false)
     setInputMode('upload')
     setUrl('')
+    setResumeVaultAdd(false)
+    setAutoSaveSettled(true)
+    pendingInserts.current = 0
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -450,8 +479,11 @@ export function useConverter(opts: {
   // Resume a pending anonymous "Add to Vault" after sign-in.
   useEffect(() => {
     if (!user) return
+    // Don't clobber an active/just-finished conversion the user is already working with.
+    if (batchStatus !== "idle") return
     let parsed: {
       files?: Array<{ name: string; file_type: string; word_count: number | null; markdown: string }>
+      tags?: string[]
       createdAt?: number
     }
     try {
@@ -478,6 +510,8 @@ export function useConverter(opts: {
     )
     setBatchStatus("done")
     setResumeVaultAdd(true)
+    // Intentionally only re-run on sign-in; batchStatus is read as a one-shot guard, not a trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
   return {
@@ -500,6 +534,7 @@ export function useConverter(opts: {
     mergedMarkdown,
     successfulFiles,
     resumeVaultAdd,
+    autoSaveSettled,
     stashPendingVaultAdd,
     clearResumeVaultAdd,
     // setters

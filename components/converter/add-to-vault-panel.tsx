@@ -23,6 +23,7 @@ export function AddToVaultPanel({
   stashForSignIn,
   resumeOpen,
   onResumeHandled,
+  autoSaveSettled = true,
 }: {
   files: FileItem[] // successful files only
   user: User | null
@@ -30,6 +31,7 @@ export function AddToVaultPanel({
   stashForSignIn: (tags: string[]) => boolean
   resumeOpen: boolean
   onResumeHandled: () => void
+  autoSaveSettled?: boolean // false while signed-in auto-save inserts are still in flight
 }) {
   const [checked, setChecked] = useState<Set<string>>(new Set(files.map((f) => f.id)))
   const [projects, setProjects] = useState<Project[]>([])
@@ -205,10 +207,10 @@ export function AddToVaultPanel({
 
         <button
           onClick={handleAdd}
-          disabled={saving || selectedCount === 0}
+          disabled={saving || selectedCount === 0 || !autoSaveSettled}
           className="rounded-full bg-[#FF4800] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#e04200] disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {saving ? "Adding…" : `Add ${selectedCount} to Vault`}
+          {!autoSaveSettled ? "Finishing save…" : saving ? "Adding…" : `Add ${selectedCount} to Vault`}
         </button>
       </div>
     </div>

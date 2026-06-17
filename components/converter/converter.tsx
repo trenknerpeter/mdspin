@@ -297,6 +297,7 @@ export function Converter({ context, options, onAuthRequired }: {
               stashForSignIn={c.stashPendingVaultAdd}
               resumeOpen={c.resumeVaultAdd}
               onResumeHandled={c.clearResumeVaultAdd}
+              autoSaveSettled={c.autoSaveSettled}
             />
             {c.files.map(fi => (
               <div key={fi.id} className="overflow-hidden rounded-xl border border-[#2A2A2A]">
