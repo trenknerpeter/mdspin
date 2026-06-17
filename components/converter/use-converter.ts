@@ -1,11 +1,15 @@
 "use client"
 
-import { useState, useRef, useMemo, useCallback } from "react"
+import { useState, useRef, useMemo, useCallback, useEffect } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { createClient } from "@/lib/supabase/client"
 import posthog from "posthog-js"
 import { isSupportedExt } from "@/lib/formats"
 import type { FileItem, ConverterContext, ConversionOptions } from "./types"
+
+const STASH_KEY = "mdspin:pendingVaultAdd"
+const STASH_TTL = 60 * 60 * 1000 // 1 hour
+const STASH_MAX = 2 * 1024 * 1024 // ~2 MB of JSON
 
 export function useConverter(opts: {
   context: ConverterContext
@@ -32,6 +36,8 @@ export function useConverter(opts: {
   const [rateLimited, setRateLimited] = useState(false)
   const [remaining, setRemaining] = useState<number | null>(null)
   const [dailyLimit, setDailyLimit] = useState<number | null>(null)
+
+  const [resumeVaultAdd, setResumeVaultAdd] = useState(false)
 
   // Derive appState for UI logic
   const appState = batchStatus === 'idle' && files.length === 0
@@ -126,9 +132,10 @@ export function useConverter(opts: {
     }
 
     // Capture file metadata before any state updates to avoid stale closure in DB inserts
-    const fileMetaForInserts = files.map(fi => ({
+    const fileMetaForInserts = files.map((fi) => ({
+      id: fi.id,
       name: fi.name,
-      ext: fi.name.split('.').pop()?.toLowerCase() ?? ''
+      ext: fi.name.split(".").pop()?.toLowerCase() ?? "",
     }))
 
     posthog.capture("file_conversion_started", {
@@ -226,24 +233,37 @@ export function useConverter(opts: {
       })
       setBatchStatus('done')
 
-      // Fire-and-forget DB inserts using pre-captured metadata (avoids stale closure)
-      const supabaseClient = supabase
-      results.forEach((result, idx) => {
-        if (result.success && result.markdown_text) {
+      // Auto-save to history — signed-in users only. Capture row ids for "Add to Vault".
+      if (user) {
+        results.forEach((result, idx) => {
+          if (!(result.success && result.markdown_text)) return
           const meta = fileMetaForInserts[idx]
           if (!meta) return
           const wordCount = result.markdown_text.split(/\s+/).filter(Boolean).length
-          supabaseClient.from('conversions').insert({
-            user_id: user?.id ?? null,
-            filename: meta.name,
-            file_type: meta.ext,
-            word_count: wordCount,
-            markdown_text: result.markdown_text,
-          }).then(({ error: insertError }) => {
-            if (insertError) console.error('[conversions] insert failed:', insertError.message)
-          })
-        }
-      })
+          supabase
+            .from("conversions")
+            .insert({
+              user_id: user.id,
+              filename: meta.name,
+              file_type: meta.ext,
+              word_count: wordCount,
+              markdown_text: result.markdown_text,
+            })
+            .select("id")
+            .single()
+            .then(({ data, error: insertError }) => {
+              if (insertError) {
+                console.error("[conversions] insert failed:", insertError.message)
+                return
+              }
+              if (data?.id) {
+                setFiles((prev) =>
+                  prev.map((fi) => (fi.id === meta.id ? { ...fi, conversionId: data.id } : fi))
+                )
+              }
+            })
+        })
+      }
 
     } catch {
       setError('Network error. Check your connection and try again.')
@@ -328,15 +348,30 @@ export function useConverter(opts: {
       setBatchStatus('done')
       posthog.capture('file_conversion_completed', { source: 'url', file_type: fileType, word_count: wordCount })
 
-      supabase.from('conversions').insert({
-        user_id: user?.id ?? null,
-        filename: displayName,
-        file_type: fileType,
-        word_count: wordCount,
-        markdown_text: data.markdown_text,
-      }).then(({ error: insertError }) => {
-        if (insertError) console.error('[conversions] insert failed:', insertError.message)
-      })
+      if (user) {
+        supabase
+          .from("conversions")
+          .insert({
+            user_id: user.id,
+            filename: displayName,
+            file_type: fileType,
+            word_count: wordCount,
+            markdown_text: data.markdown_text,
+          })
+          .select("id")
+          .single()
+          .then(({ data: row, error: insertError }) => {
+            if (insertError) {
+              console.error("[conversions] insert failed:", insertError.message)
+              return
+            }
+            if (row?.id) {
+              setFiles((prev) =>
+                prev.map((fi) => (fi.markdown === data.markdown_text ? { ...fi, conversionId: row.id } : fi))
+              )
+            }
+          })
+      }
     } catch {
       setError('Network error. Check your connection and try again.')
       setBatchStatus('idle')
@@ -364,6 +399,11 @@ export function useConverter(opts: {
     }, 50)
   }
 
+  const successfulFiles = useMemo(
+    () => files.filter((fi) => fi.status === "done" && fi.markdown),
+    [files]
+  )
+
   const mergedMarkdown = useMemo(() => {
     const successFiles = files.filter(fi => fi.status === 'done' && fi.markdown)
     if (successFiles.length < 2) return null // Merge only makes sense for 2+ files — single file users use per-file copy/download
@@ -374,6 +414,71 @@ export function useConverter(opts: {
       })
       .join('\n\n---\n\n')
   }, [files])
+
+  const stashPendingVaultAdd = useCallback(
+    (tags: string[]) => {
+      try {
+        const payload = JSON.stringify({
+          files: successfulFiles.map((fi) => ({
+            name: fi.name,
+            file_type: fi.fileType ?? "md",
+            word_count: fi.wordCount ?? null,
+            markdown: fi.markdown,
+          })),
+          tags,
+          createdAt: Date.now(),
+        })
+        if (payload.length > STASH_MAX) return false
+        localStorage.setItem(STASH_KEY, payload)
+        return true
+      } catch {
+        return false
+      }
+    },
+    [successfulFiles]
+  )
+
+  const clearResumeVaultAdd = useCallback(() => {
+    setResumeVaultAdd(false)
+    try {
+      localStorage.removeItem(STASH_KEY)
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
+  // Resume a pending anonymous "Add to Vault" after sign-in.
+  useEffect(() => {
+    if (!user) return
+    let parsed: {
+      files?: Array<{ name: string; file_type: string; word_count: number | null; markdown: string }>
+      createdAt?: number
+    }
+    try {
+      const raw = localStorage.getItem(STASH_KEY)
+      if (!raw) return
+      parsed = JSON.parse(raw)
+    } catch {
+      try { localStorage.removeItem(STASH_KEY) } catch {}
+      return
+    }
+    if (!parsed.files?.length || !parsed.createdAt || Date.now() - parsed.createdAt > STASH_TTL) {
+      try { localStorage.removeItem(STASH_KEY) } catch {}
+      return
+    }
+    setFiles(
+      parsed.files.map((f) => ({
+        id: crypto.randomUUID(),
+        name: f.name,
+        status: "done" as const,
+        markdown: f.markdown,
+        wordCount: f.word_count ?? undefined,
+        fileType: f.file_type,
+      }))
+    )
+    setBatchStatus("done")
+    setResumeVaultAdd(true)
+  }, [user])
 
   return {
     // auth
@@ -393,6 +498,10 @@ export function useConverter(opts: {
     appState,
     fileInputRef,
     mergedMarkdown,
+    successfulFiles,
+    resumeVaultAdd,
+    stashPendingVaultAdd,
+    clearResumeVaultAdd,
     // setters
     setShowMerged,
     setError,

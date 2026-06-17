@@ -8,6 +8,7 @@ export type FileItem = {
   error?: string
   wordCount?: number
   fileType?: string
+  conversionId?: string // id of the auto-saved conversions row (signed-in); used for "Add to Vault"
 }
 
 export type ConverterContext = "teaser" | "app"
