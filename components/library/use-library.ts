@@ -12,6 +12,7 @@ import {
   listTags,
   renameProject,
   updateSpin,
+  removeFromVault,
   UNFILED,
   type Project,
   type Spin,
@@ -76,6 +77,7 @@ export function useLibrary() {
         query,
         from: 0,
         to: limit - 1,
+        inVault: true,
       })
       if (token !== fetchToken.current) return
       setSpins(rows)
@@ -160,6 +162,16 @@ export function useLibrary() {
     [selectedSpinId, refreshSidebars]
   )
 
+  const removeSpinFromVault = useCallback(
+    async (id: string) => {
+      await removeFromVault(id)
+      setSpins((prev) => prev.filter((s) => s.id !== id))
+      if (selectedSpinId === id) setSelectedSpinId(null)
+      await refreshSidebars()
+    },
+    [selectedSpinId, refreshSidebars]
+  )
+
   const selectedSpin = useMemo(
     () => spins.find((s) => s.id === selectedSpinId) ?? null,
     [spins, selectedSpinId]
@@ -193,6 +205,7 @@ export function useLibrary() {
     removeProject,
     saveSpin,
     removeSpin,
+    removeSpinFromVault,
     reload: fetchSpins,
   }
 }

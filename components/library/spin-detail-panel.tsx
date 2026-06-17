@@ -21,6 +21,7 @@ export function SpinDetailPanel({
   onClose,
   onSave,
   onDelete,
+  onRemoveFromVault,
 }: {
   spin: Spin | null
   projects: Project[]
@@ -30,6 +31,7 @@ export function SpinDetailPanel({
     fields: { title?: string | null; project_id?: string | null; tags?: string[] }
   ) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  onRemoveFromVault?: (id: string) => Promise<void>
 }) {
   const [title, setTitle] = useState("")
   const [projectId, setProjectId] = useState<string>(UNFILED)
@@ -207,6 +209,18 @@ export function SpinDetailPanel({
           >
             <Download className="h-4 w-4" />
           </button>
+          {onRemoveFromVault && (
+            <button
+              onClick={async () => {
+                await onRemoveFromVault(spin.id)
+                onClose()
+              }}
+              className="rounded-full border border-[#2A2A2A] px-3 py-2 text-xs font-medium text-[#888480] transition-colors hover:border-[#4A4A46] hover:text-[#F0EDE8]"
+              title="Remove from Vault (keeps it in History)"
+            >
+              Remove from Vault
+            </button>
+          )}
           <button
             onClick={async () => {
               await onDelete(spin.id)
