@@ -6,7 +6,6 @@ import { useState } from "react"
 import { useLibrary } from "@/components/library/use-library"
 import { LibraryRail } from "@/components/library/library-rail"
 import { SpinDetailPanel } from "@/components/library/spin-detail-panel"
-import { UNFILED } from "@/lib/library"
 
 export default function VaultPage() {
   const lib = useLibrary()

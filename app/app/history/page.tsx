@@ -67,7 +67,8 @@ export default function HistoryPage() {
     setRows((prev) => prev.filter((r) => r.id !== id))
   }
   const handleAddToVault = async (id: string) => {
-    await addToVault([id], { projectId: null, tags: [] })
+    // No opts → flips in_vault only, preserving any existing project/tags.
+    await addToVault([id])
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, in_vault: true } : r)))
   }
 

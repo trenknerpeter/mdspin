@@ -194,16 +194,18 @@ export async function listTags(): Promise<TagCount[]> {
 }
 
 // Promote already-saved (auto-saved) conversions into the Vault.
+// project_id / tags are only written when explicitly provided, so a bare
+// addToVault([id]) (e.g. History quick-add) never clobbers existing organization.
 export async function addToVault(
   ids: string[],
-  opts: { projectId: string | null; tags: string[] }
+  opts?: { projectId?: string | null; tags?: string[] }
 ) {
   if (ids.length === 0) return
   const supabase = createClient()
-  const { error } = await supabase
-    .from("conversions")
-    .update({ in_vault: true, project_id: opts.projectId, tags: opts.tags })
-    .in("id", ids)
+  const update: { in_vault: true; project_id?: string | null; tags?: string[] } = { in_vault: true }
+  if (opts?.projectId !== undefined) update.project_id = opts.projectId
+  if (opts?.tags !== undefined) update.tags = opts.tags
+  const { error } = await supabase.from("conversions").update(update).in("id", ids)
   if (error) throw error
 }
 

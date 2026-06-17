@@ -244,7 +244,9 @@ export function useConverter(opts: {
           (r, idx) => r.success && r.markdown_text && fileMetaForInserts[idx]
         ).length
         if (insertCount > 0) {
-          pendingInserts.current = insertCount
+          // Additive so a second convert run while a prior batch is still
+          // inserting can't clobber the in-flight count and flip the gate early.
+          pendingInserts.current += insertCount
           setAutoSaveSettled(false)
         }
         results.forEach((result, idx) => {
@@ -367,7 +369,7 @@ export function useConverter(opts: {
       posthog.capture('file_conversion_completed', { source: 'url', file_type: fileType, word_count: wordCount })
 
       if (user) {
-        pendingInserts.current = 1
+        pendingInserts.current += 1
         setAutoSaveSettled(false)
         Promise.resolve(
           supabase
