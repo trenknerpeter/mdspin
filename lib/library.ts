@@ -175,6 +175,29 @@ export async function listSpins(params: ListSpinsParams): Promise<Spin[]> {
   return (data ?? []) as Spin[]
 }
 
+// Top related vault docs for one source doc, ranked server-side by full-text overlap.
+export async function findRelatedSpins(sourceId: string, maxResults = 5): Promise<RelatedSpin[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc("find_related_conversions", {
+    source_id: sourceId,
+    max_results: maxResults,
+  })
+  if (error) throw error
+  return (data ?? []) as RelatedSpin[]
+}
+
+// Fetch a single spin by id (used when opening a related doc not on the current page).
+export async function getSpin(id: string): Promise<Spin | null> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from("conversions")
+    .select(SPIN_FIELDS)
+    .eq("id", id)
+    .maybeSingle()
+  if (error) throw error
+  return (data as Spin) ?? null
+}
+
 export async function updateSpin(
   id: string,
   fields: { title?: string | null; project_id?: string | null; tags?: string[] }
