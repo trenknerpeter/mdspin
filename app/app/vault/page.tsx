@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { Search, FileText, Copy, Check } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useLibrary } from "@/components/library/use-library"
 import { LibraryRail } from "@/components/library/library-rail"
 import { SpinDetailPanel } from "@/components/library/spin-detail-panel"
@@ -10,6 +10,12 @@ import { SpinDetailPanel } from "@/components/library/spin-detail-panel"
 export default function VaultPage() {
   const lib = useLibrary()
   const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("spin")
+    if (id) lib.openSpin(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
@@ -211,6 +217,7 @@ export default function VaultPage() {
         onSave={lib.saveSpin}
         onDelete={lib.removeSpin}
         onRemoveFromVault={lib.removeSpinFromVault}
+        onOpen={lib.openSpin}
       />
     </div>
   )

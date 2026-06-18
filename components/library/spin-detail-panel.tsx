@@ -8,6 +8,7 @@ import { Copy, Download, Trash2, Check } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { TagInput } from "@/components/library/tag-input"
 import { UNFILED, type Project, type Spin } from "@/lib/library"
+import { RelatedSpins } from "@/components/library/related-spins"
 
 const PREVIEW_CAP = 8000
 
@@ -22,6 +23,7 @@ export function SpinDetailPanel({
   onSave,
   onDelete,
   onRemoveFromVault,
+  onOpen,
 }: {
   spin: Spin | null
   projects: Project[]
@@ -32,6 +34,7 @@ export function SpinDetailPanel({
   ) => Promise<void>
   onDelete: (id: string) => Promise<void>
   onRemoveFromVault?: (id: string) => Promise<void>
+  onOpen?: (id: string) => void
 }) {
   const [title, setTitle] = useState("")
   const [projectId, setProjectId] = useState<string>(UNFILED)
@@ -183,6 +186,7 @@ export function SpinDetailPanel({
               )}
             </div>
           </div>
+          <RelatedSpins sourceIds={[spin.id]} onOpen={onOpen} />
         </div>
 
         <div className="flex items-center gap-2 border-t border-[#2A2A2A] p-4">
