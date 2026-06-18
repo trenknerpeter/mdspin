@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { Check, Sparkles } from "lucide-react"
 import type { User } from "@supabase/supabase-js"
+import { RelatedSpins } from "@/components/library/related-spins"
 import { TagInput } from "@/components/library/tag-input"
 import {
   addToVault,
@@ -41,12 +42,14 @@ export function AddToVaultPanel({
   const [newProjectName, setNewProjectName] = useState("")
   const [saving, setSaving] = useState(false)
   const [addedCount, setAddedCount] = useState<number | null>(null)
+  const [addedIds, setAddedIds] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
 
   // Keep checkboxes in sync when the set of files changes (e.g. resume rehydrate).
   useEffect(() => {
     setChecked(new Set(files.map((f) => f.id)))
     setAddedCount(null)
+    setAddedIds([])
   }, [files])
 
   useEffect(() => {
@@ -95,6 +98,7 @@ export function AddToVaultPanel({
       if (withId.length) await addToVault(withId.map((f) => f.conversionId!), opts)
       if (withoutId.length) await insertVaultConversions(withoutId.map(toInput), opts)
       setAddedCount(selected.length)
+      setAddedIds(selected.filter((f) => f.conversionId).map((f) => f.conversionId!))
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't add to your Vault. Try again.")
     } finally {
@@ -106,14 +110,20 @@ export function AddToVaultPanel({
 
   if (addedCount !== null) {
     return (
-      <div className="mb-8 flex items-center gap-3 rounded-xl border border-green-500/30 bg-green-500/5 px-5 py-4">
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-white">
-          <Check className="h-3.5 w-3.5" />
-        </span>
-        <span className="flex-1 text-sm text-[#F0EDE8]">Added {addedCount} to your Vault.</span>
-        <Link href="/app/vault" className="text-sm font-medium text-[#FF4800] hover:underline">
-          View in Vault →
-        </Link>
+      <div className="mb-8 space-y-4">
+        <div className="flex items-center gap-3 rounded-xl border border-green-500/30 bg-green-500/5 px-5 py-4">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-white">
+            <Check className="h-3.5 w-3.5" />
+          </span>
+          <span className="flex-1 text-sm text-[#F0EDE8]">Added {addedCount} to your Vault.</span>
+          <Link href="/app/vault" className="text-sm font-medium text-[#FF4800] hover:underline">
+            View in Vault →
+          </Link>
+        </div>
+        <RelatedSpins
+          sourceIds={addedIds}
+          className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-4"
+        />
       </div>
     )
   }
