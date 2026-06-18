@@ -12,8 +12,10 @@ export default function VaultPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
   useEffect(() => {
+    // window.location (not useSearchParams) is intentional: this runs client-side only
+    // in a mount effect, so it needs no Suspense boundary and has no SSR/hydration concern.
     const id = new URLSearchParams(window.location.search).get("spin")
-    if (id) lib.openSpin(id)
+    if (id) lib.openSpin(id).catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
