@@ -186,13 +186,15 @@ export async function findRelatedSpins(sourceId: string, maxResults = 5): Promis
   return (data ?? []) as RelatedSpin[]
 }
 
-// Fetch a single spin by id (used when opening a related doc not on the current page).
+// Fetch a single vault spin by id (used when opening a related doc not on the current page).
+// Scoped to in_vault so a hand-crafted ?spin= can't open a non-vault conversion on the Vault page.
 export async function getSpin(id: string): Promise<Spin | null> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from("conversions")
     .select(SPIN_FIELDS)
     .eq("id", id)
+    .eq("in_vault", true)
     .maybeSingle()
   if (error) throw error
   return (data as Spin) ?? null
