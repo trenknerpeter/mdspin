@@ -36,7 +36,9 @@ export interface RelatedSpin {
 }
 
 // Pure: merge per-source related results into one ranked, deduped list.
-// Keeps the highest-ranked instance of each id, drops excluded ids, caps at `max`.
+// Dedupes by id keeping the highest-ranked instance; on a tie (including a missing
+// rank, treated as 0) the first-seen entry wins. Drops excluded ids, sorts by rank
+// desc, caps at `max`.
 export function mergeRelatedSpins(
   groups: RelatedSpin[][],
   excludeIds: string[],

@@ -33,4 +33,10 @@ describe("mergeRelatedSpins", () => {
   it("returns [] for empty input", () => {
     expect(mergeRelatedSpins([], [], 5)).toEqual([])
   })
+
+  it("treats a missing rank as 0 and still returns the item", () => {
+    const noRank: RelatedSpin = { ...mk("z", 0), rank: undefined }
+    const out = mergeRelatedSpins([[noRank, mk("a", 0.5)]], [], 5)
+    expect(out.map((s) => s.id)).toEqual(["a", "z"])
+  })
 })
