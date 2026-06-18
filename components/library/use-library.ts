@@ -159,7 +159,10 @@ export function useLibrary() {
     async (id: string) => {
       await deleteSpin(id)
       setSpins((prev) => prev.filter((s) => s.id !== id))
-      if (selectedSpinId === id) setSelectedSpinId(null)
+      if (selectedSpinId === id) {
+        setSelectedSpinId(null)
+        setSelectedSpinExtra(null)
+      }
       await refreshSidebars()
     },
     [selectedSpinId, refreshSidebars]
@@ -169,7 +172,10 @@ export function useLibrary() {
     async (id: string) => {
       await removeFromVault(id)
       setSpins((prev) => prev.filter((s) => s.id !== id))
-      if (selectedSpinId === id) setSelectedSpinId(null)
+      if (selectedSpinId === id) {
+        setSelectedSpinId(null)
+        setSelectedSpinExtra(null)
+      }
       await refreshSidebars()
     },
     [selectedSpinId, refreshSidebars]
@@ -220,7 +226,10 @@ export function useLibrary() {
     // detail panel
     selectedSpin,
     openSpin,
-    closeSpin: () => setSelectedSpinId(null),
+    closeSpin: () => {
+      setSelectedSpinId(null)
+      setSelectedSpinExtra(null)
+    },
     // mutations
     addProject,
     renameProjectById,
