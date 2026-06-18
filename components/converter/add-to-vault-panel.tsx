@@ -98,6 +98,9 @@ export function AddToVaultPanel({
       if (withId.length) await addToVault(withId.map((f) => f.conversionId!), opts)
       if (withoutId.length) await insertVaultConversions(withoutId.map(toInput), opts)
       setAddedCount(selected.length)
+      // Only auto-saved rows (withId) have ids to relate against. The withoutId
+      // (anonymous-resume insert) path is skipped intentionally — that's a brand-new
+      // signed-in user whose vault is effectively empty, so there's nothing to relate to.
       setAddedIds(selected.filter((f) => f.conversionId).map((f) => f.conversionId!))
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't add to your Vault. Try again.")
