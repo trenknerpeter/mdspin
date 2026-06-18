@@ -6,6 +6,7 @@ import {
   createProject,
   deleteProject,
   deleteSpin,
+  getSpin,
   listProjects,
   listSpinStats,
   listSpins,
@@ -45,6 +46,8 @@ export function useLibrary() {
 
   // Detail panel
   const [selectedSpinId, setSelectedSpinId] = useState<string | null>(null)
+  // Holds a spin fetched on demand (e.g. opening a related doc not on the current page).
+  const [selectedSpinExtra, setSelectedSpinExtra] = useState<Spin | null>(null)
 
   const fetchToken = useRef(0)
 
@@ -172,9 +175,28 @@ export function useLibrary() {
     [selectedSpinId, refreshSidebars]
   )
 
-  const selectedSpin = useMemo(
-    () => spins.find((s) => s.id === selectedSpinId) ?? null,
-    [spins, selectedSpinId]
+  const selectedSpin = useMemo(() => {
+    const fromList = spins.find((s) => s.id === selectedSpinId)
+    if (fromList) return fromList
+    if (selectedSpinExtra && selectedSpinExtra.id === selectedSpinId) return selectedSpinExtra
+    return null
+  }, [spins, selectedSpinId, selectedSpinExtra])
+
+  const openSpin = useCallback(
+    async (id: string) => {
+      setSelectedSpinId(id)
+      if (spins.some((s) => s.id === id)) {
+        setSelectedSpinExtra(null)
+        return
+      }
+      try {
+        const fetched = await getSpin(id)
+        setSelectedSpinExtra(fetched)
+      } catch {
+        setSelectedSpinExtra(null)
+      }
+    },
+    [spins]
   )
 
   return {
@@ -197,7 +219,7 @@ export function useLibrary() {
     loadMore,
     // detail panel
     selectedSpin,
-    openSpin: setSelectedSpinId,
+    openSpin,
     closeSpin: () => setSelectedSpinId(null),
     // mutations
     addProject,
