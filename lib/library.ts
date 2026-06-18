@@ -22,6 +22,40 @@ export interface Spin {
   converted_at: string
 }
 
+// Lighter than Spin: exactly what find_related_conversions returns and what list rows render.
+export interface RelatedSpin {
+  id: string
+  filename: string
+  title: string | null
+  file_type: string
+  word_count: number | null
+  tags: string[]
+  project_id: string | null
+  converted_at: string
+  rank?: number
+}
+
+// Pure: merge per-source related results into one ranked, deduped list.
+// Keeps the highest-ranked instance of each id, drops excluded ids, caps at `max`.
+export function mergeRelatedSpins(
+  groups: RelatedSpin[][],
+  excludeIds: string[],
+  max = 5
+): RelatedSpin[] {
+  const exclude = new Set(excludeIds)
+  const best = new Map<string, RelatedSpin>()
+  for (const group of groups) {
+    for (const s of group) {
+      if (exclude.has(s.id)) continue
+      const prev = best.get(s.id)
+      if (!prev || (s.rank ?? 0) > (prev.rank ?? 0)) best.set(s.id, s)
+    }
+  }
+  return Array.from(best.values())
+    .sort((a, b) => (b.rank ?? 0) - (a.rank ?? 0))
+    .slice(0, max)
+}
+
 export interface TagCount {
   tag: string
   count: number
