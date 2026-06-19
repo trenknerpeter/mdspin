@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
     .from("conversions")
     .select("id, title, filename, markdown_text")
     .eq("id", sourceId)
+    .eq("in_vault", true)
     .maybeSingle()
   if (srcErr) {
     return NextResponse.json({ error: "DB_ERROR", message: srcErr.message }, { status: 500 })
@@ -76,11 +77,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "DB_ERROR", message: contentErr.message }, { status: 500 })
   }
 
-  const payload = assembleClusterPayload(
-    source as ClusterDoc,
-    (relatedDocs ?? []) as ClusterDoc[],
-    CLUSTER_DOC_CAP
-  )
+  // Preserve the RPC's rank order (best-related first); `.in()` doesn't guarantee order.
+  const byId = new Map(((relatedDocs ?? []) as (ClusterDoc & { id: string })[]).map((d) => [d.id, d]))
+  const orderedRelated = relatedIds
+    .map((id) => byId.get(id))
+    .filter((d): d is ClusterDoc & { id: string } => Boolean(d))
+  const payload = assembleClusterPayload(source as ClusterDoc, orderedRelated, CLUSTER_DOC_CAP)
 
   // Call Make
   let makeRes: Response
@@ -91,12 +93,14 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(payload),
     })
   } catch {
+    console.error("[/api/brief] Make webhook unreachable")
     return NextResponse.json(
       { error: "MAKE_UNREACHABLE", message: "Couldn't reach the synthesis service. Try again." },
       { status: 502 }
     )
   }
   if (!makeRes.ok) {
+    console.error("[/api/brief] Make webhook returned", makeRes.status)
     return NextResponse.json(
       { error: "MAKE_ERROR", message: "Synthesis failed. Try again." },
       { status: 502 }
@@ -123,6 +127,7 @@ export async function POST(req: NextRequest) {
     .update({ brief, brief_generated_at: generatedAt })
     .eq("id", sourceId)
   if (updErr) {
+    console.error("[/api/brief] Brief generated but DB update failed:", updErr.message)
     // Generation worked; persistence didn't — still return the brief so it isn't lost.
     return NextResponse.json({ brief, brief_generated_at: generatedAt, saved: false })
   }
