@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { TagInput } from "@/components/library/tag-input"
 import { UNFILED, type Project, type Spin } from "@/lib/library"
 import { RelatedSpins } from "@/components/library/related-spins"
+import { ClusterBriefSection } from "@/components/library/cluster-brief-section"
 
 const PREVIEW_CAP = 8000
 
@@ -24,6 +25,7 @@ export function SpinDetailPanel({
   onDelete,
   onRemoveFromVault,
   onOpen,
+  onBriefGenerated,
 }: {
   spin: Spin | null
   projects: Project[]
@@ -35,6 +37,7 @@ export function SpinDetailPanel({
   onDelete: (id: string) => Promise<void>
   onRemoveFromVault?: (id: string) => Promise<void>
   onOpen?: (id: string) => void
+  onBriefGenerated?: (id: string, brief: string, generatedAt: string) => void
 }) {
   const [title, setTitle] = useState("")
   const [projectId, setProjectId] = useState<string>(UNFILED)
@@ -43,6 +46,9 @@ export function SpinDetailPanel({
   const [saved, setSaved] = useState(false)
   const [copied, setCopied] = useState(false)
   const [previewHtml, setPreviewHtml] = useState("")
+  const [relatedCount, setRelatedCount] = useState(0)
+  const [brief, setBrief] = useState<string | null>(null)
+  const [briefAt, setBriefAt] = useState<string | null>(null)
 
   // Sync local form state when the selected spin changes
   useEffect(() => {
@@ -51,6 +57,9 @@ export function SpinDetailPanel({
     setProjectId(spin.project_id ?? UNFILED)
     setTags(spin.tags ?? [])
     setSaved(false)
+    setBrief(spin.brief ?? null)
+    setBriefAt(spin.brief_generated_at ?? null)
+    setRelatedCount(0)
   }, [spin])
 
   // Render a (capped) markdown preview
@@ -125,7 +134,9 @@ export function SpinDetailPanel({
 
   return (
     <Sheet open={!!spin} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="w-full gap-0 border-[#2A2A2A] bg-[#161616] sm:max-w-md">
+      <SheetContent
+        className={`w-full gap-0 border-[#2A2A2A] bg-[#161616] ${brief ? "sm:max-w-2xl" : "sm:max-w-md"}`}
+      >
         <SheetHeader className="border-b border-[#2A2A2A]">
           <SheetTitle className="truncate pr-8 text-[#F0EDE8]">
             {spin.title || spin.filename}
@@ -168,6 +179,17 @@ export function SpinDetailPanel({
             <TagInput value={tags} onChange={setTags} />
           </div>
 
+          <ClusterBriefSection
+            sourceId={spin.id}
+            brief={brief}
+            briefGeneratedAt={briefAt}
+            relatedCount={relatedCount}
+            onGenerated={(b, at) => {
+              setBrief(b)
+              setBriefAt(at)
+              onBriefGenerated?.(spin.id, b, at)
+            }}
+          />
           <div className="flex-1 space-y-1.5">
             <label className={fieldLabel}>Preview</label>
             <div className="rounded-lg border border-[#2A2A2A] bg-[#0E0E0E] p-3">
@@ -186,7 +208,7 @@ export function SpinDetailPanel({
               )}
             </div>
           </div>
-          <RelatedSpins sourceIds={[spin.id]} onOpen={onOpen} />
+          <RelatedSpins sourceIds={[spin.id]} onOpen={onOpen} onCount={setRelatedCount} />
         </div>
 
         <div className="flex items-center gap-2 border-t border-[#2A2A2A] p-4">
