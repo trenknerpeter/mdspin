@@ -16,6 +16,9 @@ export interface BriefRequestDoc {
 export interface BriefRequest {
   topic: string
   docs: BriefRequestDoc[]
+  // Pre-joined markdown of all docs — convenient to map straight into an LLM prompt
+  // in Make (the `docs` array is awkward to template in a text field).
+  docsText: string
 }
 
 // Build the webhook payload: source first, then related docs. Each doc's markdown
@@ -29,8 +32,11 @@ export function assembleClusterPayload(
     title: d.title ?? d.filename,
     markdown: (d.markdown_text ?? "").slice(0, capChars),
   })
+  const docs = [source, ...related].map(toDoc)
+  const docsText = docs.map((d) => `### ${d.title}\n\n${d.markdown}`).join("\n\n---\n\n")
   return {
     topic: source.title ?? source.filename,
-    docs: [source, ...related].map(toDoc),
+    docs,
+    docsText,
   }
 }

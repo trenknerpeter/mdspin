@@ -35,4 +35,12 @@ describe("assembleClusterPayload", () => {
     const big: ClusterDoc = { title: "Big", filename: "b.md", markdown_text: "y".repeat(CLUSTER_DOC_CAP + 500) }
     expect(assembleClusterPayload(big, []).docs[0].markdown.length).toBe(CLUSTER_DOC_CAP)
   })
+
+  it("builds docsText joining each doc as a section, source first", () => {
+    const out = assembleClusterPayload(src, [rel])
+    expect(out.docsText).toContain("### Acme Q3 Pricing")
+    expect(out.docsText).toContain("### Acme Renewal")
+    expect(out.docsText.indexOf("Acme Q3 Pricing")).toBeLessThan(out.docsText.indexOf("Acme Renewal"))
+    expect(out.docsText).toContain("---")
+  })
 })
