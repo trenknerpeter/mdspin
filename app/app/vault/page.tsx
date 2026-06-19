@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Search, FileText, Copy, Check } from "lucide-react"
+import { Search, FileText, Copy, Check, Sparkles } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useLibrary } from "@/components/library/use-library"
 import { LibraryRail } from "@/components/library/library-rail"
@@ -154,6 +154,11 @@ export default function VaultPage() {
                               </span>
                             ) : null
                           })()}
+                          {c.brief_generated_at && (
+                            <span className="inline-flex items-center gap-1 text-[#FF4800]">
+                              <Sparkles className="h-3 w-3" /> Brief
+                            </span>
+                          )}
                         </div>
                         {c.tags.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -220,6 +225,7 @@ export default function VaultPage() {
         onDelete={lib.removeSpin}
         onRemoveFromVault={lib.removeSpinFromVault}
         onOpen={lib.openSpin}
+        onBriefGenerated={lib.patchSpinBrief}
       />
     </div>
   )
