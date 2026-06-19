@@ -106,14 +106,20 @@ export async function POST(req: NextRequest) {
       { status: 502 }
     )
   }
+  // Tolerant parse: Make may reply with JSON {brief} or with the raw brief markdown
+  // as plain text (avoids fragile JSON-escaping of LLM output through Make templating).
+  const rawText = await makeRes.text()
   let brief = ""
   try {
-    const json = await makeRes.json()
-    brief = typeof json.brief === "string" ? json.brief : ""
+    const json = JSON.parse(rawText)
+    if (typeof json === "string") brief = json
+    else if (json && typeof json.brief === "string") brief = json.brief
+    else brief = rawText
   } catch {
-    brief = ""
+    brief = rawText
   }
-  if (!brief.trim()) {
+  brief = brief.trim()
+  if (!brief) {
     return NextResponse.json(
       { error: "MAKE_EMPTY", message: "Synthesis returned nothing. Try again." },
       { status: 502 }
