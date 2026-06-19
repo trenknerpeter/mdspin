@@ -20,6 +20,8 @@ export interface Spin {
   tags: string[]
   in_vault: boolean
   converted_at: string
+  brief: string | null
+  brief_generated_at: string | null
 }
 
 // Lighter than Spin: exactly what find_related_conversions returns and what list rows render.
@@ -115,7 +117,7 @@ export async function deleteProject(id: string) {
 // ---- Spins ----
 
 const SPIN_FIELDS =
-  "id, filename, title, file_type, word_count, markdown_text, project_id, tags, in_vault, converted_at"
+  "id, filename, title, file_type, word_count, markdown_text, project_id, tags, in_vault, converted_at, brief, brief_generated_at"
 
 function escapeIlike(q: string) {
   // Keep the .or() filter safe: strip commas/parens that would break PostgREST syntax.
