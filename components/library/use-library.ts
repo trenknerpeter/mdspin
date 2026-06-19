@@ -155,6 +155,13 @@ export function useLibrary() {
     [selectedProject, refreshSidebars]
   )
 
+  const patchSpinBrief = useCallback((id: string, brief: string, briefGeneratedAt: string) => {
+    setSpins((prev) => prev.map((s) => (s.id === id ? { ...s, brief, brief_generated_at: briefGeneratedAt } : s)))
+    setSelectedSpinExtra((prev) =>
+      prev && prev.id === id ? { ...prev, brief, brief_generated_at: briefGeneratedAt } : prev
+    )
+  }, [])
+
   const removeSpin = useCallback(
     async (id: string) => {
       await deleteSpin(id)
@@ -235,6 +242,7 @@ export function useLibrary() {
     renameProjectById,
     removeProject,
     saveSpin,
+    patchSpinBrief,
     removeSpin,
     removeSpinFromVault,
     reload: fetchSpins,

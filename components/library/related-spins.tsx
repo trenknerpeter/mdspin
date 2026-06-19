@@ -7,10 +7,12 @@ import { findRelatedSpins, mergeRelatedSpins, type RelatedSpin } from "@/lib/lib
 export function RelatedSpins({
   sourceIds,
   onOpen,
+  onCount,
   className,
 }: {
   sourceIds: string[]
   onOpen?: (id: string) => void
+  onCount?: (n: number) => void
   className?: string
 }) {
   const [related, setRelated] = useState<RelatedSpin[]>([])
@@ -22,13 +24,17 @@ export function RelatedSpins({
     const ids = sourceIds.filter(Boolean)
     if (ids.length === 0) {
       setRelated([])
+      onCount?.(0)
       setLoading(false)
       return
     }
     setLoading(true)
     Promise.all(ids.map((id) => findRelatedSpins(id).catch(() => [] as RelatedSpin[])))
       .then((groups) => {
-        if (!cancelled) setRelated(mergeRelatedSpins(groups, ids, 5))
+        if (cancelled) return
+        const merged = mergeRelatedSpins(groups, ids, 5)
+        setRelated(merged)
+        onCount?.(merged.length)
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
