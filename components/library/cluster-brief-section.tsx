@@ -5,7 +5,7 @@ import { remark } from "remark"
 import remarkGfm from "remark-gfm"
 import remarkHtml from "remark-html"
 import { formatDistanceToNow } from "date-fns"
-import { Sparkles, RefreshCw } from "lucide-react"
+import { Sparkles, RefreshCw, Copy, Check } from "lucide-react"
 
 export function ClusterBriefSection({
   sourceId,
@@ -23,6 +23,21 @@ export function ClusterBriefSection({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [html, setHtml] = useState("")
+  const [unsaved, setUnsaved] = useState(false) // brief generated but DB persist failed
+  const [copied, setCopied] = useState(false)
+
+  // Clear transient warning/error state when switching to a different doc.
+  useEffect(() => {
+    setUnsaved(false)
+    setError(null)
+  }, [sourceId])
+
+  const copyBrief = async () => {
+    if (!brief) return
+    await navigator.clipboard.writeText(brief)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   // Render markdown → html whenever the brief text changes (effect, not during render).
   useEffect(() => {
@@ -59,6 +74,7 @@ export function ClusterBriefSection({
         return
       }
       onGenerated(data.brief, data.brief_generated_at)
+      setUnsaved(data.saved === false)
     } catch {
       setError("Couldn't generate a brief. Try again.")
     } finally {
@@ -115,6 +131,18 @@ export function ClusterBriefSection({
           </p>
         )}
       </div>
+      {unsaved && (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/5 px-3 py-2">
+          <span className="text-xs text-yellow-300">Generated but couldn&apos;t save — copy it before closing.</span>
+          <button
+            type="button"
+            onClick={copyBrief}
+            className="flex shrink-0 items-center gap-1 text-xs font-medium text-[#F0EDE8] hover:underline"
+          >
+            {copied ? <Check className="h-3.5 w-3.5 text-[#FF4800]" /> : <Copy className="h-3.5 w-3.5" />} Copy
+          </button>
+        </div>
+      )}
       {error && <p className="text-sm text-red-400">{error}</p>}
     </div>
   )
