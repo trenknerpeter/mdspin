@@ -150,7 +150,7 @@ export function SiteNav() {
           {!authLoading && (
             user ? (
               <Link
-                href="/app"
+                href="/app/dashboard"
                 className="flex items-center gap-1.5 rounded-full border border-[#2A2A2A] px-4 py-1.5 text-xs font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
               >
                 <LayoutDashboard className="h-3 w-3" />
