@@ -15,7 +15,7 @@ function SignUpForm() {
   const [success, setSuccess] = useState(false)
   const [alreadyExists, setAlreadyExists] = useState(false)
   const searchParams = useSearchParams()
-  const next = safeNext(searchParams.get("next"))
+  const next = safeNext(searchParams.get("next"), "/app/dashboard")
   const supabase = createClient()
 
   const handleSignUp = async (e: React.FormEvent) => {

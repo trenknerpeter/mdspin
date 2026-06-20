@@ -6,6 +6,7 @@ import { useEffect, useState } from "react"
 import { useLibrary } from "@/components/library/use-library"
 import { LibraryRail } from "@/components/library/library-rail"
 import { SpinDetailPanel } from "@/components/library/spin-detail-panel"
+import { VaultViewToggle } from "@/components/library/vault-view-toggle"
 
 export default function VaultPage() {
   const lib = useLibrary()
@@ -37,13 +38,16 @@ export default function VaultPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="mb-8">
-        <h1 className="font-[family-name:var(--font-syne)] text-2xl font-bold text-[#F0EDE8]">
-          Knowledge Vault
-        </h1>
-        <p className="font-[family-name:var(--font-dm-sans)] text-sm text-[#888480]">
-          {lib.stats.total} item{lib.stats.total !== 1 ? "s" : ""} in your Vault
-        </p>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-[family-name:var(--font-syne)] text-2xl font-bold text-[#F0EDE8]">
+            Knowledge Vault
+          </h1>
+          <p className="font-[family-name:var(--font-dm-sans)] text-sm text-[#888480]">
+            {lib.stats.total} item{lib.stats.total !== 1 ? "s" : ""} in your Vault
+          </p>
+        </div>
+        <VaultViewToggle active="list" />
       </div>
 
       <div className="flex gap-8">

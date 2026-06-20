@@ -141,6 +141,7 @@ export function useConverter(opts: {
       id: fi.id,
       name: fi.name,
       ext: fi.name.split(".").pop()?.toLowerCase() ?? "",
+      size: fi.file?.size ?? null, // original byte size — powers exact ROI on the Dashboard
     }))
 
     posthog.capture("file_conversion_started", {
@@ -263,6 +264,7 @@ export function useConverter(opts: {
                 file_type: meta.ext,
                 word_count: wordCount,
                 markdown_text: result.markdown_text,
+                source_bytes: meta.size,
               })
               .select("id")
               .single()
@@ -380,6 +382,7 @@ export function useConverter(opts: {
               file_type: fileType,
               word_count: wordCount,
               markdown_text: data.markdown_text,
+              source_bytes: null, // URL conversions have no source file — excluded from ROI
             })
             .select("id")
             .single()

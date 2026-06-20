@@ -6,7 +6,7 @@ import { AppSidebar } from "@/components/app-shell/app-sidebar"
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/auth/sign-in?next=/app")
+  if (!user) redirect("/auth/sign-in?next=/app/dashboard")
 
   return (
     // `dark` scopes the shadcn theme tokens (--sidebar, --background, …) to their

@@ -1,7 +1,7 @@
 "use client"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Sparkles, History, Library, Key, Settings, LogOut } from "lucide-react"
+import { LayoutDashboard, Sparkles, History, Library, Key, Settings, LogOut } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import {
   Sidebar, SidebarHeader, SidebarContent, SidebarFooter,
@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/sidebar"
 
 const nav = [
+  { href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/app", label: "Convert", icon: Sparkles, exact: true },
   { href: "/app/history", label: "History", icon: History },
   { href: "/app/vault", label: "Knowledge Vault", icon: Library },

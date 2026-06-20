@@ -8,11 +8,7 @@ import { SUPPORTED_FORMATS, ACCEPT_ATTR } from "@/lib/formats"
 import { useConverter } from "./use-converter"
 import { AddToVaultPanel } from "./add-to-vault-panel"
 import type { ConverterContext, ConversionOptions } from "./types"
-
-const TEXT_DENSITY: Record<string, number> = {
-  pdf: 0.35, docx: 0.45, doc: 0.30,
-  txt: 0.90, rtf: 0.55, pages: 0.35,
-}
+import { estimateOriginalTokens, estimateMarkdownTokens, computeSavings } from "@/lib/roi"
 
 export function Converter({ context, options, onAuthRequired }: {
   context: ConverterContext
@@ -354,16 +350,16 @@ export function Converter({ context, options, onAuthRequired }: {
               const successFiles = c.files.filter(fi => fi.status === 'done' && fi.markdown && fi.file)
               if (successFiles.length === 0) return null
               const totalWordCount = successFiles.reduce((sum, fi) => sum + (fi.wordCount ?? 0), 0)
-              const totalMdTokens = Math.round(totalWordCount * 1.33)
+              const totalMdTokens = estimateMarkdownTokens(totalWordCount)
               const totalOrigTokens = successFiles.reduce((sum, fi) => {
                 const ext = fi.name.split('.').pop()?.toLowerCase() ?? 'pdf'
-                const density = TEXT_DENSITY[ext] ?? 0.40
-                const sizeBytes = fi.file!.size
-                return sum + Math.round(sizeBytes * density / 4)
+                return sum + estimateOriginalTokens(fi.file!.size, ext)
               }, 0)
-              const reductionPct = totalOrigTokens > 0
-                ? Math.min(90, Math.max(5, Math.round((1 - totalMdTokens / totalOrigTokens) * 100)))
-                : 0
+              const { reductionPct, monthlySavings } = computeSavings({
+                origTokens: totalOrigTokens,
+                mdTokens: totalMdTokens,
+                monthlyCalls,
+              })
               return (
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 overflow-hidden rounded-xl border border-[#2A2A2A] bg-[#161616]">
                   <div className="flex items-center gap-2 border-b border-[#2A2A2A] px-5 py-3">
@@ -380,7 +376,7 @@ export function Converter({ context, options, onAuthRequired }: {
                     <div className="p-4">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4A4A46]">Cost Savings</p>
                       <p className="mt-1.5 font-display text-2xl font-bold text-[#FF4800]">
-                        ~${((totalOrigTokens - totalMdTokens) * 0.000015 * monthlyCalls).toFixed(2)}
+                        ~${monthlySavings.toFixed(2)}
                         <span className="text-sm font-normal text-[#888480]">/mo</span>
                       </p>
                       <div className="mt-1.5 flex items-center gap-1.5">
