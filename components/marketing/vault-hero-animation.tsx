@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { FileText, Check, Search, ChevronDown } from "lucide-react"
 
-const STEPS = ["Convert", "My Vault", "Knowledge Map"]
+const STEPS = ["Convert", "Vault", "Knowledge Map"]
 
 const VAULT_FILES = [
   { name: "Onboarding.docx", tag: "HR" },
@@ -31,8 +31,14 @@ const EDGES = [
 
 export function VaultHeroAnimation() {
   const [phase, setPhase] = useState(0)
+  const [reduced, setReduced] = useState(false)
 
   useEffect(() => {
+    // Respect prefers-reduced-motion: hold a single frame, no auto-cycling or pulse.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setReduced(true)
+      return
+    }
     const id = setInterval(() => setPhase((p) => (p + 1) % STEPS.length), 3200)
     return () => clearInterval(id)
   }, [])
@@ -165,10 +171,12 @@ export function VaultHeroAnimation() {
                     strokeWidth="1"
                   />
                 ))}
-                <circle cx={NODES[0].cx} cy={NODES[0].cy} r={NODES[0].r} fill="none" stroke="#FF4800" strokeWidth="1.5">
-                  <animate attributeName="r" values={`${NODES[0].r};${NODES[0].r + 16}`} dur="1.8s" repeatCount="indefinite" />
-                  <animate attributeName="stroke-opacity" values="0.7;0" dur="1.8s" repeatCount="indefinite" />
-                </circle>
+                {!reduced && (
+                  <circle cx={NODES[0].cx} cy={NODES[0].cy} r={NODES[0].r} fill="none" stroke="#FF4800" strokeWidth="1.5">
+                    <animate attributeName="r" values={`${NODES[0].r};${NODES[0].r + 16}`} dur="1.8s" repeatCount="indefinite" />
+                    <animate attributeName="stroke-opacity" values="0.7;0" dur="1.8s" repeatCount="indefinite" />
+                  </circle>
+                )}
                 {NODES.map((n, i) => (
                   <circle
                     key={i}

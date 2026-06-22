@@ -11,9 +11,13 @@ export function GetStartedButton({
   className?: string
   label?: string
 }) {
-  const { user } = useAuth()
+  const { user, isLoading } = useAuth()
+  // While auth is still resolving, bias toward the app: signed-in users land there
+  // (the /app layout confirms their session server-side), and signed-out users get
+  // redirected to sign-in by that same guard. Once known, signed-out users go to sign-up.
+  const href = isLoading || user ? "/app/dashboard" : "/auth/sign-up?next=/app"
   return (
-    <Link href={user ? "/app/dashboard" : "/auth/sign-up?next=/app"} className={className}>
+    <Link href={href} className={className}>
       {label} <ArrowRight className="h-4 w-4" />
     </Link>
   )

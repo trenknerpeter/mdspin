@@ -6,14 +6,12 @@ import Link from "next/link"
 import { SiteNav } from "@/components/site-nav"
 import { Converter } from "@/components/converter/converter"
 import { VaultHeroAnimation } from "@/components/marketing/vault-hero-animation"
-import { useAuth } from "@/components/auth-provider"
+import { GetStartedButton } from "@/components/marketing/get-started-button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 
 export default function MDSpinPage() {
-  const { user } = useAuth()
   const [mounted, setMounted] = useState(false)
   const [showWall, setShowWall] = useState(false)
-  const getStartedHref = user ? "/app/dashboard" : "/auth/sign-up?next=/app"
 
   useEffect(() => {
     setMounted(true)
@@ -52,7 +50,7 @@ export default function MDSpinPage() {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                alt="MDSpin - File to Markdown converter | Product Hunt"
+                alt="MDSpin - The knowledge hub for your AI | Product Hunt"
                 width={250}
                 height={54}
                 src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1114548&theme=dark&t=1775293684923"
@@ -95,12 +93,7 @@ export default function MDSpinPage() {
 
           {/* CTA Buttons */}
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
-            <Link
-              href={getStartedHref}
-              className="flex items-center gap-2 rounded-full bg-[#FF4800] px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#e04200] hover:shadow-lg hover:shadow-[#FF4800]/20"
-            >
-              Get started free <ArrowRight className="h-4 w-4" />
-            </Link>
+            <GetStartedButton className="flex items-center gap-2 rounded-full bg-[#FF4800] px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#e04200] hover:shadow-lg hover:shadow-[#FF4800]/20" />
             <a
               href="#converter"
               className="flex items-center gap-2 rounded-full border border-[#2A2A2A] px-6 py-2.5 text-sm font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
