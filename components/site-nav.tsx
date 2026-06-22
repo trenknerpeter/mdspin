@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/sheet"
 
 const productLinks = [
-  { href: "/#features", label: "Knowledge Hub", icon: Network, description: "Vault, map, and AI briefs" },
+  { href: "/knowledge-vault", label: "Knowledge Vault", icon: Network, description: "Vault, map, and AI briefs" },
   { href: "/overview", label: "Overview", icon: Eye, description: "The hub, end to end" },
   { href: "/how-it-works", label: "How it works", icon: Cog, description: "Web app, Chrome extension, batch" },
   { href: "/formats", label: "Formats", icon: FileText, description: "PDF, DOCX, PPTX and more" },
