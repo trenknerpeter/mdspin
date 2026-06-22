@@ -39,7 +39,7 @@ export default function MDSpinPage() {
         <div className="pointer-events-none absolute bottom-0 left-1/2 h-[500px] w-[900px] -translate-x-1/2 rounded-full bg-[#FF4800]/8 blur-[140px]" />
 
         <div
-          className={`relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-6 transition-all duration-700 lg:grid-cols-2 ${mounted ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
+          className={`relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-6 transition-all duration-700 lg:grid-cols-2 lg:gap-20 ${mounted ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
         >
           {/* Left: copy */}
           <div className="text-center lg:text-left">
@@ -118,25 +118,6 @@ export default function MDSpinPage() {
         </div>
       </section>
 
-      {/* ── The Problem ── */}
-      <section className="border-t border-[#1E1E1E] py-24">
-        <div className="mx-auto max-w-5xl px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#FF4800]">
-              The Problem
-            </p>
-            <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">
-              You convert. Then you forget.
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#888480]">
-              Most converters hand you a Markdown file and you&apos;re done — until you need it
-              again and it&apos;s buried in your downloads. The value was never the conversion.
-              It&apos;s everything you do with the knowledge afterward.
-            </p>
-          </div>
-        </div>
-      </section>
-
       {/* ── The Hub Loop ── */}
       <section id="hub-loop" className="border-t border-[#1E1E1E] py-24">
         <div className="mx-auto max-w-5xl px-6">
@@ -188,9 +169,19 @@ export default function MDSpinPage() {
 
           <div className="grid gap-5 lg:grid-cols-3">
             {/* Knowledge Vault */}
-            <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-8 transition-colors hover:border-[#3A3A3A]">
-              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#FF4800]/10">
-                <Library className="h-6 w-6 text-[#FF4800]" />
+            <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-6 transition-colors hover:border-[#3A3A3A]">
+              <div className="mb-5 h-32 overflow-hidden rounded-lg border border-[#2A2A2A] bg-[#0C0C0C]">
+                <div className="grid h-full grid-cols-3 grid-rows-2 gap-2 p-3">
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
+                    <div
+                      key={i}
+                      className={`flex flex-col justify-between rounded-md border p-1.5 ${i === 5 ? "border-[#FF4800]/50 bg-[#FF4800]/5" : "border-[#2A2A2A] bg-[#161616]"}`}
+                    >
+                      <FileText className={`h-3 w-3 ${i === 5 ? "text-[#FF4800]" : "text-[#4A4A46]"}`} />
+                      <div className={`h-1 w-3/4 rounded ${i === 5 ? "bg-[#FF4800]/40" : "bg-[#2A2A2A]"}`} />
+                    </div>
+                  ))}
+                </div>
               </div>
               <h3 className="font-display text-lg font-semibold text-[#F0EDE8]">Knowledge Vault</h3>
               <p className="mt-3 text-sm leading-relaxed text-[#888480]">
@@ -200,9 +191,9 @@ export default function MDSpinPage() {
             </div>
 
             {/* Knowledge Map — static SVG preview */}
-            <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-8 transition-colors hover:border-[#3A3A3A]">
-              <div className="mb-5 overflow-hidden rounded-lg border border-[#2A2A2A] bg-[#0C0C0C]">
-                <svg viewBox="0 0 280 140" className="h-32 w-full" role="img" aria-label="Knowledge map preview">
+            <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-6 transition-colors hover:border-[#3A3A3A]">
+              <div className="mb-5 h-32 overflow-hidden rounded-lg border border-[#2A2A2A] bg-[#0C0C0C]">
+                <svg viewBox="0 0 280 140" className="h-full w-full" role="img" aria-label="Knowledge map preview">
                   {[
                     ["140", "70", "100", "40"], ["140", "70", "200", "45"],
                     ["140", "70", "90", "105"], ["140", "70", "205", "100"],
@@ -230,9 +221,29 @@ export default function MDSpinPage() {
             </div>
 
             {/* Cluster Briefs */}
-            <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-8 transition-colors hover:border-[#3A3A3A]">
-              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#FF4800]/10">
-                <Sparkles className="h-6 w-6 text-[#FF4800]" />
+            <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-6 transition-colors hover:border-[#3A3A3A]">
+              <div className="mb-5 h-32 overflow-hidden rounded-lg border border-[#2A2A2A] bg-[#0C0C0C]">
+                <div className="flex h-full items-center justify-center gap-3 p-4">
+                  {/* source documents */}
+                  <div className="relative h-16 w-14 shrink-0">
+                    <div className="absolute left-0 top-1.5 h-14 w-10 -rotate-6 rounded-md border border-[#2A2A2A] bg-[#161616]" />
+                    <div className="absolute left-2 top-0 h-14 w-10 rounded-md border border-[#2A2A2A] bg-[#161616] p-1.5">
+                      <div className="h-1 w-3/4 rounded bg-[#2A2A2A]" />
+                      <div className="mt-1 h-1 w-2/3 rounded bg-[#2A2A2A]" />
+                      <div className="mt-1 h-1 w-3/4 rounded bg-[#2A2A2A]" />
+                    </div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-[#4A4A46]" />
+                  {/* synthesized brief */}
+                  <div className="relative h-[88px] w-16 shrink-0 rounded-md border border-[#FF4800]/40 bg-[#161616] p-2">
+                    <Sparkles className="absolute right-1.5 top-1.5 h-3 w-3 text-[#FF4800]" />
+                    <div className="mt-0.5 h-1.5 w-1/2 rounded bg-[#FF4800]/50" />
+                    <div className="mt-2 h-1 w-full rounded bg-[#2A2A2A]" />
+                    <div className="mt-1 h-1 w-5/6 rounded bg-[#2A2A2A]" />
+                    <div className="mt-1 h-1 w-full rounded bg-[#2A2A2A]" />
+                    <div className="mt-1 h-1 w-2/3 rounded bg-[#2A2A2A]" />
+                  </div>
+                </div>
               </div>
               <h3 className="font-display text-lg font-semibold text-[#F0EDE8]">Cluster Briefs</h3>
               <p className="mt-3 text-sm leading-relaxed text-[#888480]">

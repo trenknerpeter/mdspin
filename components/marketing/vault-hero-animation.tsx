@@ -52,7 +52,7 @@ export function VaultHeroAnimation() {
   const mapActive = phase === 2
 
   return (
-    <div className="relative mx-auto w-full max-w-md">
+    <div className="relative mx-auto w-full max-w-lg lg:ml-auto lg:mr-0">
       <div className="pointer-events-none absolute -inset-10 rounded-full bg-[#FF4800]/10 blur-[90px]" />
 
       <div className="relative overflow-hidden rounded-2xl border border-[#2A2A2A] bg-[#111111] shadow-2xl shadow-black/40">
@@ -73,7 +73,7 @@ export function VaultHeroAnimation() {
         </div>
 
         {/* Body — three stacked screens, clean sequential crossfade */}
-        <div className="relative h-[300px]">
+        <div className="relative h-[340px]">
           {/* ── Screen 1: Convert ── */}
           <div className={screenCls(convertActive)} style={screenStyle(convertActive)}>
             <div className="flex h-full flex-col justify-center gap-3 p-5">
