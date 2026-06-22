@@ -6,14 +6,14 @@ import { SiteFooter } from "@/components/site-footer"
 import { GrainOverlay } from "@/components/grain-overlay"
 
 export const metadata: Metadata = {
-  title: "PDF to Markdown for AI Workflows — Convert Documents with MDSpin",
+  title: "The Knowledge Hub for Your AI — How MDSpin Works",
   description:
-    "Convert PDFs, DOCX, and PPTX to clean, structured Markdown for RAG, ChatGPT, and knowledge bases. MDSpin preserves structure so your AI understands your documents.",
+    "MDSpin converts any document into clean Markdown, then organizes, connects, and synthesizes it into one searchable knowledge hub your AI can actually use.",
   alternates: { canonical: `${SITE_URL}/overview` },
   openGraph: {
-    title: "PDF to Markdown for AI Workflows | MDSpin",
+    title: "The Knowledge Hub for Your AI | MDSpin",
     description:
-      "Convert PDFs, DOCX, and PPTX to clean, structured Markdown for RAG, ChatGPT, and knowledge bases.",
+      "Convert any document into clean Markdown, then build a connected, AI-ready knowledge hub.",
     url: `${SITE_URL}/overview`,
   },
 }
@@ -26,21 +26,38 @@ const stats = [
   { value: "2.4x", label: "Faster processing" },
 ]
 
-const pipelineSteps = [
-  { step: "1", title: "Ingest", description: "Collect documents from any source — uploads, email, cloud storage" },
-  { step: "2", title: "Convert", description: "MDSpin transforms each file into clean, structured Markdown" },
-  { step: "3", title: "Chunk", description: "Split Markdown along natural boundaries — headings, sections, paragraphs" },
-  { step: "4", title: "Embed", description: "Feed clean chunks into your vector store for semantic search" },
-  { step: "5", title: "Query", description: "Your LLM retrieves relevant chunks and generates accurate answers" },
+const hubLoop = [
+  { step: "1", title: "Convert", description: "Drop any PDF, doc, or deck and get clean, structured Markdown — headings, tables, and lists intact." },
+  { step: "2", title: "Organize", description: "Save conversions to your Vault, sorted into projects and tags with full-text search across everything." },
+  { step: "3", title: "Connect", description: "MDSpin auto-detects related documents and links them into a force-directed knowledge map." },
+  { step: "4", title: "Synthesize", description: "Generate an AI brief across a cluster of related docs — your library, read and summarized for you." },
+]
+
+const hubFeatures = [
+  {
+    title: "Knowledge Vault",
+    detail:
+      "Every conversion lands in one place instead of your downloads folder. Organize by project, tag freely, and search the full text of every document you've ever converted. Your knowledge base grows with each spin.",
+  },
+  {
+    title: "Knowledge Map",
+    detail:
+      "A force-directed graph visualizes your whole vault, auto-clustered by project and connected by content similarity. See how ideas relate, find neighbors of any document, and surface links you'd never spot in a file list.",
+  },
+  {
+    title: "Cluster Briefs",
+    detail:
+      "When documents are related, MDSpin can synthesize them. One click sends a cluster to an LLM and returns a brief that pulls the thread across every source — turning a pile of files into an answer.",
+  },
 ]
 
 export default function OverviewPage() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: "PDF to Markdown for AI Workflows — MDSpin",
+    name: "The Knowledge Hub for Your AI — MDSpin",
     description:
-      "Convert PDFs, DOCX, and PPTX to clean, structured Markdown for RAG, ChatGPT, and knowledge bases.",
+      "Convert any document into clean Markdown, then organize, connect, and synthesize it into one searchable knowledge hub.",
     url: `${SITE_URL}/overview`,
     publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
   }
@@ -76,14 +93,62 @@ export default function OverviewPage() {
               Product Overview
             </p>
             <h1 className="font-display text-4xl font-bold text-white sm:text-5xl">
-              Documents In, AI-Ready Markdown Out
+              The Knowledge Hub for Your AI
             </h1>
             <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-[#888480]">
-              Most AI tools choke on raw PDFs. The formatting that makes documents
-              readable to humans makes them noisy, bloated, and confusing to machines.
-              MDSpin fixes that.
+              MDSpin starts where every other converter stops. Conversion is the on-ramp —
+              the real product is a connected, searchable hub where your documents become
+              knowledge your AI can actually use.
             </p>
           </div>
+
+          {/* The Hub Loop */}
+          <section className="mb-16">
+            <h2 className="mb-4 font-display text-2xl font-bold text-white">
+              Convert once. Use it forever.
+            </h2>
+            <p className="mb-6 text-sm leading-relaxed text-[#888480]">
+              A converted file you can&apos;t find again is worthless. MDSpin closes the loop:
+              every conversion is captured, organized, connected to what you already have, and
+              ready to be synthesized on demand.
+            </p>
+            <div className="space-y-3">
+              {hubLoop.map((s) => (
+                <div
+                  key={s.step}
+                  className="flex items-start gap-4 rounded-xl border border-[#2A2A2A] bg-[#161616] p-4"
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FF4800]/15 font-display text-sm font-bold text-[#FF4800]">
+                    {s.step}
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-medium text-[#F0EDE8]">{s.title}</h3>
+                    <p className="mt-1 text-xs text-[#888480]">{s.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Hub Features */}
+          <section className="mb-16">
+            <h2 className="mb-4 font-display text-2xl font-bold text-white">
+              More than a converter
+            </h2>
+            <div className="space-y-4">
+              {hubFeatures.map((f) => (
+                <div
+                  key={f.title}
+                  className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-6"
+                >
+                  <h3 className="mb-2 font-display text-lg font-semibold text-[#F0EDE8]">
+                    {f.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-[#888480]">{f.detail}</p>
+                </div>
+              ))}
+            </div>
+          </section>
 
           {/* Why Markdown for AI */}
           <section className="mb-16">
@@ -165,34 +230,6 @@ export default function OverviewPage() {
             </div>
           </section>
 
-          {/* Built for AI Workflows */}
-          <section className="mb-16">
-            <h2 className="mb-4 font-display text-2xl font-bold text-white">
-              Built for AI Workflows
-            </h2>
-            <p className="mb-6 text-sm leading-relaxed text-[#888480]">
-              Whether you are building a RAG pipeline, populating a knowledge base, or
-              prepping documents for ChatGPT, MDSpin sits at the front of your pipeline
-              and handles the messy part.
-            </p>
-            <div className="space-y-3">
-              {pipelineSteps.map((s) => (
-                <div
-                  key={s.step}
-                  className="flex items-start gap-4 rounded-xl border border-[#2A2A2A] bg-[#161616] p-4"
-                >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FF4800]/15 font-display text-sm font-bold text-[#FF4800]">
-                    {s.step}
-                  </span>
-                  <div>
-                    <h3 className="text-sm font-medium text-[#F0EDE8]">{s.title}</h3>
-                    <p className="mt-1 text-xs text-[#888480]">{s.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
           {/* Stats */}
           <div className="mb-16 rounded-xl border border-[#2A2A2A] bg-[#161616] p-8">
             <div className="grid grid-cols-3 gap-6 text-center">
@@ -213,24 +250,24 @@ export default function OverviewPage() {
           {/* Bottom CTA */}
           <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-10 text-center">
             <h2 className="font-display text-2xl font-bold text-white">
-              Ready to convert?
+              Start building your hub
             </h2>
             <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[#888480]">
-              Drop any document into MDSpin and get clean, AI-ready Markdown in seconds.
-              No signup required.
+              Convert your first document free, then watch it become part of a connected,
+              searchable knowledge hub your AI can use.
             </p>
             <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
               <Link
-                href="/#converter"
+                href="/auth/sign-up?next=/app"
                 className="rounded-full bg-[#FF4800] px-6 py-2 text-sm font-semibold text-white transition-all hover:bg-[#e04200]"
               >
-                Try MDSpin free
+                Build your hub free
               </Link>
               <Link
-                href="/formats"
+                href="/#converter"
                 className="rounded-full border border-[#2A2A2A] px-6 py-2 text-sm font-medium text-[#888480] transition-colors hover:border-[#3A3A3A] hover:text-white"
               >
-                See supported formats
+                Try the converter
               </Link>
             </div>
           </div>

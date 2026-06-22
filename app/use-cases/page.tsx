@@ -6,29 +6,53 @@ import { SiteFooter } from "@/components/site-footer"
 import { GrainOverlay } from "@/components/grain-overlay"
 
 export const metadata: Metadata = {
-  title: "Use Cases — Prepare Documents for ChatGPT, RAG & Knowledge Bases",
+  title: "Use Cases — Build an AI Knowledge Hub from Your Documents",
   description:
-    "See how teams use MDSpin to convert PDFs and documents to Markdown for RAG pipelines, ChatGPT, knowledge bases, and AI-powered workflows.",
+    "See how people use MDSpin to build living knowledge bases, connect and synthesize research, and prepare documents for RAG and AI workflows — all from one searchable hub.",
   alternates: { canonical: `${SITE_URL}/use-cases` },
   openGraph: {
-    title: "Use Cases — Prepare Documents for ChatGPT, RAG & Knowledge Bases | MDSpin",
+    title: "Use Cases — Build an AI Knowledge Hub from Your Documents | MDSpin",
     description:
-      "See how teams use MDSpin to convert documents to Markdown for RAG pipelines, ChatGPT, and AI workflows.",
+      "Build living knowledge bases, connect and synthesize research, and prepare documents for RAG and AI workflows.",
     url: `${SITE_URL}/use-cases`,
   },
 }
 
 const useCases = [
   {
-    title: "Knowledge Bases",
-    subtitle: "Build searchable AI knowledge bases from document libraries",
+    title: "Build a Living Knowledge Base",
+    subtitle: "Turn every document you convert into a searchable, growing hub",
     description:
-      "Turn your existing document library — handbooks, SOPs, policy documents, internal wikis — into a structured knowledge base your AI can search and reason over. Markdown preserves the document hierarchy that makes retrieval accurate.",
+      "Stop converting and forgetting. Each file you spin lands in your Vault — organized into projects, tagged, and full-text searchable. Your handbooks, SOPs, notes, and reports stop being scattered downloads and become one knowledge base that grows every time you use MDSpin.",
     examples: [
-      "Convert HR handbooks for AI-powered employee Q&A",
-      "Process product documentation for customer support bots",
-      "Transform training materials into searchable knowledge bases",
-      "Migrate legacy wikis into AI-ready formats",
+      "Keep every converted handbook and SOP in one searchable place",
+      "Group documents into projects and tag them as you go",
+      "Search the full text of everything you've ever converted",
+      "Revisit and reuse past conversions instead of redoing them",
+    ],
+  },
+  {
+    title: "Research & Synthesis",
+    subtitle: "Connect related documents and synthesize across them",
+    description:
+      "MDSpin auto-detects relationships between your documents and maps them as a force-directed knowledge graph. Find the neighbors of any source, surface connections you'd miss in a file list, and generate an AI brief that pulls the thread across a whole cluster of related docs.",
+    examples: [
+      "Visualize a research corpus as a connected knowledge map",
+      "Automatically find documents related to the one you're reading",
+      "Synthesize an AI brief across a cluster of related sources",
+      "Spot links between projects you didn't know were connected",
+    ],
+  },
+  {
+    title: "Consultants & Analysts",
+    subtitle: "A connected hub for every client and engagement",
+    description:
+      "Consultants and analysts drown in documents from every source and format. Convert them all to clean Markdown, organize each engagement into its own project, let MDSpin link related materials, and synthesize briefs that turn a pile of client files into an answer.",
+    examples: [
+      "Keep each client's materials in a dedicated project",
+      "Convert pitch decks and statements for AI-powered benchmarking",
+      "Auto-link related findings across an engagement",
+      "Generate board-ready briefs across a cluster of documents",
     ],
   },
   {
@@ -65,18 +89,6 @@ const useCases = [
       "Process API documentation for developer assistants",
       "Transform requirement documents for automated testing",
       "Prepare architecture docs for AI-powered code review",
-    ],
-  },
-  {
-    title: "Consultants & Analysts",
-    subtitle: "Convert client documents for AI-powered analysis",
-    description:
-      "Consultants and analysts receive documents in every format imaginable. Instead of manually restructuring each one, convert them all to clean Markdown and let AI handle the summarization, comparison, and insight extraction.",
-    examples: [
-      "Convert client pitch decks for AI-powered benchmarking",
-      "Process financial statements for automated analysis",
-      "Transform survey results for AI-assisted reporting",
-      "Prepare board materials for AI summarization",
     ],
   },
 ]
@@ -123,11 +135,11 @@ export default function UseCasesPage() {
               Use Cases
             </p>
             <h1 className="font-display text-4xl font-bold text-white sm:text-5xl">
-              From Documents to AI Insights
+              From Documents to a Knowledge Hub
             </h1>
             <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-[#888480]">
-              MDSpin bridges the gap between human-readable documents and AI-readable
-              text. Here is how different teams use it to power their AI workflows.
+              MDSpin turns scattered documents into one connected, searchable hub your AI
+              can use. Here is how different people put it to work.
             </p>
           </div>
 
@@ -163,10 +175,10 @@ export default function UseCasesPage() {
 
                 <div className="mt-6">
                   <Link
-                    href="/#converter"
+                    href="/auth/sign-up?next=/app"
                     className="inline-flex items-center gap-1.5 rounded-full bg-[#FF4800]/10 px-4 py-1.5 text-xs font-semibold text-[#FF4800] transition-colors hover:bg-[#FF4800]/20"
                   >
-                    Convert now
+                    Start your hub
                   </Link>
                 </div>
               </section>
@@ -176,18 +188,18 @@ export default function UseCasesPage() {
           {/* Bottom CTA */}
           <div className="mt-20 rounded-xl border border-[#2A2A2A] bg-[#161616] p-10 text-center">
             <h2 className="font-display text-2xl font-bold text-white">
-              Ready to convert?
+              Ready to build your hub?
             </h2>
             <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[#888480]">
-              Drop any document into MDSpin and get clean, AI-ready Markdown in
-              seconds. No signup required.
+              Convert your first document free and watch it become part of a connected,
+              searchable knowledge hub.
             </p>
             <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
               <Link
-                href="/#converter"
+                href="/auth/sign-up?next=/app"
                 className="rounded-full bg-[#FF4800] px-6 py-2 text-sm font-semibold text-white transition-all hover:bg-[#e04200]"
               >
-                Try MDSpin free
+                Build your hub free
               </Link>
               <Link
                 href="/guides"

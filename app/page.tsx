@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ArrowRight, Chrome } from "lucide-react"
+import { ArrowRight, FileText, Library, Share2, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { SiteNav } from "@/components/site-nav"
 import { Converter } from "@/components/converter/converter"
@@ -55,7 +55,7 @@ export default function MDSpinPage() {
           </div>
 
           <h1 className="font-display text-5xl font-extrabold leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl">
-            The Markdown Layer
+            The knowledge hub
             <br />
             for your{" "}
             <span className="relative inline-block text-[#FF4800]">
@@ -82,22 +82,19 @@ export default function MDSpinPage() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-[#888480] sm:text-lg">
-            Convert PDFs and Docs into clean, structured context directly inside ChatGPT, Claude, and Gemini.
-            Get smarter responses with{" "}
-            <span className="text-[#F0EDE8]">40% fewer tokens.</span>
+            Convert any document into clean Markdown — then organize, connect, and
+            synthesize it into{" "}
+            <span className="text-[#F0EDE8]">one searchable hub your AI actually understands.</span>
           </p>
 
           {/* CTA Buttons */}
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <a
-              href="https://chromewebstore.google.com/detail/mdspin-%E2%80%94-file-to-markdown/jmiinicnfjhndcmmiominecphddngjae?hl=en-GB&authuser=0"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/auth/sign-up?next=/app"
               className="flex items-center gap-2 rounded-full bg-[#FF4800] px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#e04200] hover:shadow-lg hover:shadow-[#FF4800]/20"
             >
-              <Chrome className="h-4 w-4" />
-              Try the Chrome extension
-            </a>
+              Build your hub free <ArrowRight className="h-4 w-4" />
+            </Link>
             <a
               href="#converter"
               className="flex items-center gap-2 rounded-full border border-[#2A2A2A] px-6 py-2.5 text-sm font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
@@ -153,17 +150,144 @@ export default function MDSpinPage() {
       {/* ── The Problem ── */}
       <section className="border-t border-[#1E1E1E] py-24">
         <div className="mx-auto max-w-5xl px-6">
-          <div className="mb-12 text-center">
+          <div className="mx-auto max-w-2xl text-center">
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#FF4800]">
               The Problem
             </p>
             <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">
-              What your AI actually sees
+              You convert. Then you forget.
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#888480]">
+              Most converters hand you a Markdown file and you&apos;re done — until you need it
+              again and it&apos;s buried in your downloads. The value was never the conversion.
+              It&apos;s everything you do with the knowledge afterward.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── The Hub Loop ── */}
+      <section id="hub-loop" className="border-t border-[#1E1E1E] py-24">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="mb-12 text-center">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#FF4800]">
+              How it works
+            </p>
+            <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">
+              Convert once. Use it forever.
+            </h2>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { icon: FileText, step: "01", title: "Convert", body: "Drop any PDF, doc, or deck. Get clean Markdown." },
+              { icon: Library, step: "02", title: "Organize", body: "Save to your Vault, sorted into projects and tags." },
+              { icon: Share2, step: "03", title: "Connect", body: "MDSpin auto-links related documents into a knowledge map." },
+              { icon: Sparkles, step: "04", title: "Synthesize", body: "Generate AI briefs across clusters of related docs." },
+            ].map((s) => (
+              <div
+                key={s.title}
+                className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-6 transition-colors hover:border-[#3A3A3A]"
+              >
+                <div className="mb-5 flex items-center justify-between">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FF4800]/10">
+                    <s.icon className="h-5 w-5 text-[#FF4800]" />
+                  </div>
+                  <span className="font-mono text-xs text-[#4A4A46]">{s.step}</span>
+                </div>
+                <h3 className="font-display text-base font-semibold text-[#F0EDE8]">{s.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[#888480]">{s.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Feature showcase ── */}
+      <section id="features" className="border-t border-[#1E1E1E] py-24">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="mb-12 text-center">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#FF4800]">
+              Your knowledge hub
+            </p>
+            <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">
+              More than a converter.
+            </h2>
+          </div>
+
+          <div className="grid gap-5 lg:grid-cols-3">
+            {/* Knowledge Vault */}
+            <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-8 transition-colors hover:border-[#3A3A3A]">
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#FF4800]/10">
+                <Library className="h-6 w-6 text-[#FF4800]" />
+              </div>
+              <h3 className="font-display text-lg font-semibold text-[#F0EDE8]">Knowledge Vault</h3>
+              <p className="mt-3 text-sm leading-relaxed text-[#888480]">
+                Every conversion, organized. Projects, tags, and full-text search across all
+                your Markdown.
+              </p>
+            </div>
+
+            {/* Knowledge Map — static SVG preview */}
+            <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-8 transition-colors hover:border-[#3A3A3A]">
+              <div className="mb-5 overflow-hidden rounded-lg border border-[#2A2A2A] bg-[#0C0C0C]">
+                <svg viewBox="0 0 280 140" className="h-32 w-full" role="img" aria-label="Knowledge map preview">
+                  {[
+                    ["140", "70", "100", "40"], ["140", "70", "200", "45"],
+                    ["140", "70", "90", "105"], ["140", "70", "205", "100"],
+                    ["100", "40", "55", "70"], ["200", "45", "240", "85"],
+                    ["90", "105", "150", "120"], ["205", "100", "150", "120"],
+                  ].map(([x1, y1, x2, y2], i) => (
+                    <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#2A2A2A" strokeWidth="1" />
+                  ))}
+                  {[
+                    ["140", "70", "7", "#FF4800"],
+                    ["100", "40", "4.5", "#888480"], ["200", "45", "4.5", "#888480"],
+                    ["90", "105", "4.5", "#888480"], ["205", "100", "4.5", "#888480"],
+                    ["55", "70", "3.5", "#4A4A46"], ["240", "85", "3.5", "#4A4A46"],
+                    ["150", "120", "3.5", "#4A4A46"],
+                  ].map(([cx, cy, r, fill], i) => (
+                    <circle key={i} cx={cx} cy={cy} r={r} fill={fill} />
+                  ))}
+                </svg>
+              </div>
+              <h3 className="font-display text-lg font-semibold text-[#F0EDE8]">Knowledge Map</h3>
+              <p className="mt-3 text-sm leading-relaxed text-[#888480]">
+                A force-directed graph that auto-clusters your documents and surfaces
+                connections you&apos;d miss.
+              </p>
+            </div>
+
+            {/* Cluster Briefs */}
+            <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-8 transition-colors hover:border-[#3A3A3A]">
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#FF4800]/10">
+                <Sparkles className="h-6 w-6 text-[#FF4800]" />
+              </div>
+              <h3 className="font-display text-lg font-semibold text-[#F0EDE8]">Cluster Briefs</h3>
+              <p className="mt-3 text-sm leading-relaxed text-[#888480]">
+                One click synthesizes a brief across related documents — your AI reading your
+                library for you.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Why clean Markdown ── */}
+      <section className="border-t border-[#1E1E1E] py-24">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="mb-12 text-center">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#FF4800]">
+              Why It&apos;s Clean
+            </p>
+            <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">
+              Your AI sees signal, not noise
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#888480]">
               When you feed a PDF to an LLM, it doesn&apos;t see a document. It sees a stream
               of tokens polluted with layout artifacts, font metadata, and garbled characters.
-              Markdown eliminates the noise.
+              Markdown eliminates the noise — which is exactly why a hub built on it makes your
+              AI smarter.
             </p>
           </div>
 
@@ -259,6 +383,14 @@ expansion in EMEA.
 
       {/* ── Converter ── */}
       <section className="border-t border-[#1E1E1E] py-24">
+        <div className="mx-auto mb-12 max-w-5xl px-6 text-center">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#FF4800]">
+            Start here
+          </p>
+          <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">
+            Try it now — then keep what you convert
+          </h2>
+        </div>
         <Converter context="teaser" onAuthRequired={() => setShowWall(true)} />
       </section>
 
@@ -282,14 +414,14 @@ expansion in EMEA.
         <div className="mx-auto max-w-5xl px-6">
           <div className="mb-12 text-center">
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#FF4800]">
-              In Your Workflow
+              Feed your hub
             </p>
             <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">
-              MDSpin everywhere you work
+              Capture knowledge from anywhere
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#888480]">
-              The web converter is just the start. MDSpin lives in the tools where your AI
-              workflows already run.
+              MDSpin captures and cleans documents wherever they come from, then drops them
+              straight into your hub.
             </p>
           </div>
 
@@ -308,9 +440,8 @@ expansion in EMEA.
                 </span>
               </div>
               <p className="text-sm leading-relaxed text-[#888480]">
-                Plug MDSpin into any automation. Trigger on new file uploads, pipe clean
-                markdown directly to Claude, GPT, or any AI node in your workflow.
-                Zero-friction document intelligence at scale.
+                Auto-ingest into your hub. Trigger on new file uploads and pipe clean markdown
+                straight into your Vault — your knowledge base fills itself while you work.
               </p>
               <div className="mt-5">
                 <a
@@ -338,9 +469,8 @@ expansion in EMEA.
                 </span>
               </div>
               <p className="text-sm leading-relaxed text-[#888480]">
-                Convert docs without leaving ChatGPT, Claude, or Gemini. When you attach a
-                file, MDSpin intercepts it and swaps in clean markdown — your AI gets signal,
-                not noise.
+                Capture docs as you work. Convert without leaving ChatGPT, Claude, or Gemini —
+                clean markdown in the moment, saved to your hub for later.
               </p>
               <div className="mt-5">
                 <a
@@ -439,6 +569,9 @@ expansion in EMEA.
             <span className="text-xs text-[#4A4A46]">MDSpin</span>
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/overview" className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]">
+              Overview
+            </Link>
             <Link href="/guides" className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]">
               Guides
             </Link>

@@ -16,6 +16,7 @@ import {
   Newspaper,
   ChevronDown,
   LayoutDashboard,
+  Network,
 } from "lucide-react"
 import {
   NavigationMenu,
@@ -32,7 +33,8 @@ import {
 } from "@/components/ui/sheet"
 
 const productLinks = [
-  { href: "/overview", label: "Overview", icon: Eye, description: "What MDSpin does and why" },
+  { href: "/#features", label: "Knowledge Hub", icon: Network, description: "Vault, map, and AI briefs" },
+  { href: "/overview", label: "Overview", icon: Eye, description: "The hub, end to end" },
   { href: "/how-it-works", label: "How it works", icon: Cog, description: "Web app, Chrome extension, batch" },
   { href: "/formats", label: "Formats", icon: FileText, description: "PDF, DOCX, PPTX and more" },
   { href: "/developer-api", label: "API", icon: Code, description: "Programmatic document conversion" },
