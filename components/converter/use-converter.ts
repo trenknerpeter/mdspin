@@ -214,8 +214,8 @@ export function useConverter(opts: {
       }
 
       // Map results back to FileItems
-      // Backend returns { success: boolean, markdown_text?: string, error?: string, ... } per entry
-      const results: Array<{ success: boolean; markdown_text?: string; error?: string }> = data.results ?? []
+      // Backend returns { success: boolean, markdown_text?: string, error?: string, message?: string, ... } per entry
+      const results: Array<{ success: boolean; markdown_text?: string; error?: string; message?: string }> = data.results ?? []
       // Results are positional: the backend preserves submission order
       setFiles(prev => prev.map((fi, idx) => {
         const result = results[idx]
@@ -232,7 +232,8 @@ export function useConverter(opts: {
         return {
           ...fi,
           status: 'failed' as const,
-          error: result.error ?? 'Conversion failed',
+          // Prefer the human-readable message; fall back to the bare error code.
+          error: result.message ?? result.error ?? 'Conversion failed',
         }
       }))
 

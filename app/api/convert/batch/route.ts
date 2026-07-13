@@ -40,6 +40,7 @@ interface BatchResult {
   success: boolean;
   markdown_text?: string;
   error?: string;
+  message?: string;
   filename?: string;
   index?: number;
 }
