@@ -4,8 +4,8 @@
 // each to base64, and forwards them to the Vercel backend for batch Markdown
 // conversion. The BACKEND_API_KEY never leaves the server.
 //
-// Supported formats: PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, PAGES, HTML
-// Limits: 1–20 files per request, each file must be < 20 MB
+// Supported formats: PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, PAGES, HTML, PNG, JPG/JPEG
+// Limits: 1–20 files per request (max 5 images), each file must be < 20 MB
 //
 // Requires env vars in .env.local (and in Vercel project settings):
 //   BACKEND_URL=https://api.mdspin.app
@@ -16,7 +16,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, incrementUsage } from '@/lib/rate-limit';
 import { requiresSignIn } from '@/lib/gating';
-import { isSupportedExt } from '@/lib/formats';
+import { isSupportedExt, isImageExt, MAX_IMAGES_PER_BATCH } from '@/lib/formats';
 
 export const runtime     = 'nodejs'; // Buffer is required — cannot run on Edge
 export const maxDuration = 120;      // seconds — batch conversions can be slow
@@ -132,6 +132,16 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
+  const imageCount = files.filter((f) => isImageExt(f.name.split('.').pop() ?? '')).length;
+  if (imageCount > MAX_IMAGES_PER_BATCH) {
+    return NextResponse.json(
+      {
+        error:   'TOO_MANY_IMAGES',
+        message: `Too many images. Maximum is ${MAX_IMAGES_PER_BATCH} images (.png, .jpg, .jpeg) per request.`,
+      },
+      { status: 400 }
+    );
+  }
 
   // ── Capability gate: multi-file (batch) requires sign-in ───
   if (requiresSignIn({ authenticated: !!user, mode: 'file', fileCount: files.length })) {
@@ -153,7 +163,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error:           'UNSUPPORTED_FILE_TYPE',
-        message:         `Some files are not supported. Please upload PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, PAGES, or HTML files.`,
+        message:         `Some files are not supported. Please upload PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, PAGES, HTML, PNG, or JPG files.`,
         unsupportedFiles,
       },
       { status: 415 }

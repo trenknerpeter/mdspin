@@ -136,7 +136,7 @@ export default function HowItWorksPage() {
             <ul className="space-y-3">
               {[
                 "No signup required — convert immediately",
-                "Supports 7+ formats: PDF, DOCX, PPTX, HTML, CSV, TXT, RTF",
+                "Supports 10+ formats: PDF, DOCX, PPTX, HTML, CSV, TXT, RTF, PNG, JPG",
                 "Batch up to 20 files at once",
                 "Copy to clipboard or download as .md",
               ].map((item) => (

@@ -6,14 +6,14 @@ import { SiteFooter } from "@/components/site-footer"
 import { GrainOverlay } from "@/components/grain-overlay"
 
 export const metadata: Metadata = {
-  title: "Supported Formats — PDF, DOCX, PPTX, HTML to Markdown",
+  title: "Supported Formats — PDF, DOCX, PPTX, HTML, Images to Markdown",
   description:
-    "MDSpin converts PDF, DOCX, DOC, PPTX, HTML, RTF, and TXT to clean, AI-ready Markdown. Paste a URL to convert any live web page. See how each format is handled.",
+    "MDSpin converts PDF, DOCX, DOC, PPTX, HTML, RTF, TXT, and images (PNG, JPG) to clean, AI-ready Markdown. Paste a URL to convert any live web page. See how each format is handled.",
   alternates: { canonical: `${SITE_URL}/formats` },
   openGraph: {
-    title: "Supported Formats — PDF, DOCX, PPTX, HTML to Markdown | MDSpin",
+    title: "Supported Formats — PDF, DOCX, PPTX, HTML, Images to Markdown | MDSpin",
     description:
-      "MDSpin converts PDF, DOCX, DOC, PPTX, HTML, RTF, and TXT to clean, AI-ready Markdown. Paste a URL to convert any live web page.",
+      "MDSpin converts PDF, DOCX, DOC, PPTX, HTML, RTF, TXT, and images (PNG, JPG) to clean, AI-ready Markdown. Paste a URL to convert any live web page.",
     url: `${SITE_URL}/formats`,
   },
 }
@@ -81,6 +81,21 @@ const formats = [
     ],
   },
   {
+    name: "Image to Markdown (PNG, JPG)",
+    slug: "images",
+    ext: ".png",
+    description:
+      "Screenshots, photographed receipts and invoices, and scanned pages sent as images carry text that traditional converters simply cannot reach — there is no text layer to extract. Yet these are some of the most common documents in real workflows: an email attachment is just as often a photo of a document as the document itself.",
+    details:
+      "MDSpin transcribes PNG and JPEG images using AI vision. Visible text is transcribed faithfully into Markdown with structure preserved — headings stay headings, tabular data becomes Markdown tables, lists keep their hierarchy. Because the content is AI-transcribed rather than extracted, every result carries a note reminding you to verify accuracy for critical use.",
+    useCases: [
+      "Converting photographed receipts and invoices for expense workflows",
+      "Transcribing screenshots of documents, tickets, or dashboards",
+      "Processing scanned pages sent as JPEG email attachments",
+      "Turning whiteboard photos into structured notes",
+    ],
+  },
+  {
     name: "CSV to Markdown",
     slug: "csv",
     ext: ".csv",
@@ -134,7 +149,7 @@ export default function FormatsPage() {
     "@type": "WebPage",
     name: "Supported Formats — MDSpin Document to Markdown Converter",
     description:
-      "MDSpin converts PDF, DOCX, PPTX, HTML, TXT, and RTF to clean, AI-ready Markdown.",
+      "MDSpin converts PDF, DOCX, PPTX, HTML, TXT, RTF, and images (PNG, JPG) to clean, AI-ready Markdown.",
     url: `${SITE_URL}/formats`,
     publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
   }

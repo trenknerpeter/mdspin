@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 const freeFeatures = [
   "3 conversions per day (guest)",
   "20 conversions per day (signed in)",
-  "PDF, DOCX, PPTX support",
+  "PDF, DOCX, PPTX, image (PNG/JPG) support",
   "AI-ready Markdown output",
   "Chrome browser extension",
 ]

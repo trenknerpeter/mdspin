@@ -4,7 +4,7 @@
 // base64, and forwards it to the Vercel backend for Markdown conversion.
 // The BACKEND_API_KEY never leaves the server.
 //
-// Supported formats: PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, PAGES, HTML
+// Supported formats: PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, PAGES, HTML, PNG, JPG/JPEG
 //
 // Requires env vars in .env.local (and in Vercel project settings):
 //   BACKEND_URL=https://api.mdspin.app
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error:   'UNSUPPORTED_FILE_TYPE',
-        message: `".${ext}" files are not supported. Please upload a PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, PAGES, or HTML file.`,
+        message: `".${ext}" files are not supported. Please upload a PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, PAGES, HTML, PNG, or JPG file.`,
       },
       { status: 415 }
     );

@@ -364,6 +364,8 @@ Content-Type: application/json
             { format: "Google Slides", mime: "via URL or ID" },
             { format: "TXT", mime: "text/plain" },
             { format: "RTF", mime: "application/rtf" },
+            { format: "PNG", mime: "image/png" },
+            { format: "JPG", mime: "image/jpeg" },
           ].map((f) => (
             <div key={f.format} className="rounded-lg border border-[#2A2A2A] bg-[#161616] p-3 text-center">
               <p className="font-mono text-sm font-medium text-[#F0EDE8]">{f.format}</p>
