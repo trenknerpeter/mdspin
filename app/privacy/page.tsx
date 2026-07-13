@@ -150,7 +150,8 @@ export default function PrivacyPolicyPage() {
                       </td>
                       <td className="px-4 py-3">
                         The contents, filename, and file type of documents you
-                        choose to convert (PDF, DOCX, PPTX, TXT, HTML, RTF, CSV)
+                        choose to convert (PDF, DOCX, PPTX, TXT, HTML, RTF, CSV,
+                        PNG, JPG)
                       </td>
                       <td className="px-4 py-3">
                         You, when you trigger a conversion
@@ -311,7 +312,7 @@ export default function PrivacyPolicyPage() {
                         reset every 24 hours.
                       </td>
                     </tr>
-                    <tr className="align-top">
+                    <tr className="border-b border-[#2A2A2A] align-top">
                       <td className="px-4 py-3">
                         Google (OAuth identity provider)
                       </td>
@@ -321,6 +322,21 @@ export default function PrivacyPolicyPage() {
                       </td>
                       <td className="px-4 py-3">
                         Governed by Google&apos;s privacy policy
+                      </td>
+                    </tr>
+                    <tr className="align-top">
+                      <td className="px-4 py-3">
+                        Google Gemini API (image conversions only)
+                      </td>
+                      <td className="px-4 py-3">
+                        Image file contents (PNG/JPG uploads)
+                      </td>
+                      <td className="px-4 py-3">
+                        AI transcription of image files into Markdown
+                      </td>
+                      <td className="px-4 py-3">
+                        Processed to generate the transcription; handling
+                        governed by Google&apos;s Gemini API terms
                       </td>
                     </tr>
                   </tbody>

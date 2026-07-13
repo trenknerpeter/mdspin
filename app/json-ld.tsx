@@ -18,6 +18,7 @@ export function JsonLd() {
       'PDF to Markdown conversion',
       'DOCX to Markdown conversion',
       'PPTX to Markdown conversion',
+      'Image (PNG, JPG) to Markdown transcription',
       'AI token cost reduction',
       'RAG accuracy improvement',
     ],
@@ -64,7 +65,7 @@ export function JsonLd() {
         name: 'What file formats does MDSpin support?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'MDSpin supports 8 document formats: PDF, DOCX, DOC, PPTX, Google Slides, Apple Pages, RTF, and TXT. Each format is converted to clean, structured Markdown with headings, tables, and lists preserved.',
+          text: 'MDSpin supports 11 formats: PDF, DOCX, DOC, PPTX, Google Slides, Apple Pages, RTF, TXT, HTML, and images (PNG, JPG). Documents are converted to clean, structured Markdown with headings, tables, and lists preserved; images are transcribed with AI vision.',
         },
       },
       {

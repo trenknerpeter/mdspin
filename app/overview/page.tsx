@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   },
 }
 
-const supportedFormats = ["PDF", "DOCX", "PPTX", "HTML", "CSV", "TXT", "RTF"]
+const supportedFormats = ["PDF", "DOCX", "PPTX", "HTML", "CSV", "TXT", "RTF", "PNG", "JPG"]
 
 const stats = [
   { value: "~40%", label: "Token reduction" },

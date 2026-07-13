@@ -4,7 +4,7 @@ import { useState, useRef, useMemo, useCallback, useEffect } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { createClient } from "@/lib/supabase/client"
 import posthog from "posthog-js"
-import { isSupportedExt } from "@/lib/formats"
+import { isSupportedExt, isImageExt, MAX_IMAGES_PER_BATCH } from "@/lib/formats"
 import type { FileItem, ConverterContext, ConversionOptions } from "./types"
 
 const STASH_KEY = "mdspin:pendingVaultAdd"
@@ -74,7 +74,16 @@ export function useConverter(opts: {
         status: 'queued' as const,
         fileType: f.name.split('.').pop()?.toLowerCase()
       }))]
-      return combined.slice(0, 20)
+      // Images are capped per batch (backend vision-API limit), same silent-cap
+      // behavior as the overall 20-file limit below.
+      let imageCount = 0
+      return combined
+        .filter(fi => {
+          if (!isImageExt(fi.fileType ?? '')) return true
+          imageCount += 1
+          return imageCount <= MAX_IMAGES_PER_BATCH
+        })
+        .slice(0, 20)
     })
   }, [])
 
