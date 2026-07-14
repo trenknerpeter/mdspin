@@ -48,6 +48,8 @@ const formats = [
       "Feeding proposals into document comparison workflows",
       "Processing HR documents for AI-assisted review",
     ],
+    toolHref: "/convert/word-to-markdown",
+    toolLabel: "Open the Word to Markdown converter",
   },
   {
     name: "PPTX to Markdown",
