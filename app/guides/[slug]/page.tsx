@@ -58,7 +58,11 @@ export default async function GuidePage({ params }: Props) {
   const allGuides = getAllGuides().filter((g) => g.slug !== slug)
 
   // Use HowTo for step-by-step guides, Article for informational ones
-  const isHowTo = ["convert-pdf-for-chatgpt", "reduce-ai-token-costs"].includes(slug)
+  const isHowTo = [
+    "convert-pdf-for-chatgpt",
+    "reduce-ai-token-costs",
+    "extract-text-from-screenshot-for-chatgpt",
+  ].includes(slug)
 
   const jsonLd = {
     "@context": "https://schema.org",

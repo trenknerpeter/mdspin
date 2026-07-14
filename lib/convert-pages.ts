@@ -137,6 +137,7 @@ export const CONVERT_PAGES: ConvertPage[] = [
       },
     ],
     related: [
+      { href: '/guides/extract-text-from-screenshot-for-chatgpt', label: 'How to extract text from a screenshot for ChatGPT & Claude' },
       { href: '/guides/convert-pdf-for-chatgpt', label: 'How to convert PDFs for ChatGPT, Claude & Gemini' },
       { href: '/guides/document-preprocessing-for-ai', label: 'Document preprocessing for AI: the complete guide' },
       { href: '/formats', label: 'All supported formats' },
