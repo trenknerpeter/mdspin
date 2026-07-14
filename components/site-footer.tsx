@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { CONVERT_PAGES } from "@/lib/convert-pages"
 
 const productLinks = [
   { href: "/overview", label: "Overview" },
@@ -12,6 +13,10 @@ const resourceLinks = [
   { href: "/guides", label: "Guides" },
   { href: "/blog", label: "Blog" },
   { href: "/use-cases", label: "Use Cases" },
+  ...CONVERT_PAGES.map((page) => ({
+    href: `/convert/${page.slug}`,
+    label: page.navLabel,
+  })),
 ]
 
 export function SiteFooter() {

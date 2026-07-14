@@ -17,7 +17,9 @@ import {
   ChevronDown,
   LayoutDashboard,
   Network,
+  ArrowRightLeft,
 } from "lucide-react"
+import { CONVERT_PAGES } from "@/lib/convert-pages"
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -45,6 +47,15 @@ const resourceLinks = [
   { href: "/guides", label: "Guides", icon: BookOpen, description: "Tutorials and walkthroughs" },
   { href: "/blog", label: "Blog", icon: Newspaper, description: "Updates and insights" },
 ]
+
+// Free-tool landing pages, derived from the registry so new /convert pages
+// show up in the nav automatically.
+const toolLinks = CONVERT_PAGES.map((page) => ({
+  href: `/convert/${page.slug}`,
+  label: page.navLabel,
+  icon: ArrowRightLeft,
+  description: page.navDescription,
+}))
 
 export function SiteNav() {
   const { user, isLoading: authLoading } = useAuth()
@@ -120,6 +131,25 @@ export function SiteNav() {
                 <NavigationMenuContent className="!bg-[#161616] rounded-lg border border-[#2A2A2A] shadow-xl">
                   <ul className="grid w-[260px] gap-0.5 p-2">
                     {resourceLinks.map((link) => (
+                      <li key={link.href}>
+                        <Link
+                          href={link.href}
+                          className="flex items-start gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-[#1E1E1E]"
+                        >
+                          <link.icon className="mt-0.5 h-4 w-4 shrink-0 text-[#4A4A46]" />
+                          <div>
+                            <div className="text-sm font-medium text-[#F0EDE8]">{link.label}</div>
+                            <div className="text-xs text-[#888480]">{link.description}</div>
+                          </div>
+                        </Link>
+                      </li>
+                    ))}
+                    <li className="mt-1 border-t border-[#2A2A2A] pt-2">
+                      <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[#4A4A46]">
+                        Free tools
+                      </div>
+                    </li>
+                    {toolLinks.map((link) => (
                       <li key={link.href}>
                         <Link
                           href={link.href}
@@ -230,7 +260,7 @@ export function SiteNav() {
                 </button>
                 {mobileResourceOpen && (
                   <div className="ml-2 flex flex-col gap-1 border-l border-[#2A2A2A] pl-3">
-                    {resourceLinks.map((link) => (
+                    {[...resourceLinks, ...toolLinks].map((link) => (
                       <Link
                         key={link.href}
                         href={link.href}

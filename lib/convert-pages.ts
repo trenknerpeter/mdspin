@@ -17,6 +17,9 @@ export type ConvertPage = {
   slug: string
   metaTitle: string
   metaDescription: string
+  // Short copy for site-wide navigation (Resources → Free tools).
+  navLabel: string
+  navDescription: string
   eyebrow: string
   h1: string
   // Direct-answer intro, rendered right under the H1. Keep it under ~300 words
@@ -38,6 +41,8 @@ export const CONVERT_PAGES: ConvertPage[] = [
     metaTitle: 'Image to Markdown Converter — PNG & JPG to Markdown (Free AI OCR)',
     metaDescription:
       'Convert PNG and JPG images to clean Markdown online. AI vision transcribes screenshots, scanned pages, receipts, and whiteboard photos — headings, tables, and lists preserved. Free, no signup.',
+    navLabel: 'Image to Markdown',
+    navDescription: 'Turn PNG & JPG into clean Markdown',
     eyebrow: 'Free online tool',
     h1: 'Image to Markdown Converter',
     intro: [
