@@ -94,6 +94,8 @@ const formats = [
       "Processing scanned pages sent as JPEG email attachments",
       "Turning whiteboard photos into structured notes",
     ],
+    toolHref: "/convert/image-to-markdown",
+    toolLabel: "Open the image to Markdown converter",
   },
   {
     name: "CSV to Markdown",
@@ -244,10 +246,10 @@ export default function FormatsPage() {
                     </span>
                   ) : (
                     <Link
-                      href="/#converter"
+                      href={format.toolHref ?? "/#converter"}
                       className="inline-flex items-center gap-1.5 rounded-full bg-[#FF4800]/10 px-4 py-1.5 text-xs font-semibold text-[#FF4800] transition-colors hover:bg-[#FF4800]/20"
                     >
-                      Convert {format.ext} now
+                      {format.toolLabel ?? `Convert ${format.ext} now`}
                     </Link>
                   )}
                 </div>

@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next'
 import { getAllPosts } from '@/lib/blog'
 import { getAllGuides } from '@/lib/guides'
+import { CONVERT_PAGES } from '@/lib/convert-pages'
 import { SITE_URL } from '@/lib/seo'
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -22,6 +23,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }))
 
+  const convertEntries: MetadataRoute.Sitemap = CONVERT_PAGES.map((page) => ({
+    url: `${baseUrl}/convert/${page.slug}`,
+    lastModified: new Date(page.dateModified),
+    changeFrequency: 'monthly',
+    priority: 0.9,
+  }))
+
   return [
     {
       url: baseUrl,
@@ -29,6 +37,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'weekly',
       priority: 1,
     },
+    ...convertEntries,
     {
       url: `${baseUrl}/auth/sign-up`,
       lastModified: new Date('2026-03-18'),

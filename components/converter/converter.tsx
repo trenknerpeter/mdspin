@@ -10,10 +10,13 @@ import { AddToVaultPanel } from "./add-to-vault-panel"
 import type { ConverterContext, ConversionOptions } from "./types"
 import { estimateOriginalTokens, estimateMarkdownTokens, computeSavings } from "@/lib/roi"
 
-export function Converter({ context, options, onAuthRequired }: {
+export function Converter({ context, options, onAuthRequired, eyebrow, heading, subheading }: {
   context: ConverterContext
   options?: ConversionOptions
   onAuthRequired?: () => void
+  eyebrow?: string
+  heading?: string
+  subheading?: string
 }) {
   const c = useConverter({ context, options, onAuthRequired })
   const [monthlyCalls, setMonthlyCalls] = useState(20) // ROI input
@@ -42,13 +45,13 @@ export function Converter({ context, options, onAuthRequired }: {
       <div className="mx-auto max-w-2xl px-6">
         <div className="mb-10 text-center">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#FF4800]">
-            The Converter
+            {eyebrow ?? "The Converter"}
           </p>
           <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">
-            See it for yourself
+            {heading ?? "See it for yourself"}
           </h2>
           <p className="mt-3 text-sm text-[#888480]">
-            Drop any document and get clean, AI-ready markdown in seconds.
+            {subheading ?? "Drop any document and get clean, AI-ready markdown in seconds."}
           </p>
         </div>
 
