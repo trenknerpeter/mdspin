@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-shell/app-sidebar"
+import { Toaster } from "@/components/ui/sonner"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -19,6 +20,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </header>
         <main className="p-6">{children}</main>
       </SidebarInset>
+      {/* No next-themes ThemeProvider is mounted, and the app shell is hard-dark,
+          so pin the toast theme rather than letting it resolve to "system". */}
+      <Toaster theme="dark" position="bottom-right" />
     </SidebarProvider>
   )
 }
