@@ -21,6 +21,40 @@ export interface BriefRequest {
   docsText: string
 }
 
+/**
+ * Make's gateway answers `200` with the body `Accepted` whenever the scenario does not
+ * reach its Webhook Response module — which is exactly what happens when the
+ * shared-secret filter rejects a request, since a filter cannot return 401.
+ *
+ * Without this guard the tolerant plain-text parse in /api/brief would treat "Accepted"
+ * as a successful synthesis and UPDATE conversions.brief with it, destroying a real
+ * brief. A genuine brief is five markdown sections, so a very short body is never valid.
+ */
+const MAKE_ACK = /^accepted\.?$/i
+const MIN_BRIEF_CHARS = 40
+
+/**
+ * Pull the brief out of whatever Make returned, or null if this isn't a real brief.
+ * Accepts JSON `{brief}`, a bare JSON string, or raw markdown text.
+ */
+export function parseBriefResponse(rawText: string): string | null {
+  let brief = ""
+  try {
+    const json = JSON.parse(rawText)
+    if (typeof json === "string") brief = json
+    else if (json && typeof json.brief === "string") brief = json.brief
+    else brief = rawText
+  } catch {
+    brief = rawText
+  }
+  brief = brief.trim()
+
+  if (!brief) return null
+  if (MAKE_ACK.test(brief)) return null
+  if (brief.length < MIN_BRIEF_CHARS) return null
+  return brief
+}
+
 // Build the webhook payload: source first, then related docs. Each doc's markdown
 // is capped at `capChars`. `topic` is the source's title (falls back to filename).
 export function assembleClusterPayload(

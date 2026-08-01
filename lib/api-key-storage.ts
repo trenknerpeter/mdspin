@@ -1,5 +1,11 @@
 const HINTS_KEY = "apiKeyHints"
-const FULL_KEY = "apiKeysFull"
+
+// Legacy store that held FULL plaintext `mdspin_` keys so the table could offer
+// click-to-copy after the one-time reveal. That contradicted the reveal modal
+// ("it will never be shown again") and left long-lived credentials in localStorage,
+// where any XSS on the origin could read them. Removed — we now keep only the
+// display hint. `purgeLegacyFullKeys()` clears whatever is already stored.
+const LEGACY_FULL_KEY = "apiKeysFull"
 
 export function formatKeyHint(key: string): string {
   if (key.length <= 12) return key
@@ -33,26 +39,18 @@ export function getAllKeyHints(): Record<string, string> {
   return readMap(HINTS_KEY)
 }
 
-export function saveFullKey(id: string, fullKey: string) {
-  const map = readMap(FULL_KEY)
-  map[id] = fullKey
-  writeMap(FULL_KEY, map)
-}
-
-export function getFullKey(id: string): string | null {
-  return readMap(FULL_KEY)[id] ?? null
-}
-
-export function getAllFullKeys(): Record<string, string> {
-  return readMap(FULL_KEY)
+// One-shot cleanup for keys persisted by the previous version. Safe to call on
+// every mount: removeItem on an absent key is a no-op.
+export function purgeLegacyFullKeys() {
+  try {
+    localStorage.removeItem(LEGACY_FULL_KEY)
+  } catch {
+    // private browsing
+  }
 }
 
 export function removeKeyData(id: string) {
   const hints = readMap(HINTS_KEY)
   delete hints[id]
   writeMap(HINTS_KEY, hints)
-
-  const full = readMap(FULL_KEY)
-  delete full[id]
-  writeMap(FULL_KEY, full)
 }

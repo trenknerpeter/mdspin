@@ -4,7 +4,12 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { assembleClusterPayload, CLUSTER_DOC_CAP, type ClusterDoc } from "@/lib/brief"
+import {
+  assembleClusterPayload,
+  parseBriefResponse,
+  CLUSTER_DOC_CAP,
+  type ClusterDoc,
+} from "@/lib/brief"
 
 export const runtime = "nodejs"
 export const maxDuration = 60 // LLM synthesis latency
@@ -108,18 +113,12 @@ export async function POST(req: NextRequest) {
   }
   // Tolerant parse: Make may reply with JSON {brief} or with the raw brief markdown
   // as plain text (avoids fragile JSON-escaping of LLM output through Make templating).
+  // Returns null for Make's "Accepted" acknowledgement, which is what the scenario's
+  // shared-secret filter produces on rejection — see parseBriefResponse.
   const rawText = await makeRes.text()
-  let brief = ""
-  try {
-    const json = JSON.parse(rawText)
-    if (typeof json === "string") brief = json
-    else if (json && typeof json.brief === "string") brief = json.brief
-    else brief = rawText
-  } catch {
-    brief = rawText
-  }
-  brief = brief.trim()
+  const brief = parseBriefResponse(rawText)
   if (!brief) {
+    console.error("[/api/brief] Make returned no usable brief:", rawText.slice(0, 120))
     return NextResponse.json(
       { error: "MAKE_EMPTY", message: "Synthesis returned nothing. Try again." },
       { status: 502 }

@@ -7,11 +7,10 @@ import { useAuth } from "@/components/auth-provider"
 import { createClient } from "@/lib/supabase/client"
 import {
   saveKeyHint,
-  saveFullKey,
   getAllKeyHints,
-  getAllFullKeys,
   removeKeyData,
   formatKeyHint,
+  purgeLegacyFullKeys,
 } from "@/lib/api-key-storage"
 
 type ApiKey = {
@@ -50,8 +49,6 @@ export default function ApiKeysPage() {
   const [revoking, setRevoking] = useState<string | null>(null)
   const [confirmRevoke, setConfirmRevoke] = useState<string | null>(null)
   const [keyHints, setKeyHints] = useState<Record<string, string>>({})
-  const [fullKeys, setFullKeys] = useState<Record<string, string>>({})
-  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   const getToken = async () => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -85,7 +82,8 @@ export default function ApiKeysPage() {
 
   useEffect(() => {
     setKeyHints(getAllKeyHints())
-    setFullKeys(getAllFullKeys())
+    // Clear plaintext keys left behind by the previous version of this page.
+    purgeLegacyFullKeys()
   }, [])
 
   useEffect(() => {
@@ -114,9 +112,7 @@ export default function ApiKeysPage() {
         await fetchKeys()
         if (data.id && data.key) {
           saveKeyHint(data.id, data.key)
-          saveFullKey(data.id, data.key)
           setKeyHints((prev) => ({ ...prev, [data.id]: formatKeyHint(data.key) }))
-          setFullKeys((prev) => ({ ...prev, [data.id]: data.key }))
         }
       } else {
         setGenerateError(data?.message ?? "Failed to generate key.")
@@ -133,12 +129,6 @@ export default function ApiKeysPage() {
     if (!newKeyModal) return
     await navigator.clipboard.writeText(newKeyModal.key)
     setNewKeyModal((prev) => prev ? { ...prev, copied: true } : null)
-  }
-
-  const handleCopyInline = async (id: string, key: string) => {
-    await navigator.clipboard.writeText(key)
-    setCopiedId(id)
-    setTimeout(() => setCopiedId(null), 2000)
   }
 
   const handleRevokeConfirm = (id: string) => {
@@ -164,7 +154,6 @@ export default function ApiKeysPage() {
         setKeys((prev) => prev.map((k) => k.id === id ? { ...k, revoked: true } : k))
         removeKeyData(id)
         setKeyHints((prev) => { const next = { ...prev }; delete next[id]; return next })
-        setFullKeys((prev) => { const next = { ...prev }; delete next[id]; return next })
       }
     } catch {
       // network error — button unfreezes via finally
@@ -329,36 +318,21 @@ export default function ApiKeysPage() {
             <tbody className="bg-[#0C0C0C]">
               {activeKeys.map((k, i) => {
                 const hint = keyHints[k.id]
-                const fullKey = fullKeys[k.id]
                 const isLast = i === activeKeys.length - 1
                 return (
                   <tr key={k.id} className={`${!isLast ? "border-b border-[#1E1E1E]" : ""} hover:bg-[#161616] transition-colors`}>
                       <td className="px-4 py-3 text-[#F0EDE8]">
                         {k.name ?? <span className="text-[#4A4A46] italic">Unnamed</span>}
                       </td>
+                      {/* Hint only. Full keys are shown once at creation and never
+                          stored client-side, so there is nothing to copy from here. */}
                       <td className="px-4 py-3">
-                        {hint ? (
-                          <button
-                            onClick={fullKey ? () => handleCopyInline(k.id, fullKey) : undefined}
-                            className={`inline-flex items-center gap-1.5 font-mono text-xs rounded-md px-2 py-1 transition-colors ${
-                              fullKey
-                                ? "text-[#F0EDE8] bg-[#1E1E1E] hover:bg-[#2A2A2A] cursor-pointer"
-                                : "text-[#4A4A46] bg-[#141414] cursor-default"
-                            }`}
-                            title={fullKey ? "Click to copy" : "Full key not available"}
-                          >
-                            {hint}
-                            {copiedId === k.id ? (
-                              <Check className="h-3 w-3 text-[#FF4800]" />
-                            ) : (
-                              <Copy className="h-3 w-3 opacity-40" />
-                            )}
-                          </button>
-                        ) : (
-                          <span className="font-mono text-xs text-[#4A4A46] px-2 py-1">
-                            ••••••••••••
-                          </span>
-                        )}
+                        <span
+                          className="inline-flex items-center font-mono text-xs rounded-md px-2 py-1 text-[#4A4A46] bg-[#141414]"
+                          title="Keys are only shown once, when created"
+                        >
+                          {hint ?? "••••••••••••"}
+                        </span>
                       </td>
                       <td className="px-4 py-3 text-[#888480]">{formatDate(k.created_at)}</td>
                       <td className="px-4 py-3 text-[#888480]">{formatDate(k.last_used_at)}</td>
