@@ -124,7 +124,9 @@ export function describeRejection(reason: RejectionReason, count: number): strin
   const s = count === 1 ? "" : "s"
   switch (reason) {
     case "markdown_goes_to_vault":
-      return `${count} markdown file${s} don't need converting — add them straight to your Vault`
+      return count === 1
+        ? "1 markdown file doesn't need converting — add it straight to your Vault"
+        : `${count} markdown files don't need converting — add them straight to your Vault`
     case "unsupported":
       return `${count} file${s} skipped — unsupported format`
     case "too_large":

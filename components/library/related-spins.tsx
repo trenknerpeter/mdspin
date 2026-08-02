@@ -8,11 +8,15 @@ export function RelatedSpins({
   sourceIds,
   onOpen,
   onCount,
+  onLoadingChange,
   className,
 }: {
   sourceIds: string[]
   onOpen?: (id: string) => void
   onCount?: (n: number) => void
+  /** Lets callers (e.g. ClusterBriefSection) distinguish "still checking" from
+   *  "confirmed zero related docs" — onCount alone can't tell those apart. */
+  onLoadingChange?: (loading: boolean) => void
   className?: string
 }) {
   const [related, setRelated] = useState<RelatedSpin[]>([])
@@ -26,9 +30,11 @@ export function RelatedSpins({
       setRelated([])
       onCount?.(0)
       setLoading(false)
+      onLoadingChange?.(false)
       return
     }
     setLoading(true)
+    onLoadingChange?.(true)
     Promise.all(ids.map((id) => findRelatedSpins(id).catch(() => [] as RelatedSpin[])))
       .then((groups) => {
         if (cancelled) return
@@ -37,7 +43,10 @@ export function RelatedSpins({
         onCount?.(merged.length)
       })
       .finally(() => {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) {
+          setLoading(false)
+          onLoadingChange?.(false)
+        }
       })
     return () => {
       cancelled = true

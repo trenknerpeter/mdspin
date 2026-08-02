@@ -16,6 +16,7 @@ function row(partial: Partial<DashboardRow>): DashboardRow {
     source_bytes: 10000,
     brief_generated_at: null,
     in_vault: false,
+    source_type: "conversion",
     ...partial,
   }
 }
@@ -32,6 +33,21 @@ describe("computeDashboardStats", () => {
     expect(s.spinsThisMonth).toBe(2)
     expect(s.totalWords).toBe(175)
     expect(s.briefsGenerated).toBe(1)
+    expect(s.vaultCount).toBe(2)
+  })
+
+  it("excludes notes and other non-conversion rows from totalSpins/spinsThisMonth/totalWords", () => {
+    const rows = [
+      row({ converted_at: "2026-06-10T00:00:00Z", word_count: 100, source_type: "conversion" }),
+      row({ converted_at: "2026-06-11T00:00:00Z", word_count: 5000, source_type: "note", in_vault: true }),
+      row({ converted_at: "2026-06-12T00:00:00Z", word_count: 999, source_type: "upload", in_vault: true }),
+    ]
+    const s = computeDashboardStats(rows, NOW)
+    expect(s.totalSpins).toBe(1)
+    expect(s.spinsThisMonth).toBe(1)
+    expect(s.totalWords).toBe(100)
+    // But every in-vault row counts toward vaultCount regardless of source_type —
+    // a curated note is still a vault doc.
     expect(s.vaultCount).toBe(2)
   })
 })

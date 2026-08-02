@@ -4,8 +4,13 @@ import { useState, useRef, useMemo, useCallback, useEffect } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { createClient } from "@/lib/supabase/client"
 import posthog from "posthog-js"
-import { isSupportedExt, isImageExt, MAX_IMAGES_PER_BATCH } from "@/lib/formats"
+import { partitionIncomingFiles, groupRejections, type RejectionReason } from "@/lib/converter-intake"
 import type { FileItem, ConverterContext, ConversionOptions } from "./types"
+
+export interface IntakeNotice {
+  reason: RejectionReason
+  count: number
+}
 
 const STASH_KEY = "mdspin:pendingVaultAdd"
 const STASH_TTL = 60 * 60 * 1000 // 1 hour
@@ -26,6 +31,7 @@ export function useConverter(opts: {
   const [showMerged, setShowMerged] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [intakeNotices, setIntakeNotices] = useState<IntakeNotice[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // --- input mode state ---
@@ -54,38 +60,36 @@ export function useConverter(opts: {
         : 'loaded'
 
   // --- converter handlers ---
+  // The decision of which incoming files are accepted lives in the pure
+  // partitionIncomingFiles() — every rejection now carries a reason instead of
+  // being silently dropped (unsupported/oversize/duplicate were previously
+  // discarded with no feedback, and the file/image caps used to truncate via
+  // .slice() rather than telling the user anything was cut).
   const handleFiles = useCallback((newFiles: File[]) => {
-    const MAX_SIZE = 20 * 1024 * 1024
-
-    const toAdd = newFiles.filter(f => {
-      const ext = f.name.split('.').pop()?.toLowerCase() ?? ''
-      if (!isSupportedExt(ext)) return false
-      if (f.size > MAX_SIZE) return false
-      return true
-    })
-
     setFiles(prev => {
-      const existing = new Set(prev.map(fi => fi.file ? fi.file.name + String(fi.file.size) : fi.id))
-      const deduped = toAdd.filter(f => !existing.has(f.name + String(f.size)))
-      const combined = [...prev, ...deduped.map(f => ({
+      const existing = prev.map(fi => ({
+        name: fi.file ? fi.file.name : fi.name,
+        size: fi.file ? fi.file.size : 0,
+      }))
+      const { accepted, rejected } = partitionIncomingFiles(existing, newFiles)
+
+      setIntakeNotices(
+        rejected.length > 0
+          ? groupRejections(rejected).map((g) => ({ reason: g.reason, count: g.names.length }))
+          : []
+      )
+
+      return [...prev, ...accepted.map(f => ({
         id: crypto.randomUUID(),
         name: f.name,
         file: f,
         status: 'queued' as const,
         fileType: f.name.split('.').pop()?.toLowerCase()
       }))]
-      // Images are capped per batch (backend vision-API limit), same silent-cap
-      // behavior as the overall 20-file limit below.
-      let imageCount = 0
-      return combined
-        .filter(fi => {
-          if (!isImageExt(fi.fileType ?? '')) return true
-          imageCount += 1
-          return imageCount <= MAX_IMAGES_PER_BATCH
-        })
-        .slice(0, 20)
     })
   }, [])
+
+  const dismissIntakeNotices = useCallback(() => setIntakeNotices([]), [])
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -425,6 +429,7 @@ export function useConverter(opts: {
     setCopiedId(null)
     setShowMerged(false)
     setError(null)
+    setIntakeNotices([])
     setRateLimited(false)
     setInputMode('upload')
     setUrl('')
@@ -539,6 +544,8 @@ export function useConverter(opts: {
     showMerged,
     isDragOver,
     error,
+    intakeNotices,
+    dismissIntakeNotices,
     inputMode,
     url,
     rateLimited,

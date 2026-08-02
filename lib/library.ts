@@ -1,6 +1,13 @@
 import { createClient } from "@/lib/supabase/client"
+import { countWords } from "@/lib/vault/text"
+import type { IngestSourceType } from "@/lib/vault/ingest"
+import type { SummaryStatus } from "@/lib/vault/summary"
 
 export const UNFILED = "__unfiled__"
+
+// 'conversion' covers every existing row (the DB default); the rest are the
+// provenance values Stage 1 ingest introduces.
+export type SourceType = "conversion" | IngestSourceType
 
 export interface Project {
   id: string
@@ -14,14 +21,22 @@ export interface Spin {
   filename: string
   title: string | null
   file_type: string
-  word_count: number | null
+  // null on list rows (SPIN_LIST_FIELDS omits it — a single doc can be 2.4MB).
+  // Always populated on a row fetched via getSpin/createNote/updateSpin.
   markdown_text: string | null
+  word_count: number | null
   project_id: string | null
   tags: string[]
   in_vault: boolean
+  source_type: SourceType
   converted_at: string
+  updated_at: string
+  version: number
   brief: string | null
   brief_generated_at: string | null
+  summary: string | null
+  summary_status: SummaryStatus | null
+  summary_generated_at: string | null
   source_bytes: number | null
 }
 
@@ -117,8 +132,22 @@ export async function deleteProject(id: string) {
 
 // ---- Spins ----
 
-const SPIN_FIELDS =
-  "id, filename, title, file_type, word_count, markdown_text, project_id, tags, in_vault, converted_at, brief, brief_generated_at, source_bytes"
+// Shared by both field lists below; markdown_text is the one column that differs.
+const SPIN_COMMON_FIELDS =
+  "id, filename, title, file_type, word_count, project_id, tags, in_vault, source_type, converted_at, updated_at, version, brief, brief_generated_at, summary, summary_status, summary_generated_at, source_bytes"
+
+// Used by listSpins/listHistory. Omits markdown_text: a single document can be
+// 2.4MB, and list pages fetch up to 100 rows on every filter change. PostgREST
+// simply won't include the key when it isn't selected, so callers go through
+// withNullMarkdown() to get a Spin with an explicit `markdown_text: null`
+// rather than `undefined`. Content requires getSpin() or updateSpin()'s
+// returned row.
+const SPIN_LIST_FIELDS = SPIN_COMMON_FIELDS
+const SPIN_DETAIL_FIELDS = `${SPIN_COMMON_FIELDS}, markdown_text`
+
+function withNullMarkdown(rows: unknown[]): Spin[] {
+  return (rows as Omit<Spin, "markdown_text">[]).map((r) => ({ ...r, markdown_text: null }))
+}
 
 function escapeIlike(q: string) {
   // Keep the .or() filter safe: strip commas/parens that would break PostgREST syntax.
@@ -152,7 +181,7 @@ export function buildConversionRows(
 
 export async function listSpins(params: ListSpinsParams): Promise<Spin[]> {
   const supabase = createClient()
-  let q = supabase.from("conversions").select(SPIN_FIELDS)
+  let q = supabase.from("conversions").select(SPIN_LIST_FIELDS)
   if (params.inVault) q = q.eq("in_vault", true)
 
   if (params.projectId === UNFILED) {
@@ -175,7 +204,7 @@ export async function listSpins(params: ListSpinsParams): Promise<Spin[]> {
     .order("converted_at", { ascending: false })
     .range(params.from, params.to)
   if (error) throw error
-  return (data ?? []) as Spin[]
+  return withNullMarkdown(data ?? [])
 }
 
 // Top related vault docs for one source doc, ranked server-side by full-text overlap.
@@ -195,7 +224,7 @@ export async function getSpin(id: string): Promise<Spin | null> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from("conversions")
-    .select(SPIN_FIELDS)
+    .select(SPIN_DETAIL_FIELDS)
     .eq("id", id)
     .eq("in_vault", true)
     .maybeSingle()
@@ -203,13 +232,68 @@ export async function getSpin(id: string): Promise<Spin | null> {
   return (data as Spin) ?? null
 }
 
-export async function updateSpin(
-  id: string,
-  fields: { title?: string | null; project_id?: string | null; tags?: string[] }
-) {
+export interface UpdateSpinFields {
+  title?: string | null
+  project_id?: string | null
+  tags?: string[]
+  // When present, word_count is recomputed to match — the two must never drift.
+  markdown_text?: string
+}
+
+// Returns the updated row (full detail fields) so callers can trust the fresh
+// word_count/updated_at/version rather than guessing at them locally.
+export async function updateSpin(id: string, fields: UpdateSpinFields): Promise<Spin> {
   const supabase = createClient()
-  const { error } = await supabase.from("conversions").update(fields).eq("id", id)
+  const payload: Record<string, unknown> = { ...fields }
+  if (fields.markdown_text !== undefined) {
+    payload.word_count = countWords(fields.markdown_text)
+  }
+  const { data, error } = await supabase
+    .from("conversions")
+    .update(payload)
+    .eq("id", id)
+    .select(SPIN_DETAIL_FIELDS)
+    .single()
   if (error) throw error
+  return data as Spin
+}
+
+// Create an empty note directly in the Vault. A note IS a vault doc from the
+// moment it exists — no draft limbo, no separate "unsaved note" state.
+export async function createNote(): Promise<Spin> {
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error("Not signed in")
+  const { data, error } = await supabase
+    .from("conversions")
+    .insert({
+      user_id: user.id,
+      filename: "untitled.md",
+      file_type: "md",
+      title: null,
+      markdown_text: "",
+      word_count: 0,
+      in_vault: true,
+      source_type: "note",
+    })
+    .select(SPIN_DETAIL_FIELDS)
+    .single()
+  if (error) throw error
+  return data as Spin
+}
+
+// Count of in-vault docs still waiting on a summary — powers the backfill banner.
+export async function countPendingSummaries(): Promise<number> {
+  const supabase = createClient()
+  const { count, error } = await supabase
+    .from("conversions")
+    .select("id", { count: "exact", head: true })
+    .eq("in_vault", true)
+    .eq("summary_status", "pending")
+  if (error) throw error
+  return count ?? 0
 }
 
 export async function deleteSpin(id: string) {
@@ -301,7 +385,7 @@ export async function listHistory(params: {
   to: number
 }): Promise<Spin[]> {
   const supabase = createClient()
-  let q = supabase.from("conversions").select(SPIN_FIELDS)
+  let q = supabase.from("conversions").select(SPIN_LIST_FIELDS)
   const term = params.query ? escapeIlike(params.query) : ""
   if (term) {
     const like = `%${term}%`
@@ -311,5 +395,19 @@ export async function listHistory(params: {
     .order("converted_at", { ascending: false })
     .range(params.from, params.to)
   if (error) throw error
-  return (data ?? []) as Spin[]
+  return withNullMarkdown(data ?? [])
+}
+
+// Fetch just the markdown for one of the user's own conversions, vault or not
+// (RLS's owner-select policy has no in_vault condition). Used by list-row
+// copy/download buttons now that list queries omit markdown_text.
+export async function getSpinMarkdown(id: string): Promise<string | null> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from("conversions")
+    .select("markdown_text")
+    .eq("id", id)
+    .maybeSingle()
+  if (error) throw error
+  return (data as { markdown_text: string | null } | null)?.markdown_text ?? null
 }

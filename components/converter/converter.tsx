@@ -5,6 +5,7 @@ import { Upload, Copy, Download, Check, Sparkles, FileText, Zap, TrendingDown, P
 import Link from "next/link"
 import { BuyCoffee } from "@/components/buy-coffee"
 import { SUPPORTED_FORMATS, ACCEPT_ATTR } from "@/lib/formats"
+import { describeRejection } from "@/lib/converter-intake"
 import { useConverter } from "./use-converter"
 import { AddToVaultPanel } from "./add-to-vault-panel"
 import type { ConverterContext, ConversionOptions } from "./types"
@@ -162,15 +163,21 @@ export function Converter({ context, options, onAuthRequired, eyebrow, heading, 
                   )}
                 </div>
               ))}
-              {/* + Add card — always visible while under limit and not converting */}
-              {c.files.length < 20 && c.batchStatus !== 'converting' && (
+              {/* + Add card. Stays visible at the cap (disabled, with a reason) instead of
+                  vanishing — a button that just disappears with no explanation is exactly
+                  the silent-limit pattern this intake rework removes elsewhere. */}
+              {c.batchStatus !== 'converting' && (
                 <button
                   type="button"
+                  disabled={c.files.length >= 20}
                   onClick={(e) => { e.stopPropagation(); if (gatePower()) return; c.handleBrowse() }}
-                  className="flex items-center gap-1.5 rounded-lg border border-dashed border-[#2A2A2A] bg-[#0C0C0C] px-3 py-2 text-[#4A4A46] transition-all hover:border-[#FF4800]/50 hover:text-[#FF4800]"
+                  title={c.files.length >= 20 ? "20-file limit reached" : undefined}
+                  className="flex items-center gap-1.5 rounded-lg border border-dashed border-[#2A2A2A] bg-[#0C0C0C] px-3 py-2 text-[#4A4A46] transition-all hover:border-[#FF4800]/50 hover:text-[#FF4800] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[#2A2A2A] disabled:hover:text-[#4A4A46]"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  <span className="text-xs">Add file</span>
+                  <span className="text-xs">
+                    {c.files.length >= 20 ? "20-file limit reached" : "Add file"}
+                  </span>
                 </button>
               )}
             </div>
@@ -219,6 +226,36 @@ export function Converter({ context, options, onAuthRequired, eyebrow, heading, 
             </span>
           ))}
         </div>
+
+        {/* Intake notices — every dropped/skipped file gets a reason instead of vanishing */}
+        {c.intakeNotices.length > 0 && (
+          <div className="mt-4 space-y-1.5 rounded-lg border border-[#2A2A2A] bg-[#161616] px-4 py-3 text-sm">
+            {c.intakeNotices.map((n) =>
+              n.reason === "markdown_goes_to_vault" ? (
+                <p key={n.reason} className="text-[#888480]">
+                  {describeRejection(n.reason, n.count)} —{" "}
+                  <Link
+                    href={c.user ? "/app/vault/add" : "/auth/sign-in?next=/app/vault/add"}
+                    className="text-[#FF4800] underline underline-offset-2 hover:text-[#FF6633]"
+                  >
+                    add to your Vault
+                  </Link>
+                </p>
+              ) : (
+                <p key={n.reason} className="text-[#888480]">
+                  {describeRejection(n.reason, n.count)}
+                </p>
+              )
+            )}
+            <button
+              type="button"
+              onClick={c.dismissIntakeNotices}
+              className="text-xs text-[#4A4A46] underline underline-offset-2 hover:text-[#888480]"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
         {/* Error */}
         {c.error && (

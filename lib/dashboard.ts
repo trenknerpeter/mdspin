@@ -17,10 +17,11 @@ export interface DashboardRow {
   source_bytes: number | null
   brief_generated_at: string | null
   in_vault: boolean
+  source_type: string
 }
 
 const DASHBOARD_FIELDS =
-  "converted_at, word_count, file_type, source_bytes, brief_generated_at, in_vault"
+  "converted_at, word_count, file_type, source_bytes, brief_generated_at, in_vault, source_type"
 
 export async function fetchDashboardRows(): Promise<DashboardRow[]> {
   const supabase = createClient()
@@ -41,19 +42,30 @@ export interface DashboardStats {
 }
 
 // Pure: headline counts. `now` is injectable for testing.
+//
+// totalSpins/spinsThisMonth/totalWords count CONVERSIONS ONLY — a doc actually
+// run through the conversion backend. Notes and other ingested docs never
+// touched that pipeline, so counting them here would report a "words
+// converted" figure that includes words nobody converted. vaultCount is
+// deliberately NOT restricted: a note the user curated into the Vault is a
+// vault doc regardless of how it got there.
 export function computeDashboardStats(rows: DashboardRow[], now: Date = new Date()): DashboardStats {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime()
+  let totalSpins = 0
   let spinsThisMonth = 0
   let totalWords = 0
   let briefsGenerated = 0
   let vaultCount = 0
   for (const r of rows) {
-    if (new Date(r.converted_at).getTime() >= monthStart) spinsThisMonth++
-    totalWords += r.word_count ?? 0
+    if (r.source_type === "conversion") {
+      totalSpins++
+      if (new Date(r.converted_at).getTime() >= monthStart) spinsThisMonth++
+      totalWords += r.word_count ?? 0
+    }
     if (r.brief_generated_at) briefsGenerated++
     if (r.in_vault) vaultCount++
   }
-  return { totalSpins: rows.length, spinsThisMonth, totalWords, briefsGenerated, vaultCount }
+  return { totalSpins, spinsThisMonth, totalWords, briefsGenerated, vaultCount }
 }
 
 export interface ActivityPoint {

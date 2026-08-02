@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
 import { Copy, Download, Trash2, Check, FileText, Search, BookmarkPlus, BookmarkCheck } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
-import { listHistory, deleteSpin, addToVault, type Spin } from "@/lib/library"
+import { listHistory, deleteSpin, addToVault, getSpinMarkdown, type Spin } from "@/lib/library"
 
 const PAGE = 100
 
@@ -48,12 +48,18 @@ export default function HistoryPage() {
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
 
-  const handleCopy = async (id: string, text: string) => {
+  // List rows no longer carry markdown_text (SPIN_LIST_FIELDS omits it — a
+  // single doc can be 2.4MB), so copy/download fetch on demand.
+  const handleCopy = async (id: string) => {
+    const text = await getSpinMarkdown(id)
+    if (!text) return
     await navigator.clipboard.writeText(text)
     setCopiedId(id)
     setTimeout(() => setCopiedId(null), 2000)
   }
-  const handleDownload = (name: string, text: string) => {
+  const handleDownload = async (id: string, name: string) => {
+    const text = await getSpinMarkdown(id)
+    if (!text) return
     const blob = new Blob([text], { type: "text/markdown" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
@@ -141,16 +147,12 @@ export default function HistoryPage() {
                         <BookmarkPlus className="h-3.5 w-3.5" /> Add to Vault
                       </button>
                     )}
-                    {c.markdown_text && (
-                      <>
-                        <button onClick={() => handleCopy(c.id, c.markdown_text!)} className="flex h-7 w-7 items-center justify-center rounded-md border border-[#2A2A2A] text-[#4A4A46] hover:border-[#4A4A46] hover:text-[#F0EDE8]" title="Copy markdown">
-                          {copiedId === c.id ? <Check className="h-3.5 w-3.5 text-[#FF4800]" /> : <Copy className="h-3.5 w-3.5" />}
-                        </button>
-                        <button onClick={() => handleDownload(c.filename, c.markdown_text!)} className="flex h-7 w-7 items-center justify-center rounded-md border border-[#2A2A2A] text-[#4A4A46] hover:border-[#4A4A46] hover:text-[#F0EDE8]" title="Download .md">
-                          <Download className="h-3.5 w-3.5" />
-                        </button>
-                      </>
-                    )}
+                    <button onClick={() => handleCopy(c.id)} className="flex h-7 w-7 items-center justify-center rounded-md border border-[#2A2A2A] text-[#4A4A46] hover:border-[#4A4A46] hover:text-[#F0EDE8]" title="Copy markdown">
+                      {copiedId === c.id ? <Check className="h-3.5 w-3.5 text-[#FF4800]" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                    <button onClick={() => handleDownload(c.id, c.filename)} className="flex h-7 w-7 items-center justify-center rounded-md border border-[#2A2A2A] text-[#4A4A46] hover:border-[#4A4A46] hover:text-[#F0EDE8]" title="Download .md">
+                      <Download className="h-3.5 w-3.5" />
+                    </button>
                     <button onClick={() => handleDelete(c.id)} className="flex h-7 w-7 items-center justify-center rounded-md border border-[#2A2A2A] text-[#4A4A46] hover:border-red-500/30 hover:text-red-400" title="Delete">
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

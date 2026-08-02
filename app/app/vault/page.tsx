@@ -7,10 +7,13 @@ import { useLibrary } from "@/components/library/use-library"
 import { LibraryRail } from "@/components/library/library-rail"
 import { SpinDetailPanel } from "@/components/library/spin-detail-panel"
 import { VaultViewToggle } from "@/components/library/vault-view-toggle"
+import { AddToVaultMenu } from "@/components/vault/add-to-vault-menu"
+import { getSpinMarkdown } from "@/lib/library"
 
 export default function VaultPage() {
   const lib = useLibrary()
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [copyingId, setCopyingId] = useState<string | null>(null)
 
   useEffect(() => {
     // window.location (not useSearchParams) is intentional: this runs client-side only
@@ -23,10 +26,19 @@ export default function VaultPage() {
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
 
-  const handleCopy = async (id: string, text: string) => {
-    await navigator.clipboard.writeText(text)
-    setCopiedId(id)
-    setTimeout(() => setCopiedId(null), 2000)
+  // List rows no longer carry markdown_text (SPIN_LIST_FIELDS omits it — a
+  // single doc can be 2.4MB), so the row-level copy button fetches on demand.
+  const handleCopy = async (id: string) => {
+    setCopyingId(id)
+    try {
+      const text = await getSpinMarkdown(id)
+      if (!text) return
+      await navigator.clipboard.writeText(text)
+      setCopiedId(id)
+      setTimeout(() => setCopiedId(null), 2000)
+    } finally {
+      setCopyingId(null)
+    }
   }
 
   const filtersActive = lib.selectedProject !== null || !!lib.selectedTag || lib.search.trim() !== ""
@@ -47,7 +59,10 @@ export default function VaultPage() {
             {lib.stats.total} item{lib.stats.total !== 1 ? "s" : ""} in your Vault
           </p>
         </div>
-        <VaultViewToggle active="list" />
+        <div className="flex items-center gap-2">
+          <VaultViewToggle active="list" />
+          <AddToVaultMenu onNewNote={() => lib.addNote()} />
+        </div>
       </div>
 
       <div className="flex gap-8">
@@ -116,14 +131,22 @@ export default function VaultPage() {
                     Your Vault is empty.
                   </p>
                   <p className="font-[family-name:var(--font-dm-sans)] text-sm text-[#888480]">
-                    Add converted files from History or right after converting.
+                    Add markdown directly, or convert a file first.
                   </p>
-                  <Link
-                    href="/app"
-                    className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#FF4800] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#e04200]"
-                  >
-                    Convert a file
-                  </Link>
+                  <div className="mt-4 flex justify-center gap-3">
+                    <Link
+                      href="/app/vault/add"
+                      className="inline-flex items-center gap-2 rounded-full bg-[#FF4800] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#e04200]"
+                    >
+                      Add markdown
+                    </Link>
+                    <Link
+                      href="/app"
+                      className="inline-flex items-center gap-2 rounded-full border border-[#2A2A2A] px-5 py-2 text-sm font-semibold text-[#F0EDE8] transition-colors hover:border-[#4A4A46]"
+                    >
+                      Convert a file
+                    </Link>
+                  </div>
                 </>
               )}
             </div>
@@ -164,6 +187,9 @@ export default function VaultPage() {
                             </span>
                           )}
                         </div>
+                        {c.summary && (
+                          <p className="mt-2 line-clamp-2 text-xs text-[#888480]">{c.summary}</p>
+                        )}
                         {c.tags.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-1.5">
                             {c.tags.map((t) => (
@@ -177,30 +203,33 @@ export default function VaultPage() {
                           </div>
                         )}
                       </div>
-                      {c.markdown_text && (
-                        <span
-                          role="button"
-                          tabIndex={0}
-                          onClick={(e) => {
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleCopy(c.id)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
                             e.stopPropagation()
-                            handleCopy(c.id, c.markdown_text!)
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.stopPropagation()
-                              handleCopy(c.id, c.markdown_text!)
-                            }
-                          }}
-                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[#2A2A2A] text-[#4A4A46] transition-colors hover:border-[#4A4A46] hover:text-[#F0EDE8]"
-                          title="Copy markdown"
-                        >
-                          {copiedId === c.id ? (
-                            <Check className="h-3.5 w-3.5 text-[#FF4800]" />
-                          ) : (
-                            <Copy className="h-3.5 w-3.5" />
-                          )}
-                        </span>
-                      )}
+                            handleCopy(c.id)
+                          }
+                        }}
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[#2A2A2A] text-[#4A4A46] transition-colors hover:border-[#4A4A46] hover:text-[#F0EDE8] disabled:opacity-40"
+                        title="Copy markdown"
+                      >
+                        {copyingId === c.id && copiedId !== c.id ? (
+                          <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                        ) : copiedId === c.id ? (
+                          <Check className="h-3.5 w-3.5 text-[#FF4800]" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5" />
+                        )}
+                      </span>
                     </div>
                   </button>
                 ))}
@@ -230,6 +259,7 @@ export default function VaultPage() {
         onRemoveFromVault={lib.removeSpinFromVault}
         onOpen={lib.openSpin}
         onBriefGenerated={lib.patchSpinBrief}
+        onSummaryGenerated={lib.patchSpinSummary}
       />
     </div>
   )

@@ -156,6 +156,17 @@ describe("describeRejection", () => {
     expect(describeRejection("markdown_goes_to_vault", 2)).toContain("Vault")
   })
 
+  it("uses correct singular/plural grammar for the markdown notice", () => {
+    // Regression: verified live in-browser that "1 markdown file don't need
+    // converting" is a real subject/verb disagreement, not just a nitpick.
+    expect(describeRejection("markdown_goes_to_vault", 1)).toBe(
+      "1 markdown file doesn't need converting — add it straight to your Vault"
+    )
+    expect(describeRejection("markdown_goes_to_vault", 2)).toBe(
+      "2 markdown files don't need converting — add them straight to your Vault"
+    )
+  })
+
   it("covers every reason", () => {
     const reasons = [
       "unsupported",

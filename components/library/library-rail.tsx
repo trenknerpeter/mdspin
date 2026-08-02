@@ -70,7 +70,7 @@ export function LibraryRail({
           className={`${rowBase} ${selectedProject === null && !selectedTag ? active : idle}`}
         >
           <Layers className="h-4 w-4 shrink-0" />
-          <span className="flex-1 text-left">All spins</span>
+          <span className="flex-1 text-left">All files</span>
           <span className="text-xs text-[#4A4A46]">{stats.total}</span>
         </button>
         <button

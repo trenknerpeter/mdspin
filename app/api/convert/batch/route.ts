@@ -17,6 +17,7 @@ import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, incrementUsage } from '@/lib/rate-limit';
 import { requiresSignIn } from '@/lib/gating';
 import { isSupportedExt, isImageExt, MAX_IMAGES_PER_BATCH } from '@/lib/formats';
+import { isIngestExt } from '@/lib/vault/limits';
 
 export const runtime     = 'nodejs'; // Buffer is required — cannot run on Edge
 export const maxDuration = 120;      // seconds — batch conversions can be slow
@@ -156,15 +157,22 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 5. Validate file types ──────────────────────────────────
-  const unsupportedFiles = files
-    .filter((f) => !isSupportedExt(f.name.split('.').pop() ?? ''))
-    .map((f) => f.name);
+  const unsupported = files.filter((f) => !isSupportedExt(f.name.split('.').pop() ?? ''));
 
-  if (unsupportedFiles.length > 0) {
+  if (unsupported.length > 0) {
+    const unsupportedFiles = unsupported.map((f) => f.name);
+    const markdownFiles = unsupported.filter((f) => isIngestExt(f.name));
+    // Markdown doesn't need conversion at all — point at the Vault rather than
+    // implying it's an unsupported format like any other.
+    const message =
+      markdownFiles.length === unsupported.length
+        ? "Markdown doesn't need converting — add it straight to your Vault instead."
+        : 'Some files are not supported. Please upload PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, PAGES, HTML, PNG, or JPG files.';
+
     return NextResponse.json(
       {
         error:           'UNSUPPORTED_FILE_TYPE',
-        message:         `Some files are not supported. Please upload PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, PAGES, HTML, PNG, or JPG files.`,
+        message,
         unsupportedFiles,
       },
       { status: 415 }

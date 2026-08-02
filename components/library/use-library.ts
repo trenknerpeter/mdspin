@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAuth } from "@/components/auth-provider"
 import {
+  createNote,
   createProject,
   deleteProject,
   deleteSpin,
@@ -19,7 +20,9 @@ import {
   type Spin,
   type SpinStats,
   type TagCount,
+  type UpdateSpinFields,
 } from "@/lib/library"
+import type { SummaryStatus } from "@/lib/vault/summary"
 
 const PAGE = 100
 
@@ -139,9 +142,12 @@ export function useLibrary() {
   )
 
   const saveSpin = useCallback(
-    async (id: string, fields: { title?: string | null; project_id?: string | null; tags?: string[] }) => {
-      await updateSpin(id, fields)
-      setSpins((prev) => prev.map((s) => (s.id === id ? { ...s, ...fields } : s)))
+    async (id: string, fields: UpdateSpinFields) => {
+      // updateSpin returns the fresh row (word_count/updated_at/version recomputed
+      // server-side when markdown_text changes) rather than us guessing at them.
+      const updated = await updateSpin(id, fields)
+      setSpins((prev) => prev.map((s) => (s.id === id ? { ...s, ...updated } : s)))
+      setSelectedSpinExtra((prev) => (prev && prev.id === id ? { ...prev, ...updated } : prev))
       await refreshSidebars()
       // If the spin no longer matches the active project filter, drop it from the view.
       if (
@@ -153,6 +159,25 @@ export function useLibrary() {
       }
     },
     [selectedProject, refreshSidebars]
+  )
+
+  // New note: a note IS a vault doc the instant it's created, so it's prepended
+  // to the list and opened immediately — no separate draft state.
+  const addNote = useCallback(async () => {
+    const note = await createNote()
+    setSpins((prev) => [note, ...prev])
+    setSelectedSpinId(note.id)
+    setSelectedSpinExtra(note) // already full content; no fetch needed
+    await refreshSidebars()
+    return note
+  }, [refreshSidebars])
+
+  const patchSpinSummary = useCallback(
+    (id: string, fields: { summary: string; summary_status: SummaryStatus; summary_generated_at: string }) => {
+      setSpins((prev) => prev.map((s) => (s.id === id ? { ...s, ...fields } : s)))
+      setSelectedSpinExtra((prev) => (prev && prev.id === id ? { ...prev, ...fields } : prev))
+    },
+    []
   )
 
   const patchSpinBrief = useCallback((id: string, brief: string, briefGeneratedAt: string) => {
@@ -188,29 +213,25 @@ export function useLibrary() {
     [selectedSpinId, refreshSidebars]
   )
 
+  // Prefer the fully-fetched record (has markdown_text) over the list row, which
+  // never carries content now that list queries omit it. While the fetch in
+  // openSpin is in flight, this still resolves to the list row so the panel opens
+  // instantly with metadata — content fills in a beat later.
   const selectedSpin = useMemo(() => {
-    const fromList = spins.find((s) => s.id === selectedSpinId)
-    if (fromList) return fromList
     if (selectedSpinExtra && selectedSpinExtra.id === selectedSpinId) return selectedSpinExtra
-    return null
+    return spins.find((s) => s.id === selectedSpinId) ?? null
   }, [spins, selectedSpinId, selectedSpinExtra])
 
-  const openSpin = useCallback(
-    async (id: string) => {
-      setSelectedSpinId(id)
-      if (spins.some((s) => s.id === id)) {
-        setSelectedSpinExtra(null)
-        return
-      }
-      try {
-        const fetched = await getSpin(id)
-        setSelectedSpinExtra(fetched)
-      } catch {
-        setSelectedSpinExtra(null)
-      }
-    },
-    [spins]
-  )
+  const openSpin = useCallback(async (id: string) => {
+    setSelectedSpinId(id)
+    setSelectedSpinExtra(null) // clear any previous doc's full record
+    try {
+      const fetched = await getSpin(id)
+      setSelectedSpinExtra(fetched)
+    } catch {
+      setSelectedSpinExtra(null)
+    }
+  }, [])
 
   return {
     // data
@@ -238,6 +259,8 @@ export function useLibrary() {
       setSelectedSpinExtra(null)
     },
     // mutations
+    addNote,
+    patchSpinSummary,
     addProject,
     renameProjectById,
     removeProject,
