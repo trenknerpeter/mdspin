@@ -110,12 +110,12 @@ export function ClusterBriefSection({
   // state, so a doc that turns out to have relations doesn't flash "disabled".
   if (!brief && relatedLoading) {
     return (
-      <div className="space-y-1.5">
+      <Collapsible open={open} onOpenChange={setOpen} className="space-y-1.5">
         {header()}
         <div className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#2A2A2A] bg-[#0E0E0E] px-4 py-2.5 text-sm text-[#4A4A46]">
           Checking for related documents…
         </div>
-      </div>
+      </Collapsible>
     )
   }
 
@@ -124,7 +124,7 @@ export function ClusterBriefSection({
   // and why it isn't available right now.
   if (!brief && relatedCount === 0) {
     return (
-      <div className="space-y-1.5">
+      <Collapsible open={open} onOpenChange={setOpen} className="space-y-1.5">
         {header()}
         <button
           type="button"
@@ -138,7 +138,7 @@ export function ClusterBriefSection({
           Brief needs at least one related document in your Vault to synthesize across. Add more
           documents on related topics, or tag this one to help it match.
         </p>
-      </div>
+      </Collapsible>
     )
   }
 
