@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Upload, FolderUp, FileText, Check, AlertCircle } from "lucide-react"
 import { TagInput } from "@/components/library/tag-input"
@@ -49,8 +50,7 @@ export function VaultIngestPanel({ initialTab = "files" }: { initialTab?: Tab })
 
   const handleFilesChosen = (fileList: FileList | null, via: "files" | "folder") => {
     if (!fileList || fileList.length === 0) return
-    const files = Array.from(fileList).slice(0, MAX_IMPORT_FILES)
-    ingest.scan(files, via)
+    ingest.scan(Array.from(fileList), via)
   }
 
   const label = "mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-[#888480]"
@@ -187,6 +187,8 @@ export function VaultIngestPanel({ initialTab = "files" }: { initialTab?: Tab })
     if (outcome.skipped.duplicate_in_batch) skipParts.push(`${outcome.skipped.duplicate_in_batch} duplicates in this batch`)
     if (outcome.skipped.too_large) skipParts.push(`${outcome.skipped.too_large} too large`)
     if (outcome.skipped.empty) skipParts.push(`${outcome.skipped.empty} empty`)
+    if (outcome.skipped.ignored_path) skipParts.push(`${outcome.skipped.ignored_path} skipped (system files)`)
+    const unsupportedCount = outcome.skipped.unsupported_type
 
     return (
       <div className="mx-auto max-w-2xl space-y-4">
@@ -195,6 +197,15 @@ export function VaultIngestPanel({ initialTab = "files" }: { initialTab?: Tab })
             <span className="font-semibold text-[#FF4800]">{outcome.ready}</span> ready to import
             {skipParts.length > 0 && <span className="text-[#888480]"> · {skipParts.join(" · ")}</span>}
           </p>
+          {unsupportedCount > 0 && (
+            <p className="mt-1.5 text-xs text-[#888480]">
+              {unsupportedCount} unsupported file{unsupportedCount !== 1 ? "s" : ""} skipped —{" "}
+              <Link href="/app" className="text-[#FF4800] underline hover:no-underline">
+                convert them to Markdown first
+              </Link>
+              .
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-3 rounded-xl border border-[#2A2A2A] bg-[#161616] p-4 sm:grid-cols-2">

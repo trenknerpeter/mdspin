@@ -36,6 +36,7 @@ export type SkipReason =
   | "duplicate_in_batch"
   | "already_in_vault"
   | "ignored_path"
+  | "unsupported_type"
 
 export interface RawIngestFile {
   /** Basename, e.g. "kickoff.md". */
@@ -247,6 +248,7 @@ export function summarizeIngestOutcome(ready: number, skipped: SkippedFile[]): I
     duplicate_in_batch: 0,
     already_in_vault: 0,
     ignored_path: 0,
+    unsupported_type: 0,
   }
   for (const s of skipped) counts[s.reason]++
   return { ready, skipped: counts, totalSkipped: skipped.length }

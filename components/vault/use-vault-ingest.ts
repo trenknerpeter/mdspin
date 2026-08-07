@@ -4,14 +4,8 @@ import { useCallback, useMemo, useRef, useState } from "react"
 import posthog from "posthog-js"
 import { listProjects, type Project } from "@/lib/library"
 import { createClient } from "@/lib/supabase/client"
-import {
-  buildIngestDoc,
-  dedupeWithinBatch,
-  summarizeIngestOutcome,
-  type IngestDoc,
-  type SkippedFile,
-  type IngestOutcome,
-} from "@/lib/vault/ingest"
+import { type IngestDoc, type IngestOutcome } from "@/lib/vault/ingest"
+import { planIngest, type HashedIngestFile, type IngestSettings } from "@/lib/vault/plan"
 import { contentHash } from "@/lib/vault/hash"
 import { chunkBySize } from "@/lib/vault/chunk"
 import type { FolderMappingMode } from "@/lib/vault/paths"
@@ -21,20 +15,9 @@ import {
   insertIngestRows,
   type PreparedIngestRow,
 } from "@/lib/vault/commit"
-import {
-  SCAN_CONCURRENCY,
-  COMMIT_CHUNK_MAX_BYTES,
-  COMMIT_CHUNK_MAX_COUNT,
-  isIngestExt,
-} from "@/lib/vault/limits"
+import { SCAN_CONCURRENCY, COMMIT_CHUNK_MAX_BYTES, COMMIT_CHUNK_MAX_COUNT, MAX_IMPORT_FILES } from "@/lib/vault/limits"
 
 export type IngestPhase = "idle" | "scanning" | "review" | "importing" | "done"
-
-interface RawFile {
-  filename: string
-  relativePath: string | null
-  text: string
-}
 
 async function mapWithConcurrency<T, R>(
   items: T[],
@@ -53,69 +36,54 @@ async function mapWithConcurrency<T, R>(
   return results
 }
 
+const EMPTY_OUTCOME: IngestOutcome = {
+  ready: 0,
+  skipped: {
+    too_large: 0,
+    empty: 0,
+    duplicate_in_batch: 0,
+    already_in_vault: 0,
+    ignored_path: 0,
+    unsupported_type: 0,
+  },
+  totalSkipped: 0,
+}
+
 export function useVaultIngest() {
   const [phase, setPhase] = useState<IngestPhase>("idle")
   const [scanProgress, setScanProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 })
-  const [mode, setMode] = useState<FolderMappingMode>("top-folder-project")
-  const [defaultProjectName, setDefaultProjectName] = useState<string | null>(null)
-  const [defaultTags, setDefaultTags] = useState<string[]>([])
-  const [projects, setProjects] = useState<Project[]>([])
-  const [readyDocs, setReadyDocs] = useState<IngestDoc[]>([])
-  const [outcome, setOutcome] = useState<IngestOutcome>({
-    ready: 0,
-    skipped: { too_large: 0, empty: 0, duplicate_in_batch: 0, already_in_vault: 0, ignored_path: 0 },
-    totalSkipped: 0,
-  })
   const [scanError, setScanError] = useState<string | null>(null)
+
+  // One object, not three parallel useState values — mode/defaultProjectNames/defaultTags
+  // are only ever read or changed together, and planIngest takes them as a single opts arg.
+  const [settings, setSettings] = useState<IngestSettings>({ mode: "top-folder-project" })
+  const [projects, setProjects] = useState<Project[]>([])
+
+  // Populated once per scan; readyDocs/outcome are then a pure function of these two plus
+  // settings, recomputed by useMemo below instead of an imperative rebuild().
+  const [scannedFiles, setScannedFiles] = useState<HashedIngestFile[]>([])
+  const [existingHashes, setExistingHashes] = useState<Set<string>>(new Set())
 
   const [committed, setCommitted] = useState(0)
   const [failedDocs, setFailedDocs] = useState<IngestDoc[]>([])
-  const [committing, setCommitting] = useState(false)
 
-  const rawFiles = useRef<RawFile[]>([])
   const source = useRef<"files" | "folder" | "paste">("files")
-  const hashByIndex = useRef<(string | null)[]>([])
-  const existingHashes = useRef<Set<string>>(new Set())
 
-  // Pure rebuild from cached raw files + hashes — no network. Runs on scan and
-  // whenever mode/defaults change, so tweaking the mapping mode is instant.
-  const rebuild = useCallback(() => {
-    const opts = {
-      mode,
-      defaultProjectNames: defaultProjectName ? [defaultProjectName] : undefined,
-      defaultTags,
-    }
-    const skipped: SkippedFile[] = []
-    const built: IngestDoc[] = []
-
-    rawFiles.current.forEach((f, i) => {
-      const result = buildIngestDoc(f, opts)
-      if ("skip" in result) {
-        skipped.push({ filename: f.filename, relativePath: f.relativePath, title: f.filename, reason: result.skip })
-        return
-      }
-      const hash = hashByIndex.current[i]
-      result.doc.row.content_hash = hash
-      if (hash && existingHashes.current.has(hash)) {
-        skipped.push({
-          filename: f.filename,
-          relativePath: f.relativePath,
-          title: result.doc.row.title,
-          reason: "already_in_vault",
-        })
-        return
-      }
-      built.push(result.doc)
-    })
-
-    const { kept, skipped: batchDupes } = dedupeWithinBatch(built)
-    const allSkipped = [...skipped, ...batchDupes]
-    setReadyDocs(kept)
-    setOutcome(summarizeIngestOutcome(kept.length, allSkipped))
-  }, [mode, defaultProjectName, defaultTags])
+  const plan = useMemo(
+    () => (scannedFiles.length > 0 ? planIngest(scannedFiles, settings, existingHashes) : { readyDocs: [], outcome: EMPTY_OUTCOME }),
+    [scannedFiles, settings, existingHashes]
+  )
+  const readyDocs = plan.readyDocs
+  const outcome = plan.outcome
 
   const scan = useCallback(
     async (files: File[], via: "files" | "folder" | "paste" = "files") => {
+      if (files.length > MAX_IMPORT_FILES) {
+        setPhase("idle")
+        setScanError(`Too many files to import at once — please choose ${MAX_IMPORT_FILES} or fewer.`)
+        return
+      }
+
       source.current = via
       setPhase("scanning")
       setScanError(null)
@@ -131,23 +99,21 @@ export function useVaultIngest() {
               filename: file.name,
               relativePath: (file as File & { webkitRelativePath?: string }).webkitRelativePath || null,
               text,
-            } satisfies RawFile
+            }
           }),
         ])
         setProjects(proj)
-        rawFiles.current = read
-        hashByIndex.current = await Promise.all(read.map((f) => contentHash(f.text)))
-        existingHashes.current = await checkExistingContentHashes(
-          hashByIndex.current.filter((h): h is string => !!h)
-        )
-        rebuild()
+
+        const hashes = await Promise.all(read.map((f) => contentHash(f.text)))
+        setScannedFiles(read.map((f, i) => ({ ...f, hash: hashes[i] })))
+        setExistingHashes(await checkExistingContentHashes(hashes.filter((h): h is string => !!h)))
         setPhase("review")
       } catch (e) {
         setScanError(e instanceof Error ? e.message : "Couldn't read those files.")
         setPhase("idle")
       }
     },
-    [rebuild]
+    []
   )
 
   const scanPasted = useCallback(
@@ -158,44 +124,23 @@ export function useVaultIngest() {
     [scan]
   )
 
-  const setModeAndRebuild = useCallback(
-    (m: FolderMappingMode) => {
-      setMode(m)
-    },
-    []
-  )
-  const setDefaultProjectAndRebuild = useCallback((name: string | null) => {
-    setDefaultProjectName(name)
+  const setMode = useCallback((mode: FolderMappingMode) => {
+    setSettings((s) => ({ ...s, mode }))
   }, [])
-  const setDefaultTagsAndRebuild = useCallback((tags: string[]) => {
-    setDefaultTags(tags)
+  const setDefaultProjectName = useCallback((name: string | null) => {
+    setSettings((s) => ({ ...s, defaultProjectNames: name ? [name] : undefined }))
   }, [])
-
-  // Recompute whenever mode/defaults change post-scan (cheap, pure, no network).
-  const modeRef = useRef(mode)
-  const defaultProjectRef = useRef(defaultProjectName)
-  const defaultTagsRef = useRef(defaultTags)
-  if (
-    phase === "review" &&
-    (modeRef.current !== mode || defaultProjectRef.current !== defaultProjectName || defaultTagsRef.current !== defaultTags)
-  ) {
-    modeRef.current = mode
-    defaultProjectRef.current = defaultProjectName
-    defaultTagsRef.current = defaultTags
-    rebuild()
-  }
+  const setDefaultTags = useCallback((tags: string[]) => {
+    setSettings((s) => ({ ...s, defaultTags: tags }))
+  }, [])
 
   const commitDocs = useCallback(
     async (docs: IngestDoc[]) => {
-      setCommitting(true)
       const supabase = createClient()
       const {
         data: { user },
       } = await supabase.auth.getUser()
-      if (!user) {
-        setCommitting(false)
-        return
-      }
+      if (!user) return
 
       const allProjectNames = docs.flatMap((d) => d.projectNames.slice(0, 1))
       const projectIdByName = await resolveProjectIds(allProjectNames, projects)
@@ -227,7 +172,6 @@ export function useVaultIngest() {
       }
 
       setFailedDocs(stillFailed)
-      setCommitting(false)
       setPhase("done")
       // Deliberately NOT file_conversion_* — these docs never touched the
       // conversion backend, and that event feeds the dashboard's "words
@@ -256,13 +200,11 @@ export function useVaultIngest() {
 
   const reset = useCallback(() => {
     setPhase("idle")
-    setReadyDocs([])
+    setScannedFiles([])
+    setExistingHashes(new Set())
     setCommitted(0)
     setFailedDocs([])
     setScanError(null)
-    rawFiles.current = []
-    hashByIndex.current = []
-    existingHashes.current = new Set()
   }, [])
 
   const projectNameOptions = useMemo(
@@ -274,18 +216,18 @@ export function useVaultIngest() {
     phase,
     scanProgress,
     scanError,
-    mode,
-    setMode: setModeAndRebuild,
-    defaultProjectName,
-    setDefaultProjectName: setDefaultProjectAndRebuild,
-    defaultTags,
-    setDefaultTags: setDefaultTagsAndRebuild,
+    mode: settings.mode,
+    setMode,
+    defaultProjectName: settings.defaultProjectNames?.[0] ?? null,
+    setDefaultProjectName,
+    defaultTags: settings.defaultTags ?? [],
+    setDefaultTags,
     projects,
     projectNameOptions,
     readyDocs,
     outcome,
     committed,
-    committing,
+    committing: phase === "importing",
     failedDocs,
     totalToCommit: readyDocs.length,
     scan,

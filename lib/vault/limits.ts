@@ -7,7 +7,7 @@
 export const INGEST_EXTS = ["md", "markdown", "mdx", "txt"] as const
 
 /** Files per folder import. Refused with a message, never silently truncated. */
-export const MAX_IMPORT_FILES = 500
+export const MAX_IMPORT_FILES = 50
 /** Per-document character cap. */
 export const MAX_DOC_CHARS = 2_000_000
 /** Total characters across one import. */
