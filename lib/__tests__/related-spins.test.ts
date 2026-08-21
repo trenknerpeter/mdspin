@@ -39,4 +39,22 @@ describe("mergeRelatedSpins", () => {
     const out = mergeRelatedSpins([[noRank, mk("a", 0.5)]], [], 5)
     expect(out.map((s) => s.id)).toEqual(["a", "z"])
   })
+
+  // The affinity beacon is read straight off the merged row, so a merge that dropped
+  // `strength` would silently render every result unlabelled rather than fail loudly.
+  it("preserves the strength label through dedupe and sort", () => {
+    const strong: RelatedSpin = { ...mk("a", 0.2), strength: "strong" }
+    const weak: RelatedSpin = { ...mk("b", 0.01), strength: "weak" }
+    const out = mergeRelatedSpins([[weak], [strong]], [], 5)
+    expect(out.map((s) => [s.id, s.strength])).toEqual([
+      ["a", "strong"],
+      ["b", "weak"],
+    ])
+  })
+
+  it("keeps the strength of the higher-ranked duplicate", () => {
+    const lo: RelatedSpin = { ...mk("a", 0.01), strength: "weak" }
+    const hi: RelatedSpin = { ...mk("a", 0.9), strength: "strong" }
+    expect(mergeRelatedSpins([[lo], [hi]], [], 5)[0].strength).toBe("strong")
+  })
 })

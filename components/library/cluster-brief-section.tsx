@@ -91,7 +91,7 @@ export function ClusterBriefSection({
 
   const fieldLabel = "flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-[#888480]"
   const briefTooltip =
-    "A synthesis across this document and others related to it in your Vault — themes, facts, and contradictions across the group."
+    "A synthesis across this document and the others in its project — themes, facts, and contradictions across the group."
 
   const header = (extra?: React.ReactNode) => (
     <div className="flex items-center justify-between">
@@ -122,6 +122,8 @@ export function ClusterBriefSection({
   // No brief yet, and nothing to synthesize across — shown disabled with an
   // explanation rather than hidden entirely, so it's clear the feature exists
   // and why it isn't available right now.
+  // Relatedness is project-scoped, so "no related documents" means Unfiled or alone in a
+  // project — a state the user can fix directly, which is what the copy below points at.
   if (!brief && relatedCount === 0) {
     return (
       <Collapsible open={open} onOpenChange={setOpen} className="space-y-1.5">
@@ -135,8 +137,8 @@ export function ClusterBriefSection({
           No related documents yet
         </button>
         <p className="text-xs text-[#4A4A46]">
-          Brief needs at least one related document in your Vault to synthesize across. Add more
-          documents on related topics, or tag this one to help it match.
+          Related documents are the other documents in this document's project. Add this one to a
+          project that already holds others, and a brief can synthesize across them.
         </p>
       </Collapsible>
     )

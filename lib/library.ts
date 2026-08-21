@@ -51,6 +51,9 @@ export interface RelatedSpin {
   project_id: string | null
   converted_at: string
   rank?: number
+  /** IDF-weighted cosine affinity to the source doc, bucketed for display.
+   *  Project membership already asserts "these are related"; this says how tightly. */
+  strength?: "strong" | "medium" | "weak"
 }
 
 // Pure: merge per-source related results into one ranked, deduped list.
@@ -207,8 +210,12 @@ export async function listSpins(params: ListSpinsParams): Promise<Spin[]> {
   return withNullMarkdown(data ?? [])
 }
 
-// Top related vault docs for one source doc, ranked server-side by full-text overlap.
-export async function findRelatedSpins(sourceId: string, maxResults = 5): Promise<RelatedSpin[]> {
+// Sibling docs in the SAME project as the source, ranked by content affinity.
+// Scoping to the project is deliberate: membership is user-curated, which beats any lexical
+// guess at "is this related". Docs that are Unfiled or alone in a project return [] — most
+// documents genuinely have no related documents, and an empty panel is the honest answer.
+// Default is 10, not 5: a project can hold more siblings than a lexical top-5 ever returned.
+export async function findRelatedSpins(sourceId: string, maxResults = 10): Promise<RelatedSpin[]> {
   const supabase = createClient()
   const { data, error } = await supabase.rpc("find_related_conversions", {
     source_id: sourceId,

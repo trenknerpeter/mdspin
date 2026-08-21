@@ -4,6 +4,14 @@ import { useEffect, useState } from "react"
 import { FileText } from "lucide-react"
 import { findRelatedSpins, mergeRelatedSpins, type RelatedSpin } from "@/lib/library"
 
+/** Affinity beacon. Project membership already says "these belong together"; the beacon
+ *  says how tightly, so a loose member of a tight project reads as loose instead of equal. */
+const STRENGTH = {
+  strong: { label: "Strong", dot: "bg-[#FF4800]", text: "text-[#FF7A4D]" },
+  medium: { label: "Medium", dot: "bg-[#E0B341]", text: "text-[#C9A03B]" },
+  weak: { label: "Weak", dot: "bg-[#4A4A46]", text: "text-[#888480]" },
+} as const
+
 export function RelatedSpins({
   sourceIds,
   onOpen,
@@ -38,7 +46,7 @@ export function RelatedSpins({
     Promise.all(ids.map((id) => findRelatedSpins(id).catch(() => [] as RelatedSpin[])))
       .then((groups) => {
         if (cancelled) return
-        const merged = mergeRelatedSpins(groups, ids, 5)
+        const merged = mergeRelatedSpins(groups, ids, 10)
         setRelated(merged)
         onCount?.(merged.length)
       })
@@ -60,14 +68,24 @@ export function RelatedSpins({
   return (
     <div className={className}>
       <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-[#888480]">
-        Related in your Vault
+        Related in this project
       </p>
       <div className="space-y-1.5">
         {related.map((s) => {
+          const badge = s.strength ? STRENGTH[s.strength] : null
           const content = (
             <>
               <FileText className="h-3.5 w-3.5 shrink-0 text-[#4A4A46]" />
               <span className="flex-1 truncate text-[#F0EDE8]">{s.title || s.filename}</span>
+              {badge && (
+                <span
+                  className={`flex shrink-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide ${badge.text}`}
+                  title={`${badge.label} affinity — how much content this shares with the open document`}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} />
+                  {badge.label}
+                </span>
+              )}
               {s.word_count != null && (
                 <span className="shrink-0 text-xs text-[#4A4A46]">
                   {s.word_count.toLocaleString()} words
