@@ -1,5 +1,6 @@
 # Claude Code
 .claude/
+.superpowers/
 
 # v0 runtime files
 __v0_runtime_loader.js
@@ -16,3 +17,4 @@ node_modules/
 docs/
 .worktrees/
 .env.local
+tsconfig.tsbuildinfo
