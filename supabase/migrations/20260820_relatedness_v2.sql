@@ -13,8 +13,17 @@
 --
 -- `filename` was in neither the query nor search_vector, so it was invisible to relatedness.
 --
--- Three changes: (1) shared, reusable term-building that includes the filename; (2) a
--- WEIGHTED search_vector; (3) length-normalized ranking plus a distinct-lexeme-overlap floor.
+-- Four changes: (1) shared, reusable term-building that includes the filename; (2) a
+-- WEIGHTED search_vector; (3) length-normalized ranking; (4) a two-part relevance floor —
+-- N distinct shared terms AND at least one DISTINCTIVE shared term.
+--
+-- Why part 4 is not optional: counting shared terms without weighting them by how common
+-- they are is nearly always satisfiable. Measured in one real 14-doc vault, 'data' appears
+-- in 12 docs, 'free' in 9, 'featur' in 8 — so "shares 2 distinct terms" matched almost every
+-- pair, and unrelated docs surfaced on filler vocabulary alone. Requiring one term that
+-- appears in at most ~a third of the caller's vault cut 124 candidate pairs to 26 and left
+-- 24 of 42 docs correctly showing NOTHING. Most documents have no related documents; a
+-- relatedness feature that always finds something is lying.
 --
 -- Stage 2c of the Cloud Knowledge Hub plan (find_related_documents / build_knowledge_graph_v2,
 -- taking an explicit p_user_id) MUST call relatedness_query()/relatedness_lexemes() rather
@@ -114,7 +123,8 @@ drop function if exists public.find_related_conversions(uuid, int);
 create function public.find_related_conversions(
   source_id uuid,
   max_results int default 5,
-  min_overlap int default 2
+  min_overlap int default 2,
+  max_df_ratio real default 0.34
 )
 returns table (
   id uuid, filename text, title text, file_type text,
@@ -124,15 +134,38 @@ returns table (
 language sql stable security invoker
 set search_path = public
 as $$
-  with src as (
+  with vault as (
+    select c.id, c.search_vector
+    from public.conversions c
+    where c.user_id = auth.uid() and c.in_vault = true
+  ),
+  n as (select count(*)::float as total from vault),
+  src as (
     select c.title, c.tags, c.filename
     from public.conversions c
     where c.id = source_id and c.user_id = auth.uid()
   ),
   q as (
-    select public.relatedness_query(s.title, s.tags, s.filename)  as query,
+    select public.relatedness_query(s.title, s.tags, s.filename)   as query,
            public.relatedness_lexemes(s.title, s.tags, s.filename) as lexemes
     from src s
+  ),
+  -- Document frequency of each source term WITHIN THE CALLER'S OWN VAULT. Global IDF would
+  -- be wrong here: 'data' is unremarkable in a PM's vault and highly distinctive in a
+  -- recipe collection. Relatedness is relative to the corpus the user actually has.
+  df as (
+    select l.lex,
+           (select count(*) from vault v where l.lex = any (tsvector_to_array(v.search_vector)))::float as d
+    from q, unnest(q.lexemes) as l(lex)
+  ),
+  -- "Distinctive" = appears in at most max_df_ratio of the vault. The greatest(2.0, ...)
+  -- floor is load-bearing for small vaults: a SHARED term always has df >= 2 (it is in both
+  -- the source and the candidate), so a bare ratio would make every vault under ~6 docs
+  -- return nothing, forever. Verified: 7 docs across small vaults still return results.
+  rare as (
+    select coalesce(array_agg(df.lex), '{}'::text[]) as lexemes
+    from df, n
+    where df.d <= greatest(2.0, n.total * max_df_ratio)
   )
   select c.id, c.filename, c.title, c.file_type, c.word_count,
          c.tags, c.project_id, c.converted_at,
@@ -141,17 +174,24 @@ as $$
          ts_rank('{0.1,0.2,0.4,1.0}'::float4[], c.search_vector, q.query, 2|32) as rank
   from public.conversions c
   cross join q
+  cross join rare
   where c.user_id = auth.uid()
     and c.in_vault = true
     and c.id <> source_id
     and q.query @@ c.search_vector
-    -- Relevance floor: share at least N DISTINCT source terms. Absolute ts_rank values
-    -- under normalization 2 land around 1e-5 and are far too unstable to threshold on;
-    -- distinct-term overlap is stable, explainable, and independent of document length.
+    -- Part 1 of the floor: enough distinct shared terms.
     and (
       select count(*) from unnest(q.lexemes) l
       where l = any (tsvector_to_array(c.search_vector))
     ) >= least(greatest(min_overlap, 1), cardinality(q.lexemes))
+    -- Part 2: at least one of them must actually be distinctive. Note that RAISING
+    -- min_overlap without this makes results WORSE, not better -- long documents trivially
+    -- share many common terms, so a higher count threshold re-admits exactly the 13k-word
+    -- transcripts this migration removes. min_overlap is a noise gate, not a quality dial.
+    and exists (
+      select 1 from unnest(rare.lexemes) rl
+      where rl = any (tsvector_to_array(c.search_vector))
+    )
   order by rank desc
   limit max_results;
 $$;
@@ -167,28 +207,40 @@ returns table (source_id uuid, target_id uuid, weight real)
 language sql stable security invoker
 set search_path = public
 as $$
-  select s.id as source_id, t.id as target_id, t.rank as weight
-  from public.conversions s
-  cross join lateral (
-    select c.id, ts_rank('{0.1,0.2,0.4,1.0}'::float4[], c.search_vector, q.query, 2|32) as rank
+  with vault as (
+    select c.id, c.search_vector,
+           public.relatedness_lexemes(c.title, c.tags, c.filename) as lx,
+           public.relatedness_query(c.title, c.tags, c.filename)   as q
     from public.conversions c
-    cross join (
-      select public.relatedness_query(s.title, s.tags, s.filename)  as query,
-             public.relatedness_lexemes(s.title, s.tags, s.filename) as lexemes
-    ) q
-    where c.user_id = auth.uid()
-      and c.in_vault = true
-      and c.id <> s.id
-      and q.query @@ c.search_vector
-      and (
-        select count(*) from unnest(q.lexemes) l
-        where l = any (tsvector_to_array(c.search_vector))
-      ) >= least(2, cardinality(q.lexemes))
+    where c.user_id = auth.uid() and c.in_vault = true
+  ),
+  n as (select count(*)::float as total from vault),
+  -- df is computed ONCE over the vault's distinct lexemes, not per source node. Doing it
+  -- inside the per-node lateral would make this O(nodes x terms x nodes) on every Map load.
+  alllex as (select distinct unnest(lx) as lex from vault),
+  rare as (
+    select coalesce(array_agg(a.lex), '{}'::text[]) as lexemes
+    from alllex a, n
+    where (select count(*) from vault v where a.lex = any (tsvector_to_array(v.search_vector)))::float
+          <= greatest(2.0, n.total * 0.34)
+  )
+  select s.id as source_id, t.id as target_id, t.rank as weight
+  from vault s
+  cross join rare
+  cross join lateral (
+    select c.id, ts_rank('{0.1,0.2,0.4,1.0}'::float4[], c.search_vector, s.q, 2|32) as rank
+    from vault c
+    where c.id <> s.id
+      and s.q @@ c.search_vector
+      and (select count(*) from unnest(s.lx) l where l = any (tsvector_to_array(c.search_vector)))
+          >= least(2, cardinality(s.lx))
+      and exists (
+        select 1 from unnest(s.lx) l
+        where l = any (rare.lexemes) and l = any (tsvector_to_array(c.search_vector))
+      )
     order by rank desc
     limit max_per_node
-  ) t
-  where s.user_id = auth.uid()
-    and s.in_vault = true;
+  ) t;
 $$;
 
 notify pgrst, 'reload schema';
