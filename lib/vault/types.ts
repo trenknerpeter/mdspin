@@ -59,6 +59,17 @@ export interface VaultRelatedDocument {
   strength: "strong" | "medium" | "weak"
 }
 
+export interface VaultTagCount {
+  tag: string
+  count: number
+}
+
+export interface VaultStats {
+  documentCount: number
+  projectCount: number
+  topTags: VaultTagCount[]
+}
+
 export interface DocumentFilter {
   projectId?: string
   /** Match documents carrying ANY of these tags. */

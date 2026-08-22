@@ -210,3 +210,29 @@ describe("getRelatedDocuments", () => {
     await expect(repo.getRelatedDocuments("doc-1")).rejects.toThrow("timeout")
   })
 })
+
+describe("getStats", () => {
+  it("calls vault_stats with p_user_id and maps the row", async () => {
+    const client = new FakeClient({}, {
+      vault_stats: {
+        data: [{ document_count: 15, project_count: 5, top_tags: [{ tag: "assignment", count: 2 }] }],
+        error: null,
+      },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    const stats = await repo.getStats()
+
+    expect(client.rpcCalls).toContainEqual({ name: "vault_stats", args: { p_user_id: "user-123" } })
+    expect(stats).toEqual({
+      documentCount: 15,
+      projectCount: 5,
+      topTags: [{ tag: "assignment", count: 2 }],
+    })
+  })
+
+  it("falls back to empty stats if the RPC returns no row", async () => {
+    const client = new FakeClient({}, { vault_stats: { data: [], error: null } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    expect(await repo.getStats()).toEqual({ documentCount: 0, projectCount: 0, topTags: [] })
+  })
+})

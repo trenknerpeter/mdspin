@@ -9,8 +9,8 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
-import type { DocumentFilter, GetDocumentOptions, Page, VaultDocument, VaultProject, VaultRelatedDocument, VaultScope } from "./types"
-import { toVaultDocument, toVaultProject, toVaultRelatedDocument, type ConversionRow, type ProjectRow, type RelatedDocumentRow } from "./mappers"
+import type { DocumentFilter, GetDocumentOptions, Page, VaultDocument, VaultProject, VaultRelatedDocument, VaultScope, VaultStats } from "./types"
+import { toVaultDocument, toVaultProject, toVaultRelatedDocument, toVaultStats, type ConversionRow, type ProjectRow, type RelatedDocumentRow, type StatsRow } from "./mappers"
 import { clampLimit, clampOffset, buildPage, escapeIlikeTerm } from "./query"
 import { VaultError } from "./errors"
 
@@ -48,6 +48,7 @@ export interface VaultRepo {
   listProjects(): Promise<VaultProject[]>
   getProject(id: string): Promise<VaultProject | null>
   getRelatedDocuments(documentId: string, maxResults?: number): Promise<VaultRelatedDocument[]>
+  getStats(): Promise<VaultStats>
 }
 
 /**
@@ -132,6 +133,13 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
       })
       if (error) throw new VaultError("DB_ERROR", error.message)
       return ((data ?? []) as RelatedDocumentRow[]).map(toVaultRelatedDocument)
+    },
+
+    async getStats(): Promise<VaultStats> {
+      const { data, error } = await client.rpc("vault_stats", { p_user_id: scope.userId })
+      if (error) throw new VaultError("DB_ERROR", error.message)
+      const rows = (data ?? []) as StatsRow[]
+      return toVaultStats(rows[0] ?? { document_count: 0, project_count: 0, top_tags: [] })
     },
   }
 }

@@ -1,7 +1,7 @@
 // Pure row -> domain mapping. Isolated from repo.ts so the DB's column-naming
 // conventions (snake_case, singular `project_id`) never leak past this one seam.
 
-import type { VaultDocument, VaultProject, VaultRelatedDocument } from "./types"
+import type { VaultDocument, VaultProject, VaultRelatedDocument, VaultStats } from "./types"
 
 /** Shape of a `conversions` row as selected by repo.ts. `markdown_text` is absent from
  *  the row entirely on list queries (repo.ts omits the column — one doc is 2.4MB) and
@@ -81,5 +81,19 @@ export function toVaultRelatedDocument(row: RelatedDocumentRow): VaultRelatedDoc
     convertedAt: row.converted_at,
     rank: row.rank,
     strength: row.strength as VaultRelatedDocument["strength"],
+  }
+}
+
+export interface StatsRow {
+  document_count: number
+  project_count: number
+  top_tags: Array<{ tag: string; count: number }> | null
+}
+
+export function toVaultStats(row: StatsRow): VaultStats {
+  return {
+    documentCount: row.document_count,
+    projectCount: row.project_count,
+    topTags: row.top_tags ?? [],
   }
 }
