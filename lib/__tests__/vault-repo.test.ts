@@ -235,4 +235,12 @@ describe("getStats", () => {
     const repo = createVaultRepo(client as never, SCOPE)
     expect(await repo.getStats()).toEqual({ documentCount: 0, projectCount: 0, topTags: [] })
   })
+
+  it("surfaces a Postgres error as a VaultError", async () => {
+    const client = new FakeClient({}, {
+      vault_stats: { data: null, error: { message: "timeout" } },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(repo.getStats()).rejects.toThrow("timeout")
+  })
 })
