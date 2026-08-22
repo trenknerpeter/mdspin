@@ -287,4 +287,12 @@ describe("searchDocuments", () => {
     await repo.searchDocuments("x", { projectId: "proj-9", tags: ["a", "b"] })
     expect(client.rpcCalls[0].args).toMatchObject({ p_project_id: "proj-9", p_tags: ["a", "b"] })
   })
+
+  it("surfaces a Postgres error as a VaultError", async () => {
+    const client = new FakeClient({}, {
+      vault_search_documents: { data: null, error: { message: "timeout" } },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(repo.searchDocuments("x")).rejects.toThrow("timeout")
+  })
 })
