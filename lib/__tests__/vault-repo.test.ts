@@ -43,7 +43,11 @@ class FakeBuilder {
 
 class FakeClient {
   builders: FakeBuilder[] = []
-  constructor(private resultsByTable: Record<string, unknown>) {}
+  rpcCalls: { name: string; args: unknown }[] = []
+  constructor(
+    private resultsByTable: Record<string, unknown> = {},
+    private rpcResults: Record<string, unknown> = {}
+  ) {}
   from(table: string) {
     return {
       select: (_cols: string, _opts?: unknown) => {
@@ -52,6 +56,10 @@ class FakeClient {
         return b
       },
     }
+  }
+  rpc(name: string, args: unknown) {
+    this.rpcCalls.push({ name, args })
+    return Promise.resolve(this.rpcResults[name] ?? { data: [], error: null })
   }
 }
 
@@ -154,5 +162,51 @@ describe("createVaultRepo — the scoped() choke point", () => {
     await repo.listDocuments()
     const [builder] = client.builders
     expect(eqCalls(builder)).toContainEqual({ method: "eq", args: ["user_id", "user-123"] })
+  })
+})
+
+describe("getRelatedDocuments", () => {
+  it("calls find_related_documents with an explicit p_user_id, never auth.uid()", async () => {
+    const client = new FakeClient({}, {
+      find_related_documents: {
+        data: [
+          {
+            id: "doc-2", filename: "sibling.md", title: "Sibling", file_type: "markdown",
+            word_count: 100, tags: ["a"], project_id: "proj-1",
+            converted_at: "2026-08-01T00:00:00Z", rank: 0.2, strength: "medium",
+          },
+        ],
+        error: null,
+      },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    const results = await repo.getRelatedDocuments("doc-1", 5)
+
+    expect(client.rpcCalls).toContainEqual({
+      name: "find_related_documents",
+      args: { p_user_id: "user-123", p_source_id: "doc-1", p_max_results: 5 },
+    })
+    expect(results).toEqual([
+      {
+        id: "doc-2", filename: "sibling.md", title: "Sibling", fileType: "markdown",
+        wordCount: 100, tags: ["a"], projectId: "proj-1",
+        convertedAt: "2026-08-01T00:00:00Z", rank: 0.2, strength: "medium",
+      },
+    ])
+  })
+
+  it("defaults maxResults to 10", async () => {
+    const client = new FakeClient({}, { find_related_documents: { data: [], error: null } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await repo.getRelatedDocuments("doc-1")
+    expect(client.rpcCalls[0].args).toMatchObject({ p_max_results: 10 })
+  })
+
+  it("surfaces a Postgres error as a VaultError", async () => {
+    const client = new FakeClient({}, {
+      find_related_documents: { data: null, error: { message: "timeout" } },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(repo.getRelatedDocuments("doc-1")).rejects.toThrow("timeout")
   })
 })

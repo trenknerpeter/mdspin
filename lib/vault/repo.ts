@@ -9,8 +9,8 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
-import type { DocumentFilter, GetDocumentOptions, Page, VaultDocument, VaultProject, VaultScope } from "./types"
-import { toVaultDocument, toVaultProject, type ConversionRow, type ProjectRow } from "./mappers"
+import type { DocumentFilter, GetDocumentOptions, Page, VaultDocument, VaultProject, VaultRelatedDocument, VaultScope } from "./types"
+import { toVaultDocument, toVaultProject, toVaultRelatedDocument, type ConversionRow, type ProjectRow, type RelatedDocumentRow } from "./mappers"
 import { clampLimit, clampOffset, buildPage, escapeIlikeTerm } from "./query"
 import { VaultError } from "./errors"
 
@@ -47,6 +47,7 @@ export interface VaultRepo {
   getDocument(id: string, opts?: GetDocumentOptions): Promise<VaultDocument | null>
   listProjects(): Promise<VaultProject[]>
   getProject(id: string): Promise<VaultProject | null>
+  getRelatedDocuments(documentId: string, maxResults?: number): Promise<VaultRelatedDocument[]>
 }
 
 /**
@@ -121,6 +122,16 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
         .maybeSingle()
       if (error) throw new VaultError("DB_ERROR", error.message)
       return data ? toVaultProject(data as ProjectRow) : null
+    },
+
+    async getRelatedDocuments(documentId: string, maxResults = 10): Promise<VaultRelatedDocument[]> {
+      const { data, error } = await client.rpc("find_related_documents", {
+        p_user_id: scope.userId,
+        p_source_id: documentId,
+        p_max_results: maxResults,
+      })
+      if (error) throw new VaultError("DB_ERROR", error.message)
+      return ((data ?? []) as RelatedDocumentRow[]).map(toVaultRelatedDocument)
     },
   }
 }

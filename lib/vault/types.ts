@@ -46,6 +46,19 @@ export interface VaultProject {
   createdAt: string
 }
 
+export interface VaultRelatedDocument {
+  id: string
+  filename: string
+  title: string | null
+  fileType: string
+  wordCount: number | null
+  tags: string[]
+  projectId: string | null
+  convertedAt: string
+  rank: number
+  strength: "strong" | "medium" | "weak"
+}
+
 export interface DocumentFilter {
   projectId?: string
   /** Match documents carrying ANY of these tags. */
