@@ -7,6 +7,7 @@ describe("VaultError", () => {
     expect(new VaultError("NOT_CONFIGURED", "x").status).toBe(503)
     expect(new VaultError("NOT_FOUND", "x").status).toBe(404)
     expect(new VaultError("INVALID_REQUEST", "x").status).toBe(400)
+    expect(new VaultError("VERSION_CONFLICT", "x").status).toBe(409)
     expect(new VaultError("DB_ERROR", "x").status).toBe(500)
   })
 

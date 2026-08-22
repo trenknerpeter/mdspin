@@ -1,7 +1,7 @@
 // Pure row -> domain mapping. Isolated from repo.ts so the DB's column-naming
 // conventions (snake_case, singular `project_id`) never leak past this one seam.
 
-import type { VaultDocument, VaultProject, VaultRelatedDocument, VaultSearchResult, VaultStats } from "./types"
+import type { VaultDocument, VaultDocumentPatch, VaultProject, VaultRelatedDocument, VaultSearchResult, VaultStats } from "./types"
 
 /** Shape of a `conversions` row as selected by repo.ts. `markdown_text` is absent from
  *  the row entirely on list queries (repo.ts omits the column — one doc is 2.4MB) and
@@ -106,4 +106,13 @@ export interface SearchRow extends ConversionRow {
 
 export function toVaultSearchResult(row: SearchRow): VaultSearchResult {
   return { ...toVaultDocument(row), rank: row.rank, snippet: row.snippet }
+}
+
+export function buildDocumentPatchPayload(patch: VaultDocumentPatch): Record<string, unknown> {
+  const payload: Record<string, unknown> = {}
+  if ("title" in patch) payload.title = patch.title
+  if ("markdown" in patch) payload.markdown_text = patch.markdown
+  if ("tags" in patch) payload.tags = patch.tags
+  if ("projectId" in patch) payload.project_id = patch.projectId
+  return payload
 }

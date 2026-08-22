@@ -9,8 +9,8 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
-import type { DocumentFilter, GetDocumentOptions, Page, SearchOptions, VaultDocument, VaultProject, VaultRelatedDocument, VaultScope, VaultSearchResult, VaultStats } from "./types"
-import { toVaultDocument, toVaultProject, toVaultRelatedDocument, toVaultSearchResult, toVaultStats, type ConversionRow, type ProjectRow, type RelatedDocumentRow, type SearchRow, type StatsRow } from "./mappers"
+import type { DocumentFilter, GetDocumentOptions, Page, SearchOptions, UpdateDocumentOptions, VaultDocument, VaultDocumentPatch, VaultProject, VaultRelatedDocument, VaultScope, VaultSearchResult, VaultStats } from "./types"
+import { buildDocumentPatchPayload, toVaultDocument, toVaultProject, toVaultRelatedDocument, toVaultSearchResult, toVaultStats, type ConversionRow, type ProjectRow, type RelatedDocumentRow, type SearchRow, type StatsRow } from "./mappers"
 import { clampLimit, clampOffset, buildPage, escapeIlikeTerm } from "./query"
 import { VaultError } from "./errors"
 
@@ -50,6 +50,7 @@ export interface VaultRepo {
   getRelatedDocuments(documentId: string, maxResults?: number): Promise<VaultRelatedDocument[]>
   getStats(): Promise<VaultStats>
   searchDocuments(query: string, opts?: SearchOptions): Promise<Page<VaultSearchResult>>
+  updateDocument(id: string, patch: VaultDocumentPatch, opts: UpdateDocumentOptions): Promise<VaultDocument>
 }
 
 /**
@@ -158,6 +159,36 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
       const rows = (data ?? []) as SearchRow[]
       const total = rows[0]?.total_count ?? 0
       return buildPage(rows.map(toVaultSearchResult), { limit, offset, total })
+    },
+
+    async updateDocument(
+      id: string,
+      patch: VaultDocumentPatch,
+      opts: UpdateDocumentOptions
+    ): Promise<VaultDocument> {
+      const { data, error } = await client.rpc("vault_update_document", {
+        p_user_id: scope.userId,
+        p_document_id: id,
+        p_expected_version: opts.expectedVersion,
+        p_patch: buildDocumentPatchPayload(patch),
+        p_actor: opts.actor ?? "user",
+        p_actor_key_id: opts.actorKeyId ?? null,
+        p_reason: opts.reason ?? null,
+      })
+      if (error) {
+        if (error.code === "55000") {
+          throw new VaultError(
+            "VERSION_CONFLICT",
+            `Expected version ${opts.expectedVersion}, current is ${error.details}.`
+          )
+        }
+        if (error.code === "P0002") throw new VaultError("NOT_FOUND", "Document not found.")
+        if (error.code === "28000") throw new VaultError("AUTH_REQUIRED", "Not authorized for this document.")
+        throw new VaultError("DB_ERROR", error.message)
+      }
+      const rows = (data ?? []) as ConversionRow[]
+      if (!rows[0]) throw new VaultError("NOT_FOUND", "Document not found.")
+      return toVaultDocument(rows[0])
     },
   }
 }

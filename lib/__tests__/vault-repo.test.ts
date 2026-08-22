@@ -296,3 +296,72 @@ describe("searchDocuments", () => {
     await expect(repo.searchDocuments("x")).rejects.toThrow("timeout")
   })
 })
+
+describe("updateDocument", () => {
+  const RPC_ROW = {
+    id: "doc-1", filename: "f.md", title: "New title", file_type: "markdown", word_count: 10,
+    project_id: null, tags: ["scratch"], source_type: "note",
+    converted_at: "2026-08-01T00:00:00Z", updated_at: "2026-08-02T00:00:00Z", version: 2,
+  }
+
+  it("sends only the patched keys, with explicit p_user_id and the expected version", async () => {
+    const client = new FakeClient({}, { vault_update_document: { data: [RPC_ROW], error: null } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    const doc = await repo.updateDocument("doc-1", { title: "New title" }, { expectedVersion: 1 })
+
+    expect(client.rpcCalls).toContainEqual({
+      name: "vault_update_document",
+      args: {
+        p_user_id: "user-123", p_document_id: "doc-1", p_expected_version: 1,
+        p_patch: { title: "New title" }, p_actor: "user", p_actor_key_id: null, p_reason: null,
+      },
+    })
+    expect(doc.title).toBe("New title")
+    expect(doc.version).toBe(2)
+  })
+
+  it("includes an explicit null when a caller clears a field, but omits untouched fields", async () => {
+    const client = new FakeClient({}, { vault_update_document: { data: [RPC_ROW], error: null } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await repo.updateDocument("doc-1", { title: null }, { expectedVersion: 1 })
+    expect(client.rpcCalls[0].args).toMatchObject({ p_patch: { title: null } })
+  })
+
+  it("passes actor, actorKeyId, and reason through when given", async () => {
+    const client = new FakeClient({}, { vault_update_document: { data: [RPC_ROW], error: null } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await repo.updateDocument("doc-1", { tags: ["a"] }, {
+      expectedVersion: 1, actor: "api", actorKeyId: "key-1", reason: "sync",
+    })
+    expect(client.rpcCalls[0].args).toMatchObject({
+      p_actor: "api", p_actor_key_id: "key-1", p_reason: "sync",
+    })
+  })
+
+  it("maps a 55000 error to VERSION_CONFLICT with the current version in the message", async () => {
+    const client = new FakeClient({}, {
+      vault_update_document: { data: null, error: { code: "55000", message: "VERSION_CONFLICT", details: "3" } },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(repo.updateDocument("doc-1", { title: "x" }, { expectedVersion: 1 }))
+      .rejects.toMatchObject({ code: "VERSION_CONFLICT", status: 409 })
+  })
+
+  it("maps a P0002 error to NOT_FOUND", async () => {
+    const client = new FakeClient({}, {
+      vault_update_document: { data: null, error: { code: "P0002", message: "NOT_FOUND" } },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(repo.updateDocument("doc-1", { title: "x" }, { expectedVersion: 1 }))
+      .rejects.toMatchObject({ code: "NOT_FOUND", status: 404 })
+  })
+
+  it("maps a 28000 error to AUTH_REQUIRED", async () => {
+    const client = new FakeClient({}, {
+      vault_update_document: { data: null, error: { code: "28000", message: "AUTH_REQUIRED" } },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(repo.updateDocument("doc-1", { title: "x" }, { expectedVersion: 1 }))
+      .rejects.toMatchObject({ code: "AUTH_REQUIRED", status: 401 })
+  })
+})

@@ -12,6 +12,7 @@ export type VaultErrorCode =
   | "NOT_CONFIGURED"
   | "NOT_FOUND"
   | "INVALID_REQUEST"
+  | "VERSION_CONFLICT"
   | "DB_ERROR"
 
 const STATUS_BY_CODE: Record<VaultErrorCode, number> = {
@@ -19,6 +20,7 @@ const STATUS_BY_CODE: Record<VaultErrorCode, number> = {
   NOT_CONFIGURED: 503,
   NOT_FOUND: 404,
   INVALID_REQUEST: 400,
+  VERSION_CONFLICT: 409,
   DB_ERROR: 500,
 }
 

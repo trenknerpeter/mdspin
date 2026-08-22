@@ -97,6 +97,27 @@ export interface VaultSearchResult extends VaultDocument {
   snippet: string
 }
 
+export type RevisionActor = "user" | "api" | "mcp" | "make" | "system"
+
+/** Only keys present in this object are changed — checked via `"title" in patch`, not
+ *  `patch.title !== undefined` — so a caller can explicitly clear a field to `null` and
+ *  have that survive distinctly from "leave unchanged" (key absent) all the way to
+ *  vault_update_document's `p_patch ? 'title'` check. Build with `buildDocumentPatchPayload`
+ *  (mappers.ts) rather than a literal. */
+export type VaultDocumentPatch = Partial<{
+  title: string | null
+  markdown: string | null
+  tags: string[]
+  projectId: string | null
+}>
+
+export interface UpdateDocumentOptions {
+  expectedVersion: number
+  actor?: RevisionActor
+  actorKeyId?: string
+  reason?: string
+}
+
 export interface PageInfo {
   limit: number
   offset: number
