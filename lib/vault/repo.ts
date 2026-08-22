@@ -9,8 +9,8 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
-import type { DocumentFilter, GetDocumentOptions, Page, VaultDocument, VaultProject, VaultRelatedDocument, VaultScope, VaultStats } from "./types"
-import { toVaultDocument, toVaultProject, toVaultRelatedDocument, toVaultStats, type ConversionRow, type ProjectRow, type RelatedDocumentRow, type StatsRow } from "./mappers"
+import type { DocumentFilter, GetDocumentOptions, Page, SearchOptions, VaultDocument, VaultProject, VaultRelatedDocument, VaultScope, VaultSearchResult, VaultStats } from "./types"
+import { toVaultDocument, toVaultProject, toVaultRelatedDocument, toVaultSearchResult, toVaultStats, type ConversionRow, type ProjectRow, type RelatedDocumentRow, type SearchRow, type StatsRow } from "./mappers"
 import { clampLimit, clampOffset, buildPage, escapeIlikeTerm } from "./query"
 import { VaultError } from "./errors"
 
@@ -49,6 +49,7 @@ export interface VaultRepo {
   getProject(id: string): Promise<VaultProject | null>
   getRelatedDocuments(documentId: string, maxResults?: number): Promise<VaultRelatedDocument[]>
   getStats(): Promise<VaultStats>
+  searchDocuments(query: string, opts?: SearchOptions): Promise<Page<VaultSearchResult>>
 }
 
 /**
@@ -140,6 +141,23 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
       if (error) throw new VaultError("DB_ERROR", error.message)
       const rows = (data ?? []) as StatsRow[]
       return toVaultStats(rows[0] ?? { document_count: 0, project_count: 0, top_tags: [] })
+    },
+
+    async searchDocuments(query: string, opts: SearchOptions = {}): Promise<Page<VaultSearchResult>> {
+      const limit = clampLimit(opts.limit)
+      const offset = clampOffset(opts.offset)
+      const { data, error } = await client.rpc("vault_search_documents", {
+        p_user_id: scope.userId,
+        p_query: query,
+        p_project_id: opts.projectId ?? null,
+        p_tags: opts.tags ?? null,
+        p_limit: limit,
+        p_offset: offset,
+      })
+      if (error) throw new VaultError("DB_ERROR", error.message)
+      const rows = (data ?? []) as SearchRow[]
+      const total = rows[0]?.total_count ?? 0
+      return buildPage(rows.map(toVaultSearchResult), { limit, offset, total })
     },
   }
 }

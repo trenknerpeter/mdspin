@@ -244,3 +244,47 @@ describe("getStats", () => {
     await expect(repo.getStats()).rejects.toThrow("timeout")
   })
 })
+
+describe("searchDocuments", () => {
+  it("calls vault_search_documents with clamped paging and maps rows + total from the page", async () => {
+    const client = new FakeClient({}, {
+      vault_search_documents: {
+        data: [
+          {
+            id: "doc-3", filename: "gating.pdf", title: null, file_type: "pdf", word_count: 500,
+            project_id: "proj-2", tags: ["data"], source_type: "upload",
+            converted_at: "2026-08-01T00:00:00Z", updated_at: "2026-08-02T00:00:00Z", version: 2,
+            rank: 0.05, snippet: "...gating behavior...", total_count: 1,
+          },
+        ],
+        error: null,
+      },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    const page = await repo.searchDocuments("gating", { limit: 5, offset: 0 })
+
+    expect(client.rpcCalls).toContainEqual({
+      name: "vault_search_documents",
+      args: {
+        p_user_id: "user-123", p_query: "gating",
+        p_project_id: null, p_tags: null, p_limit: 5, p_offset: 0,
+      },
+    })
+    expect(page.data).toEqual([
+      {
+        id: "doc-3", filename: "gating.pdf", title: null, fileType: "pdf", wordCount: 500,
+        projectIds: ["proj-2"], tags: ["data"], sourceType: "upload",
+        convertedAt: "2026-08-01T00:00:00Z", updatedAt: "2026-08-02T00:00:00Z", version: 2,
+        markdown: null, rank: 0.05, snippet: "...gating behavior...",
+      },
+    ])
+    expect(page.page).toEqual({ limit: 5, offset: 0, total: 1, hasMore: false, nextOffset: null })
+  })
+
+  it("passes projectId and tags through when given", async () => {
+    const client = new FakeClient({}, { vault_search_documents: { data: [], error: null } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await repo.searchDocuments("x", { projectId: "proj-9", tags: ["a", "b"] })
+    expect(client.rpcCalls[0].args).toMatchObject({ p_project_id: "proj-9", p_tags: ["a", "b"] })
+  })
+})

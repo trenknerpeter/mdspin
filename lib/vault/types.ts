@@ -85,6 +85,18 @@ export interface GetDocumentOptions {
   includeMarkdown?: boolean
 }
 
+export interface SearchOptions {
+  projectId?: string
+  tags?: string[]
+  limit?: number
+  offset?: number
+}
+
+export interface VaultSearchResult extends VaultDocument {
+  rank: number
+  snippet: string
+}
+
 export interface PageInfo {
   limit: number
   offset: number
