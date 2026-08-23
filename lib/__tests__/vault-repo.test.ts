@@ -202,6 +202,16 @@ describe("getRelatedDocuments", () => {
     expect(client.rpcCalls[0].args).toMatchObject({ p_max_results: 10 })
   })
 
+  it("clamps an out-of-range maxResults instead of passing it through raw", async () => {
+    const client = new FakeClient({}, { find_related_documents: { data: [], error: null } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await repo.getRelatedDocuments("doc-1", -1)
+    expect(client.rpcCalls[0].args).toMatchObject({ p_max_results: 1 })
+
+    await repo.getRelatedDocuments("doc-1", 999)
+    expect(client.rpcCalls[1].args).toMatchObject({ p_max_results: 25 })
+  })
+
   it("surfaces a Postgres error as a VaultError", async () => {
     const client = new FakeClient({}, {
       find_related_documents: { data: null, error: { message: "timeout" } },
@@ -288,6 +298,20 @@ describe("searchDocuments", () => {
     expect(client.rpcCalls[0].args).toMatchObject({ p_project_id: "proj-9", p_tags: ["a", "b"] })
   })
 
+  it("normalizes an empty-array tags filter to null instead of an always-empty overlap", async () => {
+    const client = new FakeClient({}, { vault_search_documents: { data: [], error: null } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await repo.searchDocuments("x", { tags: [] })
+    expect(client.rpcCalls[0].args).toMatchObject({ p_tags: null })
+  })
+
+  it("normalizes an empty-string projectId to null instead of a 22P02 uuid cast error", async () => {
+    const client = new FakeClient({}, { vault_search_documents: { data: [], error: null } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await repo.searchDocuments("x", { projectId: "" })
+    expect(client.rpcCalls[0].args).toMatchObject({ p_project_id: null })
+  })
+
   it("surfaces a Postgres error as a VaultError", async () => {
     const client = new FakeClient({}, {
       vault_search_documents: { data: null, error: { message: "timeout" } },
@@ -363,5 +387,22 @@ describe("updateDocument", () => {
     const repo = createVaultRepo(client as never, SCOPE)
     await expect(repo.updateDocument("doc-1", { title: "x" }, { expectedVersion: 1 }))
       .rejects.toMatchObject({ code: "AUTH_REQUIRED", status: 401 })
+  })
+
+  it("maps a 22023 error to INVALID_REQUEST — a project_id the caller doesn't own", async () => {
+    const client = new FakeClient({}, {
+      vault_update_document: { data: null, error: { code: "22023", message: "INVALID_REQUEST" } },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(repo.updateDocument("doc-1", { projectId: "proj-not-mine" }, { expectedVersion: 1 }))
+      .rejects.toMatchObject({ code: "INVALID_REQUEST", status: 400 })
+  })
+
+  it("rejects an empty patch before ever calling the RPC", async () => {
+    const client = new FakeClient({}, { vault_update_document: { data: [RPC_ROW], error: null } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(repo.updateDocument("doc-1", {}, { expectedVersion: 1 }))
+      .rejects.toMatchObject({ code: "INVALID_REQUEST", status: 400 })
+    expect(client.rpcCalls.length).toBe(0)
   })
 })

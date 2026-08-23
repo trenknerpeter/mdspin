@@ -131,7 +131,12 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
       const { data, error } = await client.rpc("find_related_documents", {
         p_user_id: scope.userId,
         p_source_id: documentId,
-        p_max_results: maxResults,
+        // Clamp: -1 (or any out-of-range value) previously reached Postgres raw and blew up
+        // with a 2201W. 25 matches the strategy doc's stated MCP tool limit for
+        // related-document lookups. `maxResults` already defaults to 10 above, so a caller
+        // passing nothing still gets 10 — clampLimit's own internal default (used only when
+        // its first arg is `undefined`) never comes into play here.
+        p_max_results: clampLimit(maxResults, 25),
       })
       if (error) throw new VaultError("DB_ERROR", error.message)
       return ((data ?? []) as RelatedDocumentRow[]).map(toVaultRelatedDocument)
@@ -150,8 +155,12 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
       const { data, error } = await client.rpc("vault_search_documents", {
         p_user_id: scope.userId,
         p_query: query,
-        p_project_id: opts.projectId ?? null,
-        p_tags: opts.tags ?? null,
+        // Match listDocuments()'s truthiness convention rather than `?? null`: an empty
+        // string projectId or an empty tags array must normalize to "no filter" (null), not
+        // be forwarded as-is — `{tags: []}` && anything is never true (0 rows), and an empty
+        // string cast to uuid throws a Postgres 22P02 that would otherwise surface as a 500.
+        p_project_id: opts.projectId || null,
+        p_tags: opts.tags?.length ? opts.tags : null,
         p_limit: limit,
         p_offset: offset,
       })
@@ -166,11 +175,19 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
       patch: VaultDocumentPatch,
       opts: UpdateDocumentOptions
     ): Promise<VaultDocument> {
+      const payload = buildDocumentPatchPayload(patch)
+      // An empty payload (no recognized keys) is a destructive no-op at the SQL layer: the
+      // UPDATE still runs, the conversions_touch trigger still bumps version, and a junk
+      // pre-image revision row still gets written — for a patch that changed nothing. Reject
+      // before ever calling the RPC.
+      if (Object.keys(payload).length === 0) {
+        throw new VaultError("INVALID_REQUEST", "Patch must include at least one field to update.")
+      }
       const { data, error } = await client.rpc("vault_update_document", {
         p_user_id: scope.userId,
         p_document_id: id,
         p_expected_version: opts.expectedVersion,
-        p_patch: buildDocumentPatchPayload(patch),
+        p_patch: payload,
         p_actor: opts.actor ?? "user",
         p_actor_key_id: opts.actorKeyId ?? null,
         p_reason: opts.reason ?? null,
@@ -184,6 +201,7 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
         }
         if (error.code === "P0002") throw new VaultError("NOT_FOUND", "Document not found.")
         if (error.code === "28000") throw new VaultError("AUTH_REQUIRED", "Not authorized for this document.")
+        if (error.code === "22023") throw new VaultError("INVALID_REQUEST", "project_id does not belong to this user.")
         throw new VaultError("DB_ERROR", error.message)
       }
       const rows = (data ?? []) as ConversionRow[]

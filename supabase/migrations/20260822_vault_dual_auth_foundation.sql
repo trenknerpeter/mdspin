@@ -1,4 +1,10 @@
 -- Stage 2c foundation: projects.instructions, document_revisions, vault_actor_ok. Applied live via Supabase MCP; this file is a record-only mirror.
+--
+-- `projects.instructions` is added now but deliberately not read by any code in this
+-- stage — it exists for a future Stage 2e tool.
+--
+-- `document_revisions.project_id` deliberately carries no foreign key, so a document's
+-- revision history survives the referenced project later being deleted.
 
 alter table public.projects
   add column if not exists instructions text;
@@ -32,10 +38,16 @@ create policy document_revisions_owner_insert on public.document_revisions
 create policy document_revisions_owner_delete on public.document_revisions
   for delete using (auth.uid() = user_id);
 
+-- Final-review amendment (2026-08-23): added `set search_path to 'public'` — the Supabase
+-- advisor flagged this as one of two of the six new Stage 2c functions missing it (the
+-- other was vault_update_document, amended in 20260822_vault_update_document.sql). The
+-- function's one reference (`auth.uid()`) is unaffected — auth is a separate schema outside
+-- `public` regardless of search_path — so this only closes the advisory warning.
 create or replace function public.vault_actor_ok(p_user_id uuid)
 returns boolean
 language sql
 stable
+set search_path to 'public'
 as $$
   select auth.uid() is null or auth.uid() = p_user_id
 $$;

@@ -1,4 +1,8 @@
 -- Stage 2c: aggregate vault stats for vault_overview (Stage 2e) and /api/v1/vault/stats (Stage 2d).
+--
+-- Final-review amendment (2026-08-23): the `tag_counts` CTE already carries `order by n
+-- desc, t`, but nothing guarantees a GROUP-BY-then-aggregate ordering survives into
+-- jsonb_agg without an explicit ORDER BY on the aggregate itself. Made explicit below.
 create or replace function public.vault_stats(p_user_id uuid)
 returns table(
   document_count integer,
@@ -25,5 +29,5 @@ as $$
   select
     (select count(*) from scope)::integer,
     (select count(distinct project_id) from scope where project_id is not null)::integer,
-    coalesce((select jsonb_agg(jsonb_build_object('tag', tag, 'count', n)) from tag_counts), '[]'::jsonb)
+    coalesce((select jsonb_agg(jsonb_build_object('tag', tag, 'count', n) order by n desc, tag) from tag_counts), '[]'::jsonb)
 $$;

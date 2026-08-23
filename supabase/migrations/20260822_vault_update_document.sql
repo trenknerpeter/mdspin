@@ -7,6 +7,20 @@
 -- SET clause fallbacks, DELETE pruning subqueries, etc.) is ambiguous between the OUT
 -- variable and the table column. Every table reference below is qualified with an alias
 -- to avoid this.
+--
+-- Final-review amendment (2026-08-23): two fixes folded into this CREATE OR REPLACE.
+-- (1) `set search_path to 'public'` added — this was the one of the six new Stage 2c
+-- functions (besides vault_actor_ok) the Supabase advisor flagged as missing it; every
+-- reference in the body was already schema-qualified with `public.`, so this only closes
+-- the advisory warning, no behavior change.
+-- (2) A project_id-ownership check added before the UPDATE: the `conversions.project_id`
+-- foreign key only checks that the referenced project EXISTS, not who owns it, and FK
+-- checks bypass RLS — so without this guard, patching a document's project_id to a project
+-- owned by a different user succeeded silently. Live-verified against the hosted DB: a
+-- scratch document's project_id could previously be moved to another real user's project
+-- through this RPC. Now rejected with errcode 22023 (mapped to VaultError INVALID_REQUEST
+-- in lib/vault/repo.ts's updateDocument()) unless the target project belongs to p_user_id,
+-- or the patch is explicitly clearing project_id to null.
 
 create or replace function public.vault_update_document(
   p_user_id uuid,
@@ -23,6 +37,7 @@ returns table(
   updated_at timestamptz, version integer
 )
 language plpgsql
+set search_path to 'public'
 as $$
 declare
   v_current record;
@@ -44,6 +59,15 @@ begin
   if v_current.version <> p_expected_version then
     raise exception 'VERSION_CONFLICT'
       using errcode = '55000', detail = v_current.version::text;
+  end if;
+
+  if p_patch ? 'project_id' and p_patch->>'project_id' is not null then
+    if not exists (
+      select 1 from public.projects pr
+       where pr.id = (p_patch->>'project_id')::uuid and pr.user_id = p_user_id
+    ) then
+      raise exception 'INVALID_REQUEST' using errcode = '22023';
+    end if;
   end if;
 
   insert into public.document_revisions (
