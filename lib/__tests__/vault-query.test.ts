@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { clampLimit, clampOffset, escapeIlikeTerm, buildPage } from "@/lib/vault/query"
+import { clampLimit, clampOffset, escapeIlikeTerm, buildPage, parseTagsParam, parseNumberParam } from "@/lib/vault/query"
 
 describe("clampLimit", () => {
   it("defaults when undefined", () => {
@@ -62,5 +62,36 @@ describe("buildPage", () => {
     const page = buildPage([], { limit: 20, offset: 0, total: 0 })
     expect(page.data).toEqual([])
     expect(page.page.hasMore).toBe(false)
+  })
+})
+
+describe("parseTagsParam", () => {
+  it("returns undefined for null", () => {
+    expect(parseTagsParam(null)).toBeUndefined()
+  })
+  it("returns undefined for an empty string", () => {
+    expect(parseTagsParam("")).toBeUndefined()
+  })
+  it("splits, trims, and drops empty segments", () => {
+    expect(parseTagsParam("a, b ,, c")).toEqual(["a", "b", "c"])
+  })
+  it("returns undefined when every segment is empty", () => {
+    expect(parseTagsParam(",, ,")).toBeUndefined()
+  })
+})
+
+describe("parseNumberParam", () => {
+  it("returns undefined for null", () => {
+    expect(parseNumberParam(null)).toBeUndefined()
+  })
+  it("returns undefined for an empty or whitespace string", () => {
+    expect(parseNumberParam("")).toBeUndefined()
+    expect(parseNumberParam("  ")).toBeUndefined()
+  })
+  it("parses a valid integer string", () => {
+    expect(parseNumberParam("42")).toBe(42)
+  })
+  it("returns NaN for a garbage string, for the caller's clamp to catch", () => {
+    expect(parseNumberParam("abc")).toBeNaN()
   })
 })

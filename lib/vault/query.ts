@@ -33,6 +33,28 @@ export function escapeIlikeTerm(term: string): string {
   return term.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_").replace(/,/g, "\\,")
 }
 
+/** Comma-separated tags querystring param -> a clean array, or undefined when there's
+ *  nothing usable. Matches clampLimit/clampOffset's tolerate-garbage policy — `?tags=`
+ *  or `?tags=,,` should never 400, just mean "no tag filter". */
+export function parseTagsParam(raw: string | null): string[] | undefined {
+  if (!raw) return undefined
+  const tags = raw
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean)
+  return tags.length ? tags : undefined
+}
+
+/** Bridges a querystring numeric param ("limit"/"offset") from `string | null` to
+ *  `number | undefined` for clampLimit/clampOffset to clamp. Deliberately does NOT
+ *  validate range or reject non-numeric input here — clampLimit/clampOffset already
+ *  fall back to their own defaults on NaN, so a garbage `?limit=abc` should end up
+ *  tolerated the same way a missing `?limit` is, not rejected with a 400. */
+export function parseNumberParam(raw: string | null): number | undefined {
+  if (raw === null || raw.trim() === "") return undefined
+  return Number(raw)
+}
+
 /** Build the `{data, page}` envelope every list method returns. `total` is the count
  *  BEFORE this page was sliced off, as returned by a `.select(..., {count:"exact"})`. */
 export function buildPage<T>(
