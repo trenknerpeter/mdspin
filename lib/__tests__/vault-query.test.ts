@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { clampLimit, clampOffset, escapeIlikeTerm, buildPage, parseTagsParam, parseNumberParam, isValidUuid } from "@/lib/vault/query"
+import { clampLimit, clampOffset, escapeIlikeTerm, buildPage, parseTagsParam, parseNumberParam, isValidUuid, isValidTimestamp } from "@/lib/vault/query"
 
 describe("clampLimit", () => {
   it("defaults when undefined", () => {
@@ -70,6 +70,21 @@ describe("isValidUuid", () => {
   it("rejects a uuid with surrounding whitespace or trailing junk", () => {
     expect(isValidUuid(" d4444ca9-8046-47a2-af55-11079f0e824f")).toBe(false)
     expect(isValidUuid("d4444ca9-8046-47a2-af55-11079f0e824f'")).toBe(false)
+  })
+})
+
+describe("isValidTimestamp", () => {
+  it("accepts a Z-suffixed timestamp", () => {
+    expect(isValidTimestamp("2026-08-01T00:00:00.123456Z")).toBe(true)
+  })
+  it("accepts a timezone-offset timestamp", () => {
+    expect(isValidTimestamp("2026-08-01T00:00:00+00:00")).toBe(true)
+  })
+  it("rejects a filter-injection attempt smuggled in as a timestamp", () => {
+    expect(isValidTimestamp("2026-08-01T00:00:00Z,and(1.eq.1)")).toBe(false)
+  })
+  it("rejects garbage", () => {
+    expect(isValidTimestamp("not-a-date")).toBe(false)
   })
 })
 

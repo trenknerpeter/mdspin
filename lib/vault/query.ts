@@ -75,6 +75,18 @@ export function isValidUuid(value: string): boolean {
   return UUID_RE.test(value)
 }
 
+/** Strict ISO-8601 timestamp check (Postgres's typical timestamptz text output, e.g.
+ *  `2026-08-01T00:00:00.123456+00:00` or `...Z`). Exists specifically to validate a
+ *  client-supplied cursor value BEFORE listDocumentsByCursor (repo.ts) string-interpolates
+ *  it into a PostgREST `.or()` filter expression — unlike a `.eq("id", x)` filter, where
+ *  Postgres itself safely rejects a malformed value, `.or()` builds a raw filter string,
+ *  so an unvalidated value here is a filter-injection risk, not just an ugly error. */
+const ISO_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/
+
+export function isValidTimestamp(value: string): boolean {
+  return ISO_TIMESTAMP_RE.test(value)
+}
+
 /** Build the `{data, page}` envelope every list method returns. `total` is the count
  *  BEFORE this page was sliced off, as returned by a `.select(..., {count:"exact"})`. */
 export function buildPage<T>(

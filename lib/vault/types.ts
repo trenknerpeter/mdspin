@@ -142,3 +142,13 @@ export interface Page<T> {
   data: T[]
   page: PageInfo
 }
+
+export interface DocumentCursor {
+  updatedAt: string
+  id: string
+}
+
+export interface CursorPage<T> {
+  data: T[]
+  nextCursor: DocumentCursor | null
+}

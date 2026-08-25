@@ -450,3 +450,98 @@ describe("updateDocument", () => {
     expect(client.rpcCalls.length).toBe(0)
   })
 })
+
+describe("listDocumentsByCursor", () => {
+  it("first page (no cursor) omits the .or() filter and orders by updated_at desc, id desc", async () => {
+    const client = new FakeClient({ conversions: { data: [], error: null } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await repo.listDocumentsByCursor({ limit: 5 })
+    const [builder] = client.builders
+    expect(builder.calls.filter((c) => c.method === "or")).toEqual([])
+    expect(builder.calls.filter((c) => c.method === "order")).toEqual([
+      { method: "order", args: ["updated_at", { ascending: false }] },
+      { method: "order", args: ["id", { ascending: false }] },
+    ])
+  })
+
+  it("builds the compound keyset .or() filter from a valid cursor", async () => {
+    const client = new FakeClient({ conversions: { data: [], error: null } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await repo.listDocumentsByCursor({
+      cursor: { updatedAt: "2026-08-01T00:00:00Z", id: "11111111-1111-1111-1111-111111111111" },
+    })
+    const [builder] = client.builders
+    expect(builder.calls.filter((c) => c.method === "or")).toEqual([
+      {
+        method: "or",
+        args: [
+          "updated_at.lt.2026-08-01T00:00:00Z,and(updated_at.eq.2026-08-01T00:00:00Z,id.lt.11111111-1111-1111-1111-111111111111)",
+        ],
+      },
+    ])
+  })
+
+  it("rejects a cursor with a malformed id before building any query", async () => {
+    const client = new FakeClient({ conversions: { data: [], error: null } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(
+      repo.listDocumentsByCursor({
+        cursor: { updatedAt: "2026-08-01T00:00:00Z", id: "'); DROP TABLE conversions;--" },
+      })
+    ).rejects.toThrow(/Invalid cursor/)
+    expect(client.builders).toHaveLength(0)
+  })
+
+  it("rejects a cursor with a malformed timestamp before building any query", async () => {
+    const client = new FakeClient({ conversions: { data: [], error: null } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(
+      repo.listDocumentsByCursor({
+        cursor: { updatedAt: "not-a-date,or(1.eq.1)", id: "11111111-1111-1111-1111-111111111111" },
+      })
+    ).rejects.toThrow(/Invalid cursor/)
+    expect(client.builders).toHaveLength(0)
+  })
+
+  it("returns nextCursor from the last row when a full page comes back", async () => {
+    const fullRow = (id: string, updatedAt: string) => ({
+      id, filename: "f.md", title: null, file_type: "markdown", word_count: 1, project_id: null,
+      tags: [], source_type: "note", converted_at: updatedAt, updated_at: updatedAt, version: 1,
+    })
+    const client = new FakeClient({
+      conversions: {
+        data: [fullRow("d1", "2026-08-02T00:00:00Z"), fullRow("d2", "2026-08-01T00:00:00Z")],
+        error: null,
+      },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    const page = await repo.listDocumentsByCursor({ limit: 2 })
+    expect(page.nextCursor).toEqual({ updatedAt: "2026-08-01T00:00:00Z", id: "d2" })
+  })
+
+  it("returns nextCursor: null when fewer rows than the limit come back", async () => {
+    const client = new FakeClient({
+      conversions: {
+        data: [{
+          id: "d1", filename: "f.md", title: null, file_type: "markdown", word_count: 1,
+          project_id: null, tags: [], source_type: "note", converted_at: "x",
+          updated_at: "2026-08-01T00:00:00Z", version: 1,
+        }],
+        error: null,
+      },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    const page = await repo.listDocumentsByCursor({ limit: 5 })
+    expect(page.nextCursor).toBeNull()
+  })
+
+  it("scopes by user_id and project_id/tags exactly like listDocuments", async () => {
+    const client = new FakeClient({ conversions: { data: [], error: null } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await repo.listDocumentsByCursor({ projectId: "proj-1", tags: ["pm"] })
+    const [builder] = client.builders
+    expect(eqCalls(builder)).toContainEqual({ method: "eq", args: ["user_id", "user-123"] })
+    expect(eqCalls(builder)).toContainEqual({ method: "eq", args: ["project_id", "proj-1"] })
+    expect(builder.calls).toContainEqual({ method: "overlaps", args: ["tags", ["pm"]] })
+  })
+})

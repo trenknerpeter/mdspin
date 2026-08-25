@@ -9,9 +9,9 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
-import type { DocumentFilter, GetDocumentOptions, Page, SearchOptions, UpdateDocumentOptions, VaultDocument, VaultDocumentPatch, VaultProject, VaultRelatedDocument, VaultScope, VaultSearchResult, VaultStats } from "./types"
+import type { CursorPage, DocumentCursor, DocumentFilter, GetDocumentOptions, Page, SearchOptions, UpdateDocumentOptions, VaultDocument, VaultDocumentPatch, VaultProject, VaultRelatedDocument, VaultScope, VaultSearchResult, VaultStats } from "./types"
 import { buildDocumentPatchPayload, toVaultDocument, toVaultProject, toVaultRelatedDocument, toVaultSearchResult, toVaultStats, type ConversionRow, type ProjectRow, type RelatedDocumentRow, type SearchRow, type StatsRow } from "./mappers"
-import { clampLimit, clampOffset, buildPage, escapeIlikeTerm } from "./query"
+import { clampLimit, clampOffset, buildPage, escapeIlikeTerm, isValidUuid, isValidTimestamp } from "./query"
 import { VaultError } from "./errors"
 
 const LIST_COLUMNS =
@@ -51,6 +51,12 @@ export interface VaultRepo {
   getStats(): Promise<VaultStats>
   searchDocuments(query: string, opts?: SearchOptions): Promise<Page<VaultSearchResult>>
   updateDocument(id: string, patch: VaultDocumentPatch, opts: UpdateDocumentOptions): Promise<VaultDocument>
+  listDocumentsByCursor(filter?: {
+    projectId?: string
+    tags?: string[]
+    limit?: number
+    cursor?: DocumentCursor
+  }): Promise<CursorPage<VaultDocument>>
 }
 
 /**
@@ -215,6 +221,45 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
       const rows = (data ?? []) as ConversionRow[]
       if (!rows[0]) throw new VaultError("NOT_FOUND", "Document not found.")
       return toVaultDocument(rows[0])
+    },
+
+    async listDocumentsByCursor(
+      filter: { projectId?: string; tags?: string[]; limit?: number; cursor?: DocumentCursor } = {}
+    ): Promise<CursorPage<VaultDocument>> {
+      // Validate BEFORE touching the client at all — a malformed cursor must never reach
+      // the .or() string-interpolation below, and must never even construct a query
+      // builder (see the "rejects... before building any query" tests).
+      if (filter.cursor && (!isValidTimestamp(filter.cursor.updatedAt) || !isValidUuid(filter.cursor.id))) {
+        throw new VaultError("INVALID_REQUEST", "Invalid cursor.")
+      }
+
+      const limit = clampLimit(filter.limit, 25)
+
+      let query = scoped(
+        client.from("conversions").select(LIST_COLUMNS),
+        scope
+      ).eq("in_vault", true)
+
+      if (filter.projectId) query = query.eq("project_id", filter.projectId)
+      if (filter.tags?.length) query = query.overlaps("tags", filter.tags)
+      if (filter.cursor) {
+        const { updatedAt, id } = filter.cursor
+        query = query.or(`updated_at.lt.${updatedAt},and(updated_at.eq.${updatedAt},id.lt.${id})`)
+      }
+
+      const { data, error } = await query
+        .order("updated_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(0, limit - 1)
+      if (error) throw new VaultError("DB_ERROR", error.message)
+
+      const rows = (data ?? []) as ConversionRow[]
+      const docs = rows.map(toVaultDocument)
+      const last = rows[rows.length - 1]
+      const nextCursor: DocumentCursor | null =
+        rows.length === limit && last ? { updatedAt: last.updated_at, id: last.id } : null
+
+      return { data: docs, nextCursor }
     },
   }
 }
