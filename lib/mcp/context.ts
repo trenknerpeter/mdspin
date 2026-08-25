@@ -13,6 +13,7 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { createVaultRepo } from "@/lib/vault/repo"
 import { VaultError } from "@/lib/vault/errors"
 import type { VaultRepo } from "@/lib/vault/repo"
+import type { ServerContext } from "@modelcontextprotocol/server"
 
 export interface McpAuthContext {
   http?: {
@@ -22,6 +23,22 @@ export interface McpAuthContext {
     }
   }
 }
+
+// Compile-time guards tying McpAuthContext to the SDK's real ServerContext. Without them,
+// an SDK rename of http/authInfo/clientId would leave tsc silent and instead make all 7
+// tools + 1 prompt fail identically at RUNTIME ("resolveUserId called without a validated
+// authInfo") the next time someone connects. Neither line has any runtime purpose; the
+// `void` statements just keep them from reading as unused locals.
+//
+// Guard 1 catches a rename of `http` or `authInfo` — TS's weak-type rule fires because the
+// renamed shape would have no properties in common with an all-optional target.
+const _serverContextShapeGuard: McpAuthContext["http"] = ({} as ServerContext).http
+// Guard 2 is needed on top of it: a rename of `clientId` alone would NOT trip guard 1
+// (`extra` still overlaps, and an optional `clientId` may simply be absent), so read the
+// exact field resolveUserId depends on directly.
+const _clientIdShapeGuard: string | undefined = ({} as ServerContext).http?.authInfo?.clientId
+void _serverContextShapeGuard
+void _clientIdShapeGuard
 
 export function resolveUserId(ctx: McpAuthContext): string {
   const userId = ctx.http?.authInfo?.clientId

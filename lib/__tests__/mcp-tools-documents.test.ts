@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { buildGetDocumentResult, buildListDocumentsResult } from "@/lib/mcp/tools/documents"
+import { buildGetDocumentResult, buildListDocumentsResult, listDocumentsTool } from "@/lib/mcp/tools/documents"
 import type { VaultDocument } from "@/lib/vault/types"
 import type { VaultRepo } from "@/lib/vault/repo"
 
@@ -109,6 +109,17 @@ describe("buildGetDocumentResult", () => {
     await buildGetDocumentResult(repo, { document_ids: ["a", "b", "c"] })
     expect(seen.sort()).toEqual(["a", "b", "c"])
   })
+
+  it("clamps a requested limit above 50000 down to 50000 for content:'full'", async () => {
+    const bigDoc = "x".repeat(100_000)
+    const repo = fakeRepo({ getDocument: async () => doc({ markdown: bigDoc }) })
+    const [entry] = (
+      await buildGetDocumentResult(repo, { document_ids: ["d1"], content: "full", offset: 0, limit: 5_000_000 })
+    ).documents
+    // entry is a Record<string, unknown>, so assert on the whole content_range object
+    // rather than reaching into it (which would not type-check).
+    expect(entry.content_range).toMatchObject({ returned: 50_000, truncated: true, next_offset: 50_000 })
+  })
 })
 
 describe("buildListDocumentsResult", () => {
@@ -160,5 +171,20 @@ describe("buildListDocumentsResult", () => {
     expect(result.documents).toEqual([
       { id: "d1", filename: "f.md", title: "Notes", word_count: 5, source_type: "note", updated_at: "2026-08-01T00:00:00Z", version: 1 },
     ])
+  })
+})
+
+describe("listDocumentsTool's tags schema", () => {
+  it("rejects a tag containing a comma, brace, quote, or backslash", () => {
+    const schema = listDocumentsTool.config.inputSchema
+    expect(schema.safeParse({ tags: ["a,b"] }).success).toBe(false)
+    expect(schema.safeParse({ tags: ["a}"] }).success).toBe(false)
+    expect(schema.safeParse({ tags: ['a"b'] }).success).toBe(false)
+    expect(schema.safeParse({ tags: ["a\\b"] }).success).toBe(false)
+  })
+
+  it("accepts an ordinary tag", () => {
+    const schema = listDocumentsTool.config.inputSchema
+    expect(schema.safeParse({ tags: ["pm"] }).success).toBe(true)
   })
 })

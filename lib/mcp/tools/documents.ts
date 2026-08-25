@@ -11,6 +11,12 @@ import type { DocumentCursor } from "@/lib/vault/types"
 // window size for a "full" content fetch — not an arbitrary new number.
 const FULL_CONTENT_DEFAULT_LIMIT = 8000
 
+// Hard ceiling for a single "full" content window. Every other size knob in this surface
+// is capped (search_vault clamps to 25 in code; list_documents/get_related_documents are
+// clamped in the repo layer) — without this a client could ask for a whole 2.4MB document
+// per id and blow the token-economy budget the whole tool set is built around.
+const MAX_FULL_CONTENT_LIMIT = 50_000
+
 type ContentMode = "none" | "summary" | "outline" | "full"
 
 async function buildDocumentEntry(
@@ -58,7 +64,9 @@ export async function buildGetDocumentResult(
 ) {
   const content = args.content ?? "summary"
   const offset = args.offset ?? 0
-  const limit = args.limit ?? FULL_CONTENT_DEFAULT_LIMIT
+  // Clamped here, not only in the zod schema: buildGetDocumentResult/buildDocumentEntry are
+  // also called directly (tests, and any future non-MCP caller) with unvalidated args.
+  const limit = Math.min(args.limit ?? FULL_CONTENT_DEFAULT_LIMIT, MAX_FULL_CONTENT_LIMIT)
   const documents = await Promise.all(args.document_ids.map((id) => buildDocumentEntry(repo, id, content, offset, limit)))
   return { documents }
 }
@@ -73,7 +81,7 @@ export const getDocumentTool = {
       document_ids: z.array(z.uuid()).min(1).max(5),
       content: z.enum(["none", "summary", "outline", "full"]).optional(),
       offset: z.number().int().min(0).optional(),
-      limit: z.number().int().positive().optional(),
+      limit: z.number().int().positive().max(MAX_FULL_CONTENT_LIMIT).optional(),
     }),
   },
   handler: async (
@@ -130,7 +138,10 @@ export const listDocumentsTool = {
       "Deterministic, filterable document listing with keyset pagination — pass the previous call's next_cursor to get the next page; a null next_cursor means you've reached the end. Prefer search_vault when you're looking for something specific rather than enumerating.",
     inputSchema: z.object({
       project_id: z.uuid().optional(),
-      tags: z.array(z.string()).optional(),
+      // supabase-js serializes .overlaps("tags", [...]) as a raw PostgREST array literal
+      // ({a,b}) with no per-value escaping, so a tag containing , { } " or \ would either
+      // silently split into two tags or produce an opaque array-literal parse error.
+      tags: z.array(z.string().regex(/^[^,{}"\\]+$/, 'tag must not contain , { } " or \\')).optional(),
       limit: z.number().int().positive().optional(),
       cursor: z.string().optional(),
     }),

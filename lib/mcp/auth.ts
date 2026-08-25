@@ -9,7 +9,13 @@ import "server-only"
 import { getVaultForRequest } from "@/lib/vault/server"
 import type { AuthInfo } from "@modelcontextprotocol/server"
 
-export async function verifyToken(req: Request): Promise<AuthInfo | undefined> {
+// withMcpAuth calls this unconditionally, including when the request carries no
+// Authorization header (bearerToken === undefined). Bail out in that case: /api/mcp is a
+// stateless remote endpoint, so it must authenticate only via an explicit Bearer token,
+// never via the Supabase session cookie that getVaultForRequest would otherwise fall back
+// to for the browser-facing REST API.
+export async function verifyToken(req: Request, bearerToken?: string): Promise<AuthInfo | undefined> {
+  if (!bearerToken) return undefined
   try {
     const { scope, keyId } = await getVaultForRequest(req)
     return {
