@@ -6,7 +6,7 @@
 
 import { VaultError } from "@/lib/vault/errors"
 
-interface ToolTextResult {
+type ToolTextResult = {
   content: Array<{ type: "text"; text: string }>
   isError: true
 }
