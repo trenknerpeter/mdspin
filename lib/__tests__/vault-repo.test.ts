@@ -178,6 +178,35 @@ describe("createVaultRepo — the scoped() choke point", () => {
     const [builder] = client.builders
     expect(eqCalls(builder)).toContainEqual({ method: "eq", args: ["user_id", "user-123"] })
   })
+
+  it("getDocument surfaces summary and summary_status through to the mapped VaultDocument", async () => {
+    const client = new FakeClient({
+      conversions: {
+        data: {
+          id: "doc-1", filename: "f.md", title: null, file_type: "markdown", word_count: 1,
+          project_id: null, tags: [], source_type: "note", converted_at: "2026-08-01T00:00:00Z",
+          updated_at: "2026-08-01T00:00:00Z", version: 1, summary: "A summary.", summary_status: "ready",
+        },
+        error: null,
+      },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    const doc = await repo.getDocument("doc-1")
+    expect(doc?.summary).toBe("A summary.")
+    expect(doc?.summaryStatus).toBe("ready")
+  })
+
+  it("listProjects surfaces instructions through to the mapped VaultProject", async () => {
+    const client = new FakeClient({
+      projects: {
+        data: [{ id: "p1", name: "Strategy", color: null, created_at: "2026-08-01T00:00:00Z", instructions: "Focus on pricing." }],
+        error: null,
+      },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    const projects = await repo.listProjects()
+    expect(projects[0].instructions).toBe("Focus on pricing.")
+  })
 })
 
 describe("getRelatedDocuments", () => {
@@ -300,7 +329,7 @@ describe("searchDocuments", () => {
         id: "doc-3", filename: "gating.pdf", title: null, fileType: "pdf", wordCount: 500,
         projectIds: ["proj-2"], tags: ["data"], sourceType: "upload",
         convertedAt: "2026-08-01T00:00:00Z", updatedAt: "2026-08-02T00:00:00Z", version: 2,
-        markdown: null, rank: 0.05, snippet: "...gating behavior...",
+        markdown: null, summary: null, summaryStatus: "pending", rank: 0.05, snippet: "...gating behavior...",
       },
     ])
     expect(page.page).toEqual({ limit: 5, offset: 0, total: 1, hasMore: false, nextOffset: null })

@@ -37,6 +37,14 @@ export interface VaultDocument {
   /** Only populated when explicitly requested (see GetDocumentOptions). One vault doc
    *  is 2.4MB — no list or default-detail call may return this for free. */
   markdown: string | null
+  /** conversions.summary — populated once Stage 1d's Make-webhook summarization job has
+   *  run for this doc; null before that (see summaryStatus). Small (<=400 chars per
+   *  SUMMARY_MAX_CHARS), so unlike markdown it's safe to select on every query, not
+   *  gated behind GetDocumentOptions. */
+  summary: string | null
+  /** "pending" | "running" | "ready" | "failed" | "manual" — see Stage 1d. Lets a caller
+   *  distinguish "no summary yet, one is coming" from "summarization never ran". */
+  summaryStatus: string
 }
 
 export interface VaultProject {
@@ -44,6 +52,10 @@ export interface VaultProject {
   name: string
   color: string | null
   createdAt: string
+  /** projects.instructions — agent-facing operating notes for this project (Stage 2c).
+   *  Small enough to select unconditionally; list_projects' MCP tool chooses to omit it
+   *  in its own output shaping (lib/mcp/format.ts), not here. */
+  instructions: string | null
 }
 
 export interface VaultRelatedDocument {

@@ -30,6 +30,8 @@ function doc(overrides: Partial<VaultDocument> = {}): VaultDocument {
     updatedAt: "2026-08-02T00:00:00Z",
     version: 1,
     markdown: null,
+    summary: null,
+    summaryStatus: "pending",
     ...overrides,
   }
 }
@@ -59,7 +61,7 @@ describe("documentToJson", () => {
 
 describe("projectToJson", () => {
   it("renames created_at", () => {
-    const project: VaultProject = { id: "p1", name: "Strategy", color: "#FF4800", createdAt: "2026-08-01T00:00:00Z" }
+    const project: VaultProject = { id: "p1", name: "Strategy", color: "#FF4800", createdAt: "2026-08-01T00:00:00Z", instructions: null }
     expect(projectToJson(project)).toEqual({
       id: "p1",
       name: "Strategy",

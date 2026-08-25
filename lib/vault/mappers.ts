@@ -20,6 +20,8 @@ export interface ConversionRow {
   updated_at: string
   version: number
   markdown_text?: string | null
+  summary?: string | null
+  summary_status?: string
 }
 
 export interface ProjectRow {
@@ -27,6 +29,7 @@ export interface ProjectRow {
   name: string
   color: string | null
   created_at: string
+  instructions?: string | null
 }
 
 export function toVaultDocument(row: ConversionRow): VaultDocument {
@@ -44,6 +47,8 @@ export function toVaultDocument(row: ConversionRow): VaultDocument {
     updatedAt: row.updated_at,
     version: row.version,
     markdown: row.markdown_text ?? null,
+    summary: row.summary ?? null,
+    summaryStatus: row.summary_status ?? "pending",
   }
 }
 
@@ -53,6 +58,7 @@ export function toVaultProject(row: ProjectRow): VaultProject {
     name: row.name,
     color: row.color,
     createdAt: row.created_at,
+    instructions: row.instructions ?? null,
   }
 }
 

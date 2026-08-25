@@ -15,7 +15,7 @@ import { clampLimit, clampOffset, buildPage, escapeIlikeTerm } from "./query"
 import { VaultError } from "./errors"
 
 const LIST_COLUMNS =
-  "id, filename, title, file_type, word_count, project_id, tags, source_type, converted_at, updated_at, version"
+  "id, filename, title, file_type, word_count, project_id, tags, source_type, converted_at, updated_at, version, summary, summary_status"
 const DETAIL_COLUMNS = `${LIST_COLUMNS}, markdown_text`
 
 /**
@@ -117,7 +117,7 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
 
     async listProjects(): Promise<VaultProject[]> {
       const { data, error } = await scoped(
-        client.from("projects").select("id, name, color, created_at"),
+        client.from("projects").select("id, name, color, created_at, instructions"),
         scope
       ).order("created_at", { ascending: true })
       if (error) throw new VaultError("DB_ERROR", error.message)
@@ -126,7 +126,7 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
 
     async getProject(id: string): Promise<VaultProject | null> {
       const { data, error } = await scoped(
-        client.from("projects").select("id, name, color, created_at"),
+        client.from("projects").select("id, name, color, created_at, instructions"),
         scope
       )
         .eq("id", id)

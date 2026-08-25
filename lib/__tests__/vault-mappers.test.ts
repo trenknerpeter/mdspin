@@ -55,6 +55,16 @@ describe("toVaultDocument", () => {
       version: 3,
     })
   })
+
+  it("maps summary and summary_status, defaulting summary_status to pending when absent", () => {
+    const withSummary = toVaultDocument(row({ summary: "A short summary.", summary_status: "ready" }))
+    expect(withSummary.summary).toBe("A short summary.")
+    expect(withSummary.summaryStatus).toBe("ready")
+
+    const withoutSummary = toVaultDocument(row())
+    expect(withoutSummary.summary).toBeNull()
+    expect(withoutSummary.summaryStatus).toBe("pending")
+  })
 })
 
 describe("toVaultProject", () => {
@@ -65,11 +75,25 @@ describe("toVaultProject", () => {
       name: "Strategy",
       color: "#FF4800",
       createdAt: "2026-08-01T00:00:00Z",
+      instructions: null,
     })
   })
 
   it("passes through a null color", () => {
     const p: ProjectRow = { id: "p1", name: "Strategy", color: null, created_at: "2026-08-01T00:00:00Z" }
     expect(toVaultProject(p).color).toBeNull()
+  })
+
+  it("maps instructions, defaulting to null when absent", () => {
+    const withInstructions: ProjectRow = {
+      id: "p1", name: "Strategy", color: null, created_at: "2026-08-01T00:00:00Z",
+      instructions: "Focus on pricing.",
+    }
+    expect(toVaultProject(withInstructions).instructions).toBe("Focus on pricing.")
+
+    const withoutInstructions: ProjectRow = {
+      id: "p1", name: "Strategy", color: null, created_at: "2026-08-01T00:00:00Z",
+    }
+    expect(toVaultProject(withoutInstructions).instructions).toBeNull()
   })
 })
