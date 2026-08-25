@@ -21,6 +21,10 @@ import type { VaultScope } from "./types"
 export interface AuthResult {
   scope: VaultScope
   client: SupabaseClient
+  /** The api_keys row id, set only when auth resolved via an API key — lets a caller
+   *  (see server.ts, PATCH /documents/:id) attribute a write to the specific key used,
+   *  not just the account. Undefined on the JWT and cookie paths, which have no key row. */
+  keyId?: string
 }
 
 /** Minimal request shape this needs — just enough to read one header, so this works
@@ -59,7 +63,11 @@ async function authenticateApiKey(token: string): Promise<AuthResult> {
   // it's only bookkeeping for. Swallow, don't await.
   void admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", data.id)
 
-  return { scope: { enforce: "explicit", userId: data.user_id as string }, client: admin }
+  return {
+    scope: { enforce: "explicit", userId: data.user_id as string },
+    client: admin,
+    keyId: data.id as string,
+  }
 }
 
 async function authenticateJwt(token: string): Promise<AuthResult> {

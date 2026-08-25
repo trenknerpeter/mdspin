@@ -12,6 +12,8 @@ import type { VaultScope } from "./types"
 export interface RequestVault {
   repo: VaultRepo
   scope: VaultScope
+  /** See AuthResult.keyId in auth.ts — passed through unchanged. */
+  keyId?: string
 }
 
 /** Throws a VaultError (AUTH_REQUIRED / NOT_CONFIGURED / DB_ERROR) if the request can't
@@ -19,6 +21,6 @@ export interface RequestVault {
  *  `err.toResponse()` / `err.status` onto the HTTP response, matching the existing
  *  app/api/brief/route.ts convention. */
 export async function getVaultForRequest(req: AuthenticatableRequest): Promise<RequestVault> {
-  const { scope, client } = await authenticateRequest(req)
-  return { repo: createVaultRepo(client, scope), scope }
+  const { scope, client, keyId } = await authenticateRequest(req)
+  return { repo: createVaultRepo(client, scope), scope, keyId }
 }
