@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { buildGetDocumentResult } from "@/lib/mcp/tools/documents"
+import { buildGetDocumentResult, buildListDocumentsResult } from "@/lib/mcp/tools/documents"
 import type { VaultDocument } from "@/lib/vault/types"
 import type { VaultRepo } from "@/lib/vault/repo"
 
@@ -108,5 +108,57 @@ describe("buildGetDocumentResult", () => {
     })
     await buildGetDocumentResult(repo, { document_ids: ["a", "b", "c"] })
     expect(seen.sort()).toEqual(["a", "b", "c"])
+  })
+})
+
+describe("buildListDocumentsResult", () => {
+  it("round-trips a cursor through next_cursor and back", async () => {
+    const repo = fakeRepo({
+      listDocumentsByCursor: async (filter) => {
+        expect(filter?.cursor).toBeUndefined()
+        return { data: [], nextCursor: { updatedAt: "2026-08-01T00:00:00Z", id: "d1" } }
+      },
+    })
+    const first = await buildListDocumentsResult(repo, {})
+    expect(first.next_cursor).toBeTruthy()
+
+    const repo2 = fakeRepo({
+      listDocumentsByCursor: async (filter) => {
+        expect(filter?.cursor).toEqual({ updatedAt: "2026-08-01T00:00:00Z", id: "d1" })
+        return { data: [], nextCursor: null }
+      },
+    })
+    const second = await buildListDocumentsResult(repo2, { cursor: first.next_cursor as string })
+    expect(second.next_cursor).toBeNull()
+  })
+
+  it("rejects a garbage cursor string with a clear error rather than crashing", async () => {
+    const repo = fakeRepo()
+    await expect(buildListDocumentsResult(repo, { cursor: "not-base64-json" })).rejects.toThrow(/Invalid cursor/)
+  })
+
+  it("passes project_id, tags, and limit through to listDocumentsByCursor", async () => {
+    let seenFilter: unknown
+    const repo = fakeRepo({
+      listDocumentsByCursor: async (filter) => {
+        seenFilter = filter
+        return { data: [], nextCursor: null }
+      },
+    })
+    await buildListDocumentsResult(repo, { project_id: "proj-1", tags: ["pm"], limit: 5 })
+    expect(seenFilter).toMatchObject({ projectId: "proj-1", tags: ["pm"], limit: 5 })
+  })
+
+  it("shapes each returned document via compactDocMeta", async () => {
+    const repo = fakeRepo({
+      listDocumentsByCursor: async () => ({
+        data: [doc({ id: "d1" })],
+        nextCursor: null,
+      }),
+    })
+    const result = await buildListDocumentsResult(repo, {})
+    expect(result.documents).toEqual([
+      { id: "d1", filename: "f.md", title: "Notes", word_count: 5, source_type: "note", updated_at: "2026-08-01T00:00:00Z", version: 1 },
+    ])
   })
 })
