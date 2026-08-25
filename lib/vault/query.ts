@@ -55,6 +55,26 @@ export function parseNumberParam(raw: string | null): number | undefined {
   return Number(raw)
 }
 
+/**
+ * Is this string shaped like a UUID (8-4-4-4-12 hex, case-insensitive)?
+ *
+ * Unlike the tolerate-garbage params above, a malformed id is NOT something to quietly
+ * default away: routes call this to reject it with a 400 before the value ever reaches
+ * Postgres, which would otherwise raise `invalid input syntax for type uuid` and surface
+ * as a 500 — a retryable-looking status for what is squarely a client mistake, leaking a
+ * raw database message on the way out.
+ *
+ * Deliberately a shape check, not a version/variant check: the vault stores ids minted by
+ * Postgres `gen_random_uuid()` (v4) today, but rejecting a well-formed id just because a
+ * future migration used a different version would be a self-inflicted outage. Anything
+ * that passes here is safe to cast to `uuid`; whether the row exists is the DB's answer.
+ */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+export function isValidUuid(value: string): boolean {
+  return UUID_RE.test(value)
+}
+
 /** Build the `{data, page}` envelope every list method returns. `total` is the count
  *  BEFORE this page was sliced off, as returned by a `.select(..., {count:"exact"})`. */
 export function buildPage<T>(

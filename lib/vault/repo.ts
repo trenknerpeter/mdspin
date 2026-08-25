@@ -91,6 +91,14 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
       const { data, error, count } = await query
         .order("updated_at", { ascending: false })
         .range(offset, offset + limit - 1)
+      // PGRST103 = "Requested range not satisfiable": PostgREST errors instead of returning
+      // an empty body when `offset` overshoots the total row count. That's a normal thing for
+      // a paging client to do (walk one page past the end), not a server fault, and the
+      // sibling searchDocuments() already answers it with a clean empty page because its RPC
+      // just returns 0 rows. Mirror that here rather than turning it into a 500.
+      if (error?.code === "PGRST103") {
+        return buildPage([], { limit, offset, total: count ?? 0 })
+      }
       if (error) throw new VaultError("DB_ERROR", error.message)
 
       const rows = (data ?? []) as ConversionRow[]

@@ -156,6 +156,21 @@ describe("createVaultRepo — the scoped() choke point", () => {
     await expect(repo.listDocuments()).rejects.toThrow("connection reset")
   })
 
+  it("returns an empty page, not a 500, when the offset overshoots the total (PGRST103)", async () => {
+    const client = new FakeClient({
+      conversions: {
+        data: null,
+        error: { code: "PGRST103", message: "Requested range not satisfiable" },
+        count: 24,
+      },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(repo.listDocuments({ offset: 26, limit: 2 })).resolves.toEqual({
+      data: [],
+      page: { limit: 2, offset: 26, total: 24, hasMore: false, nextOffset: null },
+    })
+  })
+
   it("works identically under an 'rls' scope — the choke point does not depend on enforce mode", async () => {
     const client = new FakeClient({ conversions: { data: [], error: null, count: 0 } })
     const repo = createVaultRepo(client as never, { enforce: "rls", userId: "user-123" })

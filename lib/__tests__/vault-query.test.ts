@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { clampLimit, clampOffset, escapeIlikeTerm, buildPage, parseTagsParam, parseNumberParam } from "@/lib/vault/query"
+import { clampLimit, clampOffset, escapeIlikeTerm, buildPage, parseTagsParam, parseNumberParam, isValidUuid } from "@/lib/vault/query"
 
 describe("clampLimit", () => {
   it("defaults when undefined", () => {
@@ -46,6 +46,30 @@ describe("escapeIlikeTerm", () => {
   it("escapes backslashes first so % / _ escaping doesn't double-escape them", () => {
     expect(escapeIlikeTerm("a\\b")).toBe("a\\\\b")
     expect(escapeIlikeTerm("50\\%")).toBe("50\\\\\\%")
+  })
+})
+
+describe("isValidUuid", () => {
+  it("accepts a well-formed v4 uuid", () => {
+    expect(isValidUuid("d4444ca9-8046-47a2-af55-11079f0e824f")).toBe(true)
+  })
+  it("accepts an uppercase uuid — hex is case-insensitive", () => {
+    expect(isValidUuid("D4444CA9-8046-47A2-AF55-11079F0E824F")).toBe(true)
+  })
+  it("rejects obvious garbage", () => {
+    expect(isValidUuid("zzz")).toBe(false)
+    expect(isValidUuid("")).toBe(false)
+  })
+  it("rejects a uuid missing a segment", () => {
+    expect(isValidUuid("d4444ca9-8046-47a2-11079f0e824f")).toBe(false)
+  })
+  it("rejects non-hex characters and wrong-length segments", () => {
+    expect(isValidUuid("g4444ca9-8046-47a2-af55-11079f0e824f")).toBe(false)
+    expect(isValidUuid("d4444ca9-80466-47a2-af55-11079f0e824")).toBe(false)
+  })
+  it("rejects a uuid with surrounding whitespace or trailing junk", () => {
+    expect(isValidUuid(" d4444ca9-8046-47a2-af55-11079f0e824f")).toBe(false)
+    expect(isValidUuid("d4444ca9-8046-47a2-af55-11079f0e824f'")).toBe(false)
   })
 })
 
