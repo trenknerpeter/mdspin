@@ -12,6 +12,7 @@ const MAX_ITERATIONS = 100
 
 export function useEmbeddingDrain() {
   const [pending, setPending] = useState<number | null>(null)
+  const [failed, setFailed] = useState(0)
   const [draining, setDraining] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const stopRef = useRef(false)
@@ -19,8 +20,19 @@ export function useEmbeddingDrain() {
   useEffect(() => {
     fetch("/api/vault/embeddings/status")
       .then((res) => (res.ok ? res.json() : null))
-      .then((data: { pending?: number } | null) => setPending(data?.pending ?? 0))
+      .then((data: { pending?: number; failed?: number } | null) => {
+        setPending(data?.pending ?? 0)
+        setFailed(data?.failed ?? 0)
+      })
       .catch(() => setPending(0))
+  }, [])
+
+  // Stop the drain loop if the component unmounts mid-drain — otherwise the loop keeps
+  // POSTing (and calling setState on an unmounted component) after the user navigates away.
+  useEffect(() => {
+    return () => {
+      stopRef.current = true
+    }
   }, [])
 
   const stop = useCallback(() => {
@@ -48,13 +60,19 @@ export function useEmbeddingDrain() {
         setError("Couldn't generate embeddings. Try again.")
         break
       }
-      const data = (await res.json()) as { remaining: number }
+      const data = (await res.json()) as { remaining: number; failed?: number }
       setPending(data.remaining)
+      // Accumulate failures as they happen, not just at mount: a doc that fails DURING
+      // this drain would otherwise leave the banner vanishing on `remaining === 0` while
+      // reporting nothing wrong. A doc already marked 'failed' is never re-claimed by
+      // claim_pending_embeddings, so adding each batch's count can't double-count.
+      const batchFailed = data.failed ?? 0
+      if (batchFailed > 0) setFailed((f) => f + batchFailed)
       if (data.remaining <= 0) break
     }
 
     setDraining(false)
   }, [])
 
-  return { pending, draining, error, start, stop }
+  return { pending, failed, draining, error, start, stop }
 }

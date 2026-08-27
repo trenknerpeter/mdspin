@@ -19,15 +19,24 @@ export async function GET() {
     return NextResponse.json({ error: "AUTH_REQUIRED", message: "Sign in first." }, { status: 401 })
   }
 
-  const { count, error } = await supabase
-    .from("conversions")
-    .select("id", { count: "exact", head: true })
-    .eq("in_vault", true)
-    .eq("embedding_status", "pending")
+  // `failed` alongside `pending`: without it the banner disappears the moment `pending`
+  // hits 0, reporting success even when documents ended up 'failed' with zero chunks.
+  const [{ count: pending, error: pendingError }, { count: failed, error: failedError }] = await Promise.all([
+    supabase
+      .from("conversions")
+      .select("id", { count: "exact", head: true })
+      .eq("in_vault", true)
+      .eq("embedding_status", "pending"),
+    supabase
+      .from("conversions")
+      .select("id", { count: "exact", head: true })
+      .eq("in_vault", true)
+      .eq("embedding_status", "failed"),
+  ])
 
-  if (error) {
+  if (pendingError || failedError) {
     return NextResponse.json({ error: "DB_ERROR", message: "Couldn't check embedding status." }, { status: 500 })
   }
 
-  return NextResponse.json({ pending: count ?? 0 })
+  return NextResponse.json({ pending: pending ?? 0, failed: failed ?? 0 })
 }
