@@ -36,6 +36,12 @@ export const SUMMARY_BATCH_SIZE = 5
 export const SUMMARY_MAX_CHARS = 400
 /** Give up after this many failed attempts per doc. */
 export const SUMMARY_MAX_ATTEMPTS = 3
+/** Stage 3: give up on embedding a doc after this many failed attempts, same retry
+ *  philosophy as SUMMARY_MAX_ATTEMPTS. */
+export const EMBEDDING_MAX_ATTEMPTS = 3
+/** Chunks per edge-function call. A 2MB doc can produce ~1000 chunks; batching keeps any
+ *  single embed request small instead of one giant array for the whole document. */
+export const EMBED_REQUEST_BATCH = 50
 
 export function isIngestExt(filename: string): boolean {
   const ext = filename.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1]
