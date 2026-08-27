@@ -13,6 +13,7 @@ import type { CursorPage, DocumentCursor, DocumentFilter, GetDocumentOptions, Pa
 import { buildDocumentPatchPayload, toVaultDocument, toVaultProject, toVaultRelatedDocument, toVaultSearchResult, toVaultStats, type ConversionRow, type ProjectRow, type RelatedDocumentRow, type SearchRow, type StatsRow } from "./mappers"
 import { clampLimit, clampOffset, buildPage, escapeIlikeTerm, isValidUuid, isValidTimestamp } from "./query"
 import { VaultError } from "./errors"
+import { embedQueryOrNull } from "./embeddings"
 
 const LIST_COLUMNS =
   "id, filename, title, file_type, word_count, project_id, tags, source_type, converted_at, updated_at, version, summary, summary_status"
@@ -166,6 +167,7 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
     async searchDocuments(query: string, opts: SearchOptions = {}): Promise<Page<VaultSearchResult>> {
       const limit = clampLimit(opts.limit)
       const offset = clampOffset(opts.offset)
+      const queryEmbedding = await embedQueryOrNull(query)
       const { data, error } = await client.rpc("vault_search_documents", {
         p_user_id: scope.userId,
         p_query: query,
@@ -177,6 +179,7 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
         p_tags: opts.tags?.length ? opts.tags : null,
         p_limit: limit,
         p_offset: offset,
+        p_query_embedding: queryEmbedding,
       })
       if (error) throw new VaultError("DB_ERROR", error.message)
       const rows = (data ?? []) as SearchRow[]

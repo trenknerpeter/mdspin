@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, vi } from "vitest"
 import { createVaultRepo } from "@/lib/vault/repo"
 import type { VaultScope } from "@/lib/vault/types"
 
@@ -322,6 +322,7 @@ describe("searchDocuments", () => {
       args: {
         p_user_id: "user-123", p_query: "gating",
         p_project_id: null, p_tags: null, p_limit: 5, p_offset: 0,
+        p_query_embedding: null,
       },
     })
     expect(page.data).toEqual([
@@ -362,6 +363,19 @@ describe("searchDocuments", () => {
     })
     const repo = createVaultRepo(client as never, SCOPE)
     await expect(repo.searchDocuments("x")).rejects.toThrow("timeout")
+  })
+
+  it("forwards a real query embedding through to the RPC when embedQueryOrNull resolves one", async () => {
+    vi.doMock("@/lib/vault/embeddings", () => ({ embedQueryOrNull: async () => [0.1, 0.2, 0.3] }))
+    vi.resetModules()
+    const { createVaultRepo: freshCreateVaultRepo } = await import("@/lib/vault/repo")
+
+    const client = new FakeClient({}, { vault_search_documents: { data: [], error: null } })
+    const repo = freshCreateVaultRepo(client as never, SCOPE)
+    await repo.searchDocuments("gating")
+
+    expect(client.rpcCalls[0].args).toMatchObject({ p_query_embedding: [0.1, 0.2, 0.3] })
+    vi.doUnmock("@/lib/vault/embeddings")
   })
 })
 
