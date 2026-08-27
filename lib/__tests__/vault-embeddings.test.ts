@@ -58,6 +58,41 @@ describe("embedTexts / embedQueryOrNull", () => {
     await expect(embedTexts(new Array(101).fill("x"))).rejects.toThrow(/100/)
   })
 
+  // The backfill route embeds EMBED_REQUEST_BATCH chunks per call and the edge function
+  // processes them sequentially, so it must be able to outlive the 3s search-path budget.
+  it("honors a caller-supplied timeout instead of the 3s search-path default", async () => {
+    vi.useFakeTimers()
+    try {
+      let captured: AbortSignal | undefined
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockImplementation((_url: string, init: { signal: AbortSignal }) => {
+          captured = init.signal
+          // never settles — this test only exercises the abort timer
+          return new Promise<never>(() => {})
+        })
+      )
+
+      void embedTexts(["x"], 45_000)
+      await Promise.resolve()
+
+      expect(captured?.aborted).toBe(false)
+      vi.advanceTimersByTime(3_000) // past the default budget, still inside the override
+      expect(captured?.aborted).toBe(false)
+      vi.advanceTimersByTime(42_001) // past the override
+      expect(captured?.aborted).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("embedQueryOrNull skips the network entirely for a blank query", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+    expect(await embedQueryOrNull("   ")).toBeNull()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it("embedQueryOrNull unwraps the first embedding", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ embeddings: [[1, 2, 3]] }) }))
     expect(await embedQueryOrNull("gating")).toEqual([1, 2, 3])

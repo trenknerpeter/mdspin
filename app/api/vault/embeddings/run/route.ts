@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/server"
 import { chunkMarkdownByHeading } from "@/lib/vault/chunking"
 import { embedTexts } from "@/lib/vault/embeddings"
 import { buildChunkRows, nextEmbeddingStatus } from "@/lib/vault/embed-run"
-import { EMBED_REQUEST_BATCH } from "@/lib/vault/limits"
+import { EMBED_REQUEST_BATCH, EMBED_BACKFILL_TIMEOUT_MS } from "@/lib/vault/limits"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -48,9 +48,13 @@ export async function POST(req: NextRequest) {
 
   if (body.ids?.length) {
     const ids = body.ids.slice(0, MAX_IDS)
+    // embedding_claimed_at must be stamped here too, not just by claim_pending_embeddings:
+    // that RPC's stale-reclaim check is `embedding_claimed_at < now() - interval
+    // '10 minutes'`, which is NULL-false, so a doc claimed via {ids} whose status never
+    // gets updated again (crash, timeout mid-loop) would be invisible to reclaim forever.
     const { data, error } = await supabase
       .from("conversions")
-      .update({ embedding_status: "running" })
+      .update({ embedding_status: "running", embedding_claimed_at: new Date().toISOString() })
       .in("id", ids)
       .eq("in_vault", true)
       .select("id, user_id, title, filename, markdown_text")
@@ -84,7 +88,10 @@ export async function POST(req: NextRequest) {
         const allEmbeddings: number[][] = []
         for (let i = 0; i < chunks.length; i += EMBED_REQUEST_BATCH) {
           const slice = chunks.slice(i, i + EMBED_REQUEST_BATCH)
-          const embeddings = await embedTexts(slice.map((c) => c.content))
+          const embeddings = await embedTexts(
+            slice.map((c) => c.content),
+            EMBED_BACKFILL_TIMEOUT_MS
+          )
           if (!embeddings) throw new Error("embedding function unavailable")
           allEmbeddings.push(...embeddings)
         }

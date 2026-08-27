@@ -39,9 +39,16 @@ export const SUMMARY_MAX_ATTEMPTS = 3
 /** Stage 3: give up on embedding a doc after this many failed attempts, same retry
  *  philosophy as SUMMARY_MAX_ATTEMPTS. */
 export const EMBEDDING_MAX_ATTEMPTS = 3
-/** Chunks per edge-function call. A 2MB doc can produce ~1000 chunks; batching keeps any
- *  single embed request small instead of one giant array for the whole document. */
-export const EMBED_REQUEST_BATCH = 50
+/** Chunks per edge-function call. Kept small (not e.g. 50) because the edge function
+ *  processes texts SEQUENTIALLY and each backfill call needs to land comfortably inside
+ *  EMBED_BACKFILL_TIMEOUT_MS. */
+export const EMBED_REQUEST_BATCH = 10
+/** Timeout for the backfill's embed calls — far longer than EMBED_TIMEOUT_MS (the
+ *  hot-search-path default in lib/vault/embeddings.ts) because embedding
+ *  EMBED_REQUEST_BATCH chunks sequentially inside the edge function is a fundamentally
+ *  slower operation than embedding one short query string. Comfortably under the route's
+ *  maxDuration=60. */
+export const EMBED_BACKFILL_TIMEOUT_MS = 45_000
 
 export function isIngestExt(filename: string): boolean {
   const ext = filename.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1]

@@ -12,6 +12,10 @@
 // non-NEXT_PUBLIC_ env vars from client code), so this degrades to the same null-fallback
 // as any other misconfiguration — never a leak.
 
+/** Default timeout, sized for the hot search path: embed ONE short query string, where a
+ *  slow embed must degrade to keyword-only ranking fast rather than stall the search.
+ *  Bulk callers (the backfill route) must override it — see EMBED_BACKFILL_TIMEOUT_MS in
+ *  lib/vault/limits.ts. */
 const EMBED_TIMEOUT_MS = 3_000
 const MAX_BATCH = 100
 
@@ -20,13 +24,13 @@ function embedFunctionUrl(): string | null {
   return base ? `${base}/functions/v1/embed` : null
 }
 
-async function callEmbedFunction(texts: string[]): Promise<number[][] | null> {
+async function callEmbedFunction(texts: string[], timeoutMs: number): Promise<number[][] | null> {
   const url = embedFunctionUrl()
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key || texts.length === 0) return null
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), EMBED_TIMEOUT_MS)
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -34,11 +38,15 @@ async function callEmbedFunction(texts: string[]): Promise<number[][] | null> {
       body: JSON.stringify({ texts }),
       signal: controller.signal,
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      console.warn(`[embed] non-ok response: ${res.status}`)
+      return null
+    }
     const data = (await res.json()) as { embeddings?: unknown }
     if (!Array.isArray(data.embeddings)) return null
     return data.embeddings as number[][]
-  } catch {
+  } catch (err) {
+    console.warn(`[embed] request failed: ${err instanceof Error ? err.message : "unknown error"}`)
     return null
   } finally {
     clearTimeout(timeout)
@@ -48,16 +56,23 @@ async function callEmbedFunction(texts: string[]): Promise<number[][] | null> {
 /** Embed up to MAX_BATCH texts in one call. Returns null on any runtime failure (see file
  *  header); throws only when the CALLER passes more texts than one call supports — that's
  *  a caller bug (see lib/vault/limits.ts's EMBED_REQUEST_BATCH, which keeps every real
- *  caller under this limit), not a runtime condition to swallow. */
-export async function embedTexts(texts: string[]): Promise<number[][] | null> {
+ *  caller under this limit), not a runtime condition to swallow.
+ *  `timeoutMs` defaults to the hot-search-path budget (EMBED_TIMEOUT_MS); the backfill
+ *  route passes a much longer one (EMBED_BACKFILL_TIMEOUT_MS) since it embeds up to
+ *  EMBED_REQUEST_BATCH texts per call, sequentially, inside the edge function. */
+export async function embedTexts(
+  texts: string[],
+  timeoutMs: number = EMBED_TIMEOUT_MS
+): Promise<number[][] | null> {
   if (texts.length > MAX_BATCH) {
     throw new RangeError(`embedTexts: ${texts.length} exceeds the ${MAX_BATCH} batch limit.`)
   }
-  return callEmbedFunction(texts)
+  return callEmbedFunction(texts, timeoutMs)
 }
 
 /** Convenience for the hot search path: embed one query string, or null on failure. */
 export async function embedQueryOrNull(query: string): Promise<number[] | null> {
+  if (!query.trim()) return null
   const result = await embedTexts([query])
   return result?.[0] ?? null
 }
