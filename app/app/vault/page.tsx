@@ -8,6 +8,7 @@ import { LibraryRail } from "@/components/library/library-rail"
 import { SpinDetailPanel } from "@/components/library/spin-detail-panel"
 import { VaultViewToggle } from "@/components/library/vault-view-toggle"
 import { AddToVaultMenu } from "@/components/vault/add-to-vault-menu"
+import { EmbeddingBackfillBanner } from "@/components/vault/embedding-backfill-banner"
 import { getSpinMarkdown } from "@/lib/library"
 
 export default function VaultPage() {
@@ -80,6 +81,8 @@ export default function VaultPage() {
         />
 
         <div className="min-w-0 flex-1">
+          <EmbeddingBackfillBanner />
+
           {/* Search */}
           <div className="relative mb-4">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4A4A46]" />
