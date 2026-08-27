@@ -10,6 +10,7 @@ import "server-only"
 // entire job is making sure that trap never has a chance to fire — the service-role path
 // gets an EXPLICIT userId, never relies on `auth.uid()`.
 
+import { after } from "next/server"
 import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js"
 import { createClient as createServerCookieClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
@@ -59,9 +60,23 @@ async function authenticateApiKey(token: string): Promise<AuthResult> {
     throw new VaultError("AUTH_REQUIRED", "Invalid or revoked API key.")
   }
 
-  // Fire-and-forget: a slow or failed touch of last_used_at must never fail the request
-  // it's only bookkeeping for. Swallow, don't await.
-  void admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", data.id)
+  // Two bugs, confirmed live 2026-08-26, are why this never worked at all before: (1) a
+  // supabase-js/PostgREST query builder is a lazy thenable — the actual fetch() only fires
+  // inside its own .then() method, so `void builder` with no await/.then() at all never
+  // sends the request, in ANY environment, not just Vercel; (2) even once truly awaited,
+  // an un-awaited background task has no guarantee of completing on Vercel's serverless
+  // runtime once the response is sent and the function freezes. after() solves (2) by
+  // keeping the function alive until the callback settles; actually `await`-ing inside it
+  // solves (1) by forcing the lazy builder to really dispatch. The try/catch keeps a slow
+  // or failed touch of last_used_at from ever surfacing as an unhandled rejection — it's
+  // only bookkeeping, and the request it's attached to has already been answered by now.
+  after(async () => {
+    try {
+      await admin.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", data.id)
+    } catch {
+      // Bookkeeping only — deliberately swallowed, see comment above.
+    }
+  })
 
   return {
     scope: { enforce: "explicit", userId: data.user_id as string },
