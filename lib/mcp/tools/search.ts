@@ -21,7 +21,7 @@ export const searchVaultTool = {
   config: {
     title: "Search vault",
     description:
-      "Keyword search across your vault. Returns short snippets and a relevance score, never full document bodies.",
+      "Search your vault by keyword AND meaning — natural-language questions and paraphrases work, not just exact keywords (hybrid ranking). Returns short snippets and a relevance score, never full document bodies.",
     inputSchema: z.object({
       query: z.string().min(1),
       project_id: z.uuid().optional(),

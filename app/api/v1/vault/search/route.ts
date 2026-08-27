@@ -16,7 +16,10 @@ export async function GET(req: NextRequest) {
     if (!query) throw new VaultError("INVALID_REQUEST", "q is required.")
     const mode = sp.get("mode") ?? "keyword"
     if (mode !== "keyword") {
-      throw new VaultError("INVALID_REQUEST", `Unsupported search mode "${mode}". Only "keyword" is available.`)
+      throw new VaultError(
+        "INVALID_REQUEST",
+        `Unsupported search mode "${mode}". "keyword" is the only valid mode parameter (ranking itself may blend semantic signals automatically).`
+      )
     }
     // Optional filter — same rule as GET /documents: only a non-empty value is validated,
     // absent or blank still means "no filter".
