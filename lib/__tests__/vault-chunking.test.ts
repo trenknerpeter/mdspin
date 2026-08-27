@@ -75,4 +75,12 @@ describe("chunkMarkdownByHeading", () => {
   it("returns an empty array for empty input", () => {
     expect(chunkMarkdownByHeading("")).toEqual([])
   })
+
+  it("consumes the setext underline so a following divider/heading isn't misread as heading text", () => {
+    const md = "Title\n=====\n---\nMore content"
+    const chunks = chunkMarkdownByHeading(md)
+    expect(chunks).toEqual([
+      { headingPath: "Title", content: "Title\n=====\n---\nMore content", tokenCount: 7 },
+    ])
+  })
 })

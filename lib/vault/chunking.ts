@@ -48,7 +48,10 @@ function scanHeadingLines(lines: string[]): HeadingLine[] {
     if (line.trim() && /^\s{0,3}(=+|-+)\s*$/.test(next)) {
       const level = next.trim()[0] === "=" ? 1 : 2
       const text = cleanHeadingText(line)
-      if (text) out.push({ line: i, level, text })
+      if (text) {
+        out.push({ line: i, level, text })
+        i++ // consume the underline
+      }
     }
   }
 
