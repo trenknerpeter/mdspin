@@ -39,15 +39,23 @@ export const SUMMARY_MAX_ATTEMPTS = 3
 /** Stage 3: give up on embedding a doc after this many failed attempts, same retry
  *  philosophy as SUMMARY_MAX_ATTEMPTS. */
 export const EMBEDDING_MAX_ATTEMPTS = 3
-/** Chunks per edge-function call. Kept small (not e.g. 50) because the edge function
- *  processes texts SEQUENTIALLY and each backfill call needs to land comfortably inside
- *  EMBED_BACKFILL_TIMEOUT_MS. */
-export const EMBED_REQUEST_BATCH = 10
+/** Chunks per edge-function call. Live-tested against the deployed function
+ *  (2026-08-29) and found NOT to be a timeout problem at all: batches of 6+ texts in one
+ *  invocation reliably return 546 WORKER_RESOURCE_LIMIT ("not having enough compute
+ *  resources") in ~2.5s regardless of batch size 6-10, and even a batch of 5 fails
+ *  depending on which chunks are in it (larger/more-complex text lowers the threshold
+ *  further). A batch of 1 was stress-tested with the largest real chunk in the vault,
+ *  repeated 5x back-to-back, with zero failures. The edge function processes texts
+ *  sequentially inside one invocation and something about that (likely the ONNX runtime's
+ *  per-inference memory not being freed between calls) accumulates past the Edge
+ *  Runtime's worker memory ceiling — batching within a single invocation is not safe at
+ *  any size above 1 until that's fixed inside the function itself. */
+export const EMBED_REQUEST_BATCH = 1
 /** Timeout for the backfill's embed calls — far longer than EMBED_TIMEOUT_MS (the
- *  hot-search-path default in lib/vault/embeddings.ts) because embedding
- *  EMBED_REQUEST_BATCH chunks sequentially inside the edge function is a fundamentally
- *  slower operation than embedding one short query string. Comfortably under the route's
- *  maxDuration=60. */
+ *  hot-search-path default in lib/vault/embeddings.ts). With EMBED_REQUEST_BATCH now 1,
+ *  a single real call takes well under a second (~0.4-0.7s observed live); this generous
+ *  ceiling exists for a cold model load or a genuinely slow invocation, not because batch
+ *  processing needs a long budget anymore. */
 export const EMBED_BACKFILL_TIMEOUT_MS = 45_000
 
 export function isIngestExt(filename: string): boolean {

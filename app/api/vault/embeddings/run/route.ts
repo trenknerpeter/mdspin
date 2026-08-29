@@ -17,7 +17,13 @@ export const runtime = "nodejs"
 export const maxDuration = 60
 
 const MAX_IDS = 10
-const DEFAULT_LIMIT = 5
+// Lowered from 5: with EMBED_REQUEST_BATCH=1 (see lib/vault/limits.ts — the edge function
+// hits a hard resource limit above batch size 1), a large document can need dozens of
+// sequential embed calls. A handful of large documents claimed in one drain call could
+// push total wall time past this route's maxDuration=60. The client-side drain loop
+// (use-embedding-drain.ts) already re-calls this route repeatedly until nothing's left, so
+// a smaller per-call limit just means more (cheap) round trips, not a slower backfill.
+const DEFAULT_LIMIT = 2
 const MAX_LIMIT = 20
 
 interface ClaimedDoc {
