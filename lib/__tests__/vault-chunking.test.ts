@@ -2,6 +2,26 @@ import { describe, it, expect } from "vitest"
 import { chunkMarkdownByHeading } from "@/lib/vault/chunking"
 
 describe("chunkMarkdownByHeading", () => {
+  it("strips embedded base64 image data before chunking, never embedding it", () => {
+    const img = "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQ)"
+    const md = `# Notes\n\n${img}\n\nreal content that matters`
+    const chunks = chunkMarkdownByHeading(md)
+    expect(chunks).toHaveLength(1)
+    expect(chunks[0].content).not.toContain("base64")
+    expect(chunks[0].content).toContain("real content that matters")
+  })
+
+  it("never leaves base64 image data in a chunk even when a section is otherwise only an image", () => {
+    const img = "![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQ)"
+    const md = `# Screenshot\n\n${img}\n\n# Real Section\n\nactual text`
+    const chunks = chunkMarkdownByHeading(md)
+    // The heading line itself is still retained content (Task 4's established behavior —
+    // a heading-only section still emits its own chunk), but the stripped image must never
+    // appear anywhere in any chunk's content.
+    expect(chunks.map((c) => c.headingPath)).toEqual(["Screenshot", "Real Section"])
+    expect(chunks.every((c) => !c.content.includes("base64"))).toBe(true)
+  })
+
   it("returns one chunk with a null headingPath for a document with no headings", () => {
     const chunks = chunkMarkdownByHeading("just some plain text, nothing else.")
     expect(chunks).toEqual([

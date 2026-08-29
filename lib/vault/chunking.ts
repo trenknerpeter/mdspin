@@ -21,6 +21,21 @@ interface HeadingLine {
   text: string
 }
 
+/** Word/PDF-to-markdown conversions routinely embed screenshots as inline base64 data
+ *  URIs (`![](data:image/png;base64,<huge blob>)`) — discovered live 2026-08-29 when a
+ *  vault document that was 93.8% base64 image data (153 embedded images) produced chunks
+ *  up to 11KB (the chunker's own "never split a paragraph" rule has no size ceiling) and,
+ *  worse, multiple DIFFERENT chunks that happened to share an embedded image's leading
+ *  bytes came back as byte-identical embeddings from the model — the base64 blob was
+ *  dominating the input, not the surrounding real text. Stripped here (embedding-bound
+ *  text only — the document's own stored markdown_text is untouched) because this content
+ *  has zero semantic value and actively corrupts both chunk sizing and embedding quality. */
+const BASE64_IMAGE_RE = /!\[[^\]]*\]\(data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+\)/g
+
+function stripEmbeddedImages(markdown: string): string {
+  return markdown.replace(BASE64_IMAGE_RE, "")
+}
+
 function scanHeadingLines(lines: string[]): HeadingLine[] {
   const out: HeadingLine[] = []
   let fence: string | null = null
@@ -100,9 +115,10 @@ function packParagraphs(text: string, maxTokens: number): string[] {
 }
 
 export function chunkMarkdownByHeading(markdown: string, maxTokens = 500): DocumentChunk[] {
-  if (!markdown.trim()) return []
+  const stripped = stripEmbeddedImages(markdown)
+  if (!stripped.trim()) return []
 
-  const lines = markdown.split(/\r?\n/)
+  const lines = stripped.split(/\r?\n/)
   const headings = scanHeadingLines(lines)
 
   interface Section {
