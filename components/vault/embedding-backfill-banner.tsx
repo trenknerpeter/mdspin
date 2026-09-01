@@ -17,7 +17,13 @@ export function EmbeddingBackfillBanner() {
   // count comparisons below stay simple.
   const pendingCount = pending ?? 0
 
-  if (!pendingCount && !failed) return null
+  // Keep the banner up once a drain has actually run in this session (log.length > 0),
+  // even after pendingCount hits 0 — otherwise the checklist below vanishes the instant
+  // the last document finishes, which defeats the entire point of showing it. A fresh
+  // page load with nothing pending and no drain run yet still renders nothing.
+  if (!pendingCount && !failed && log.length === 0) return null
+
+  const justFinished = pendingCount === 0 && failed === 0 && log.length > 0
 
   return (
     <div className="mb-4 rounded-xl border border-[#2A2A2A] bg-[#161616] px-4 py-3">
@@ -30,6 +36,7 @@ export function EmbeddingBackfillBanner() {
                 {pendingCount} document{pendingCount !== 1 ? "s" : ""} not yet searchable by meaning.
               </>
             )}
+            {justFinished && <>All documents are now searchable by meaning.</>}
             {failed > 0 && (
               <span className="ml-2 text-red-400">{failed} failed to embed — check server logs.</span>
             )}
