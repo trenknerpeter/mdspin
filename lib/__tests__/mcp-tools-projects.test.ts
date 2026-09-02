@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest"
-import { runListProjects, runGetProject, runGetRelatedDocuments } from "@/lib/mcp/tools/projects"
+import { describe, it, expect, vi } from "vitest"
+import { runListProjects, runGetProject, runGetRelatedDocuments, runCreateProject, runUpdateProject } from "@/lib/mcp/tools/projects"
 import type { VaultRepo } from "@/lib/vault/repo"
 
 function fakeRepo(overrides: Partial<VaultRepo> = {}): VaultRepo {
@@ -25,6 +25,12 @@ function fakeRepo(overrides: Partial<VaultRepo> = {}): VaultRepo {
       throw new Error("not used in this test")
     },
     removeFromVault: async () => {
+      throw new Error("not used in this test")
+    },
+    createProject: async () => {
+      throw new Error("not used in this test")
+    },
+    updateProject: async () => {
       throw new Error("not used in this test")
     },
     ...overrides,
@@ -77,5 +83,32 @@ describe("runGetRelatedDocuments", () => {
     const repo = fakeRepo({ getRelatedDocuments: async () => [] })
     const result = await runGetRelatedDocuments(repo, "d1")
     expect(result.related).toEqual([])
+  })
+})
+
+describe("runCreateProject", () => {
+  it("passes name/color/instructions through and shapes the result via compactProjectDetail", async () => {
+    const createProject = vi.fn().mockResolvedValue({
+      id: "p1", name: "Explore", color: "blue", createdAt: "t", instructions: "Focus on new ideas.",
+    })
+    const repo = fakeRepo({ createProject })
+    const result = await runCreateProject(repo, { name: "Explore", color: "blue", instructions: "Focus on new ideas." })
+    expect(createProject).toHaveBeenCalledWith({ name: "Explore", color: "blue", instructions: "Focus on new ideas." })
+    expect(result).toEqual({ id: "p1", name: "Explore", color: "blue", instructions: "Focus on new ideas.", created_at: "t" })
+  })
+})
+
+describe("runUpdateProject", () => {
+  it("builds a patch from only the provided fields", async () => {
+    const updateProject = vi.fn().mockResolvedValue({ id: "p1", name: "Renamed", color: null, createdAt: "t", instructions: null })
+    const repo = fakeRepo({ updateProject })
+    await runUpdateProject(repo, { project_id: "p1", name: "Renamed" })
+    expect(updateProject).toHaveBeenCalledWith("p1", { name: "Renamed" })
+  })
+
+  it("propagates a VaultError untouched", async () => {
+    const updateProject = vi.fn().mockRejectedValue(new Error("boom"))
+    const repo = fakeRepo({ updateProject })
+    await expect(runUpdateProject(repo, { project_id: "p1", name: "x" })).rejects.toThrow("boom")
   })
 })

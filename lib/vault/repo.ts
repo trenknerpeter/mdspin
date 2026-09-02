@@ -10,8 +10,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
 import type { CursorPage, DocumentCursor, DocumentFilter, GetDocumentOptions, Page, SearchOptions, UpdateDocumentOptions, VaultDocument, VaultDocumentPatch, VaultProject, VaultRelatedDocument, VaultScope, VaultSearchResult, VaultStats } from "./types"
-import type { AppendToDocumentOptions, CreateDocumentInput, OrganizeDocumentOptions } from "./types"
-import { buildDocumentPatchPayload, toVaultDocument, toVaultProject, toVaultRelatedDocument, toVaultSearchResult, toVaultStats, type ConversionRow, type ProjectRow, type RelatedDocumentRow, type SearchRow, type StatsRow } from "./mappers"
+import type { AppendToDocumentOptions, CreateDocumentInput, CreateProjectInput, OrganizeDocumentOptions, ProjectPatch } from "./types"
+import { buildDocumentPatchPayload, buildProjectPatchPayload, toVaultDocument, toVaultProject, toVaultRelatedDocument, toVaultSearchResult, toVaultStats, type ConversionRow, type ProjectRow, type RelatedDocumentRow, type SearchRow, type StatsRow } from "./mappers"
 import { clampLimit, clampOffset, buildPage, escapeIlikeTerm, isValidUuid, isValidTimestamp } from "./query"
 import { VaultError } from "./errors"
 import { embedQueryOrNull } from "./embeddings"
@@ -51,6 +51,8 @@ export interface VaultRepo {
   getDocument(id: string, opts?: GetDocumentOptions): Promise<VaultDocument | null>
   listProjects(): Promise<VaultProject[]>
   getProject(id: string): Promise<VaultProject | null>
+  createProject(input: CreateProjectInput): Promise<VaultProject>
+  updateProject(id: string, patch: ProjectPatch): Promise<VaultProject>
   getRelatedDocuments(documentId: string, maxResults?: number): Promise<VaultRelatedDocument[]>
   getStats(): Promise<VaultStats>
   searchDocuments(query: string, opts?: SearchOptions): Promise<Page<VaultSearchResult>>
@@ -147,6 +149,38 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
         .maybeSingle()
       if (error) throw new VaultError("DB_ERROR", error.message)
       return data ? toVaultProject(data as ProjectRow) : null
+    },
+
+    async createProject(input: CreateProjectInput): Promise<VaultProject> {
+      const { data, error } = await client
+        .from("projects")
+        .insert({
+          user_id: scope.userId,
+          name: input.name,
+          color: input.color ?? null,
+          instructions: input.instructions ?? null,
+        })
+        .select("id, name, color, created_at, instructions")
+        .single()
+      if (error) throw new VaultError("DB_ERROR", error.message)
+      return toVaultProject(data as ProjectRow)
+    },
+
+    async updateProject(id: string, patch: ProjectPatch): Promise<VaultProject> {
+      const payload = buildProjectPatchPayload(patch)
+      if (Object.keys(payload).length === 0) {
+        throw new VaultError("INVALID_REQUEST", "Patch must include at least one field to update.")
+      }
+      const { data, error } = await scoped(
+        client.from("projects").update(payload),
+        scope
+      )
+        .eq("id", id)
+        .select("id, name, color, created_at, instructions")
+        .maybeSingle()
+      if (error) throw new VaultError("DB_ERROR", error.message)
+      if (!data) throw new VaultError("NOT_FOUND", "Project not found.")
+      return toVaultProject(data as ProjectRow)
     },
 
     async getRelatedDocuments(documentId: string, maxResults = 10): Promise<VaultRelatedDocument[]> {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { toVaultDocument, toVaultProject, type ConversionRow, type ProjectRow } from "@/lib/vault/mappers"
+import { buildProjectPatchPayload, toVaultDocument, toVaultProject, type ConversionRow, type ProjectRow } from "@/lib/vault/mappers"
 
 function row(overrides: Partial<ConversionRow> = {}): ConversionRow {
   return {
@@ -95,5 +95,20 @@ describe("toVaultProject", () => {
       id: "p1", name: "Strategy", color: null, created_at: "2026-08-01T00:00:00Z",
     }
     expect(toVaultProject(withoutInstructions).instructions).toBeNull()
+  })
+})
+
+describe("buildProjectPatchPayload", () => {
+  it("includes only the keys present in the patch", () => {
+    expect(buildProjectPatchPayload({ name: "New Name" })).toEqual({ name: "New Name" })
+    expect(buildProjectPatchPayload({ color: null })).toEqual({ color: null })
+    expect(buildProjectPatchPayload({ name: "New Name", instructions: "Focus on X." })).toEqual({
+      name: "New Name",
+      instructions: "Focus on X.",
+    })
+  })
+
+  it("returns an empty object for an empty patch", () => {
+    expect(buildProjectPatchPayload({})).toEqual({})
   })
 })

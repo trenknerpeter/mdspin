@@ -154,6 +154,22 @@ export interface OrganizeDocumentOptions {
   reason?: string
 }
 
+export interface CreateProjectInput {
+  name: string
+  color?: string | null
+  instructions?: string | null
+}
+
+/** Same "only keys present are changed" convention as VaultDocumentPatch — build with
+ *  buildProjectPatchPayload (mappers.ts) rather than a literal. Projects have no
+ *  version/revision tracking (unlike documents), so there's no expected-version guard
+ *  here — this is a plain update. */
+export type ProjectPatch = Partial<{
+  name: string
+  color: string | null
+  instructions: string | null
+}>
+
 export interface PageInfo {
   limit: number
   offset: number

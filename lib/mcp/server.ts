@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/server"
 import { vaultOverviewTool } from "@/lib/mcp/tools/overview"
 import { searchVaultTool } from "@/lib/mcp/tools/search"
 import { getDocumentTool, listDocumentsTool } from "@/lib/mcp/tools/documents"
-import { listProjectsTool, getProjectTool, getRelatedDocumentsTool } from "@/lib/mcp/tools/projects"
+import { listProjectsTool, getProjectTool, getRelatedDocumentsTool, createProjectTool, updateProjectTool } from "@/lib/mcp/tools/projects"
 import { createDocumentTool, appendToDocumentTool, updateDocumentTool } from "@/lib/mcp/tools/write"
 import { organizeDocumentTool, removeFromVaultTool } from "@/lib/mcp/tools/organize"
 import { researchProjectPrompt } from "@/lib/mcp/prompts/researchProject"
@@ -64,6 +64,12 @@ export function registerVaultServer(server: McpServer) {
 
     const removeFromVault = withWriteQuota(removeFromVaultTool)
     server.registerTool(removeFromVault.name, removeFromVault.config, removeFromVault.handler)
+
+    const createProject = withWriteQuota(createProjectTool)
+    server.registerTool(createProject.name, createProject.config, createProject.handler)
+
+    const updateProject = withWriteQuota(updateProjectTool)
+    server.registerTool(updateProject.name, updateProject.config, updateProject.handler)
   }
 
   server.registerPrompt(researchProjectPrompt.name, researchProjectPrompt.config, researchProjectPrompt.handler)

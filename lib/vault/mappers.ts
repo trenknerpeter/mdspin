@@ -1,7 +1,7 @@
 // Pure row -> domain mapping. Isolated from repo.ts so the DB's column-naming
 // conventions (snake_case, singular `project_id`) never leak past this one seam.
 
-import type { VaultDocument, VaultDocumentPatch, VaultProject, VaultRelatedDocument, VaultSearchResult, VaultStats } from "./types"
+import type { ProjectPatch, VaultDocument, VaultDocumentPatch, VaultProject, VaultRelatedDocument, VaultSearchResult, VaultStats } from "./types"
 
 /** Shape of a `conversions` row as selected by repo.ts. `markdown_text` is absent from
  *  the row entirely on list queries (repo.ts omits the column — one doc is 2.4MB) and
@@ -120,5 +120,13 @@ export function buildDocumentPatchPayload(patch: VaultDocumentPatch): Record<str
   if ("markdown" in patch) payload.markdown_text = patch.markdown
   if ("tags" in patch) payload.tags = patch.tags
   if ("projectId" in patch) payload.project_id = patch.projectId
+  return payload
+}
+
+export function buildProjectPatchPayload(patch: ProjectPatch): Record<string, unknown> {
+  const payload: Record<string, unknown> = {}
+  if ("name" in patch) payload.name = patch.name
+  if ("color" in patch) payload.color = patch.color
+  if ("instructions" in patch) payload.instructions = patch.instructions
   return payload
 }

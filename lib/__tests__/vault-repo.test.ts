@@ -697,3 +697,61 @@ describe("updateDocument confirmShrink wiring", () => {
     await expect(repo2.updateDocument("d1", { markdown: "x" }, { expectedVersion: 1 })).rejects.toMatchObject({ code: "SUSPICIOUS_SHRINK" })
   })
 })
+
+describe("createProject", () => {
+  it("inserts with user_id from scope, name, color, and instructions", async () => {
+    const client = new FakeClient({
+      projects: {
+        data: { id: "p1", name: "Explore", color: "blue", created_at: "t", instructions: null },
+        error: null,
+      },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    const project = await repo.createProject({ name: "Explore", color: "blue" })
+    expect(project.name).toBe("Explore")
+    expect(client.builders[0].calls[0]).toEqual({
+      method: "insert",
+      args: [{ user_id: "user-123", name: "Explore", color: "blue", instructions: null }],
+    })
+  })
+
+  it("defaults color and instructions to null when omitted", async () => {
+    const client = new FakeClient({
+      projects: { data: { id: "p1", name: "Explore", color: null, created_at: "t", instructions: null }, error: null },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await repo.createProject({ name: "Explore" })
+    expect(client.builders[0].calls[0]).toEqual({
+      method: "insert",
+      args: [{ user_id: "user-123", name: "Explore", color: null, instructions: null }],
+    })
+  })
+})
+
+describe("updateProject", () => {
+  it("updates only the given fields, scoped to user_id", async () => {
+    const client = new FakeClient({
+      projects: { data: { id: "p1", name: "Renamed", color: "blue", created_at: "t", instructions: "Focus on X." }, error: null },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    const project = await repo.updateProject("p1", { name: "Renamed" })
+    expect(project.name).toBe("Renamed")
+    const b = client.builders[0]
+    expect(b.calls[0]).toEqual({ method: "update", args: [{ name: "Renamed" }] })
+    expect(eqCalls(b).map((c) => c.args)).toContainEqual(["user_id", "user-123"])
+    expect(eqCalls(b).map((c) => c.args)).toContainEqual(["id", "p1"])
+  })
+
+  it("rejects an empty patch before touching the client", async () => {
+    const client = new FakeClient()
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(repo.updateProject("p1", {})).rejects.toMatchObject({ code: "INVALID_REQUEST" })
+    expect(client.builders).toHaveLength(0)
+  })
+
+  it("throws NOT_FOUND when no row matches", async () => {
+    const client = new FakeClient({ projects: { data: null, error: null } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(repo.updateProject("nope", { name: "x" })).rejects.toMatchObject({ code: "NOT_FOUND" })
+  })
+})

@@ -37,6 +37,12 @@ function fakeRepo(overrides: Partial<VaultRepo> = {}): VaultRepo {
     removeFromVault: async () => {
       throw new Error("not used in this test")
     },
+    createProject: async () => {
+      throw new Error("not used in this test")
+    },
+    updateProject: async () => {
+      throw new Error("not used in this test")
+    },
     ...overrides,
   }
 }
