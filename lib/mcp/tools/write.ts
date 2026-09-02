@@ -23,7 +23,7 @@ export const createDocumentTool = {
   config: {
     title: "Create document",
     description:
-      "Create a new vault document. Preferred over update_document when adding new content — this never touches an existing document. Provide a markdown body; title is derived from the first heading when omitted.",
+      "Create a new vault document. For adding content to a document that already exists, use append_to_document instead — this tool never touches an existing document. Provide a markdown body; title is derived from the first heading when omitted.",
     inputSchema: z.object({
       title: z.string().max(200).optional(),
       markdown: z.string().min(1),
@@ -115,7 +115,7 @@ export const updateDocumentTool = {
   config: {
     title: "Update document",
     description:
-      "Full replace of title/markdown/tags/project on an existing document. Requires expected_version (read the document first with get_document — this is what makes a blind rewrite structurally impossible) and a reason. Prefer append_to_document when you're adding rather than replacing. Only allowed on notes and MCP-created documents — imported/converted/API-created documents return IMMUTABLE_SOURCE; use append_to_document there instead. If the new content is much shorter than the old, this returns SUSPICIOUS_SHRINK unless confirm_shrink is set.",
+      "Full replace of title/markdown/tags/project on an existing document. Requires expected_version (read the document first with get_document — this is what makes a blind rewrite structurally impossible) and a reason. Prefer append_to_document when you're adding rather than replacing. Only allowed on notes and MCP-created documents — imported/converted/API-created documents return IMMUTABLE_SOURCE; use append_to_document there instead. If the new content is much shorter than the old, this returns SUSPICIOUS_SHRINK — stop and confirm with the user before retrying, don't just retry with a shorter-content override.",
     inputSchema: z.object({
       document_id: z.uuid(),
       title: z.string().nullable().optional(),

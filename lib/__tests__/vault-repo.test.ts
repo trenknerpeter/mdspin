@@ -593,6 +593,21 @@ describe("createDocument", () => {
     const doc = await repo.createDocument({ title: "My Note", markdown: "hi there" })
     expect(doc.title).toBe("My Note")
     expect(doc.sourceType).toBe("mcp")
+    expect(client.builders[0].calls[0]).toEqual({
+      method: "insert",
+      args: [{
+        user_id: "user-123",
+        filename: "my-note.md",
+        file_type: "md",
+        title: "My Note",
+        markdown_text: "hi there",
+        word_count: 2,
+        tags: [],
+        project_id: null,
+        in_vault: true,
+        source_type: "mcp",
+      }],
+    })
   })
 
   it("rejects a project_id the user doesn't own", async () => {

@@ -58,8 +58,14 @@ export function withReadUsageTracking<A, C>(
     const result = await (tool.handler as unknown as (...a: unknown[]) => Promise<McpToolResult>)(...callArgs)
     const keyId = resolveKeyId(ctx)
     if (keyId && !result.isError) {
-      const admin = createAdminClient()
-      if (admin) await incrementMcpRead(admin, keyId, weightOf(args))
+      try {
+        const admin = createAdminClient()
+        if (admin) await incrementMcpRead(admin, keyId, weightOf(args))
+      } catch (err) {
+        // Reads are fail-open by contract: metering must never be able to block or throw
+        // for a read, no matter what incrementMcpRead does in the future.
+        console.error("withReadUsageTracking: metering failed, ignoring (reads are fail-open)", err)
+      }
     }
     return result
   }) as McpTool<A, C>["handler"]
