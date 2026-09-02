@@ -45,6 +45,31 @@ describe("withReadUsageTracking", () => {
     await wrapped.handler({}, CTX_WITH_KEY)
     expect(incrementMcpRead).not.toHaveBeenCalled()
   })
+
+  // Schema-less tools (vault_overview, list_projects have no inputSchema in their config)
+  // are called by the real @modelcontextprotocol/server SDK with a SINGLE argument — the
+  // executor built for a tool with no inputSchema is `(_args, ctx) => callback(ctx)`, not
+  // `callback(args, ctx)`. A handler that assumed arity 2 would read the real ctx into its
+  // own `args` slot and get `undefined` for `ctx`, and resolveKeyId(undefined) would throw.
+  // This exercises that exact one-argument call shape end to end.
+  it("dispatches correctly when called with a SINGLE argument (the SDK's shape for schema-less tools)", async () => {
+    const inner = vi.fn().mockResolvedValue({ content: [] })
+    const tool = { name: "vault_overview", config: {}, handler: inner }
+    const wrapped = withReadUsageTracking(tool, () => 3)
+
+    // Cast because TS's static type for `handler` is (args, ctx) => ...; at runtime the
+    // SDK really does call schema-less tools with one argument, which is what this test
+    // simulates.
+    const result = await (wrapped.handler as unknown as (ctx: unknown) => Promise<unknown>)(CTX_WITH_KEY)
+
+    // The real context reached the inner handler as ITS single argument — no crash, no
+    // context lost in an `args` slot that was never populated.
+    expect(inner).toHaveBeenCalledTimes(1)
+    expect(inner).toHaveBeenCalledWith(CTX_WITH_KEY)
+    // Metering still fires, keyed off the real (one-argument) context, at the given weight.
+    expect(incrementMcpRead).toHaveBeenCalledWith(adminClient, "k1", 3)
+    expect(result).toEqual({ content: [] })
+  })
 })
 
 describe("withWriteQuota", () => {

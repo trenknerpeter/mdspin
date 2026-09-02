@@ -70,7 +70,13 @@ export function withReadUsageTracking<A, C>(
 /** Wrap a WRITE tool so the daily quota is checked and incremented BEFORE the inner
  *  handler ever runs. Fail-closed: no resolvable key id, no admin client, or a quota-check
  *  error all block the write — do not change this to fail open (see the asymmetry note on
- *  lib/vault/mcp-usage.ts's tryIncrementMcpWrite). */
+ *  lib/vault/mcp-usage.ts's tryIncrementMcpWrite).
+ *
+ *  Unlike withReadUsageTracking above, this assumes arity 2 (args, ctx) unconditionally
+ *  and does NOT need the same runtime dispatch — all 5 write tools have an inputSchema
+ *  (create/append/update/organize/remove all take at least one required field), so the SDK
+ *  always calls them with (args, ctx). Revisit this assumption if a future write tool ever
+ *  ships with no inputSchema. */
 export function withWriteQuota<A, C>(tool: McpTool<A, C>): McpTool<A, C> {
   return {
     ...tool,
