@@ -67,14 +67,30 @@ begin
    where m.key_id = p_key_id and m.date = current_date
    for update;
 
+  -- Fail closed, not open, on the narrow race where a concurrent transaction's insert was
+  -- rolled back between our own INSERT ... ON CONFLICT DO NOTHING and this SELECT: without
+  -- this branch v_count is NULL, "NULL >= p_daily_limit" is NULL (falsy), and the function
+  -- would fall through to the write path below with a NULL write_count -- an unmetered,
+  -- unquota'd write. Caught during the Stage 4 final review, not by any earlier test.
+  if v_count is null then
+    raise exception 'mcp_usage row missing for key % after insert-on-conflict', p_key_id;
+  end if;
+
   if v_count >= p_daily_limit then
     return query select false, v_count, 0;
     return;
   end if;
 
-  update public.mcp_usage
-     set write_count = write_count + 1, updated_at = now()
-   where key_id = p_key_id and date = current_date;
+  -- Table-qualified on both sides of the assignment's RHS: this function's own
+  -- RETURNS TABLE column `write_count` is an implicit OUT variable in scope inside this
+  -- body, so a bare `write_count` on the right-hand side is ambiguous against
+  -- `mcp_usage.write_count` -- confirmed live (Postgres 42702) the first time this
+  -- function was actually invoked end-to-end, not caught by any grant/signature check.
+  -- increment_mcp_read's ON CONFLICT DO UPDATE above already qualified this correctly;
+  -- this UPDATE originally didn't.
+  update public.mcp_usage m
+     set write_count = m.write_count + 1, updated_at = now()
+   where m.key_id = p_key_id and m.date = current_date;
 
   return query select true, v_count + 1, p_daily_limit - (v_count + 1);
 end;
@@ -83,6 +99,15 @@ $$;
 revoke execute on function public.try_increment_mcp_write(uuid, integer) from public;
 revoke execute on function public.try_increment_mcp_write(uuid, integer) from anon;
 revoke execute on function public.try_increment_mcp_write(uuid, integer) from authenticated;
+
+-- Explicit, even though this project's ALTER DEFAULT PRIVILEGES already grants service_role
+-- EXECUTE on new functions (confirmed live) -- without this, the migration file alone isn't
+-- self-describing about how the app is actually allowed to call these, and a fresh project
+-- replaying this file from scratch without that same default-privileges setup would ship
+-- two functions the app can never reach (both new write tools would then fail closed on
+-- every call, since a write only proceeds after this check succeeds).
+grant execute on function public.increment_mcp_read(uuid, integer) to service_role;
+grant execute on function public.try_increment_mcp_write(uuid, integer) to service_role;
 
 create or replace function public.vault_append_to_document(
   p_user_id uuid,
