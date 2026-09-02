@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { resolveUserId } from "@/lib/mcp/context"
+import { resolveUserId, resolveKeyId } from "@/lib/mcp/context"
 
 describe("resolveUserId", () => {
   it("reads clientId from ctx.http.authInfo", () => {
@@ -10,5 +10,18 @@ describe("resolveUserId", () => {
   })
   it("throws when clientId is empty", () => {
     expect(() => resolveUserId({ http: { authInfo: { clientId: "" } } })).toThrow()
+  })
+})
+
+describe("resolveKeyId", () => {
+  it("reads keyId from ctx.http.authInfo.extra", () => {
+    const ctx = { http: { authInfo: { clientId: "u1", extra: { keyId: "k1" } } } }
+    expect(resolveKeyId(ctx)).toBe("k1")
+  })
+
+  it("returns undefined when extra.keyId is absent or not a string", () => {
+    expect(resolveKeyId({ http: { authInfo: { clientId: "u1" } } })).toBeUndefined()
+    expect(resolveKeyId({ http: { authInfo: { clientId: "u1", extra: { keyId: 123 } } } })).toBeUndefined()
+    expect(resolveKeyId({})).toBeUndefined()
   })
 })

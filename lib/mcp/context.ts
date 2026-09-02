@@ -48,6 +48,11 @@ export function resolveUserId(ctx: McpAuthContext): string {
   return userId
 }
 
+export function resolveKeyId(ctx: McpAuthContext): string | undefined {
+  const keyId = ctx.http?.authInfo?.extra?.keyId
+  return typeof keyId === "string" ? keyId : undefined
+}
+
 export function repoForContext(ctx: McpAuthContext): VaultRepo {
   const userId = resolveUserId(ctx)
   const admin = createAdminClient()
