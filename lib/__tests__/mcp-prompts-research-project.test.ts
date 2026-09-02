@@ -15,6 +15,18 @@ function fakeRepo(overrides: Partial<VaultRepo> = {}): VaultRepo {
     updateDocument: async () => {
       throw new Error("not used in this test")
     },
+    createDocument: async () => {
+      throw new Error("not used in this test")
+    },
+    appendToDocument: async () => {
+      throw new Error("not used in this test")
+    },
+    organizeDocument: async () => {
+      throw new Error("not used in this test")
+    },
+    removeFromVault: async () => {
+      throw new Error("not used in this test")
+    },
     ...overrides,
   }
 }

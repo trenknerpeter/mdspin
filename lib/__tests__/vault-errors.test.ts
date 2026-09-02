@@ -22,4 +22,18 @@ describe("VaultError", () => {
     expect(err.message).toBe("connection reset")
     expect(err.name).toBe("VaultError")
   })
+
+  it("maps IMMUTABLE_SOURCE to 409", () => {
+    const err = new VaultError("IMMUTABLE_SOURCE", "cannot replace")
+    expect(err.status).toBe(409)
+    expect(err.toResponse()).toEqual({ error: "IMMUTABLE_SOURCE", message: "cannot replace" })
+  })
+
+  it("maps SUSPICIOUS_SHRINK to 409", () => {
+    expect(new VaultError("SUSPICIOUS_SHRINK", "too short").status).toBe(409)
+  })
+
+  it("maps WRITE_QUOTA_EXCEEDED to 429", () => {
+    expect(new VaultError("WRITE_QUOTA_EXCEEDED", "too many writes").status).toBe(429)
+  })
 })

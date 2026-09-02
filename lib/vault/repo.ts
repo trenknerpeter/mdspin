@@ -10,10 +10,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
 import type { CursorPage, DocumentCursor, DocumentFilter, GetDocumentOptions, Page, SearchOptions, UpdateDocumentOptions, VaultDocument, VaultDocumentPatch, VaultProject, VaultRelatedDocument, VaultScope, VaultSearchResult, VaultStats } from "./types"
+import type { AppendToDocumentOptions, CreateDocumentInput, OrganizeDocumentOptions } from "./types"
 import { buildDocumentPatchPayload, toVaultDocument, toVaultProject, toVaultRelatedDocument, toVaultSearchResult, toVaultStats, type ConversionRow, type ProjectRow, type RelatedDocumentRow, type SearchRow, type StatsRow } from "./mappers"
 import { clampLimit, clampOffset, buildPage, escapeIlikeTerm, isValidUuid, isValidTimestamp } from "./query"
 import { VaultError } from "./errors"
 import { embedQueryOrNull } from "./embeddings"
+import { deriveFilenameFromTitle, deriveTitle } from "./title"
+import { countWords } from "./text"
 
 const LIST_COLUMNS =
   "id, filename, title, file_type, word_count, project_id, tags, source_type, converted_at, updated_at, version, summary, summary_status"
@@ -52,6 +55,10 @@ export interface VaultRepo {
   getStats(): Promise<VaultStats>
   searchDocuments(query: string, opts?: SearchOptions): Promise<Page<VaultSearchResult>>
   updateDocument(id: string, patch: VaultDocumentPatch, opts: UpdateDocumentOptions): Promise<VaultDocument>
+  createDocument(input: CreateDocumentInput): Promise<VaultDocument>
+  appendToDocument(id: string, addition: string, opts?: AppendToDocumentOptions): Promise<VaultDocument>
+  organizeDocument(id: string, opts: OrganizeDocumentOptions): Promise<VaultDocument>
+  removeFromVault(id: string): Promise<void>
   listDocumentsByCursor(filter?: {
     projectId?: string
     tags?: string[]
@@ -208,6 +215,7 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
         p_actor: opts.actor ?? "user",
         p_actor_key_id: opts.actorKeyId ?? null,
         p_reason: opts.reason ?? null,
+        p_confirm_shrink: opts.confirmShrink ?? false,
       })
       if (error) {
         if (error.code === "55000") {
@@ -219,11 +227,128 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
         if (error.code === "P0002") throw new VaultError("NOT_FOUND", "Document not found.")
         if (error.code === "28000") throw new VaultError("AUTH_REQUIRED", "Not authorized for this document.")
         if (error.code === "22023") throw new VaultError("INVALID_REQUEST", "project_id does not belong to this user.")
+        if (error.code === "0A000") {
+          throw new VaultError(
+            "IMMUTABLE_SOURCE",
+            "This document's source is immutable; use append_to_document instead."
+          )
+        }
+        if (error.code === "22001") {
+          let prev: number | undefined
+          let next: number | undefined
+          try {
+            const parsed = JSON.parse(error.details ?? "{}")
+            prev = parsed.previous_length
+            next = parsed.new_length
+          } catch {
+            // error.details wasn't the JSON we expect — fall through with prev/next undefined.
+          }
+          throw new VaultError(
+            "SUSPICIOUS_SHRINK",
+            `New content (${next ?? "?"} chars) is less than half the previous (${prev ?? "?"} chars). Pass confirm_shrink to override.`
+          )
+        }
         throw new VaultError("DB_ERROR", error.message)
       }
       const rows = (data ?? []) as ConversionRow[]
       if (!rows[0]) throw new VaultError("NOT_FOUND", "Document not found.")
       return toVaultDocument(rows[0])
+    },
+
+    async createDocument(input: CreateDocumentInput): Promise<VaultDocument> {
+      if (input.projectId) {
+        const { data: proj, error: projErr } = await scoped(
+          client.from("projects").select("id"),
+          scope
+        ).eq("id", input.projectId).maybeSingle()
+        if (projErr) throw new VaultError("DB_ERROR", projErr.message)
+        if (!proj) throw new VaultError("INVALID_REQUEST", "project_id does not belong to this user.")
+      }
+
+      const title = input.title?.trim() || deriveTitle({ body: input.markdown, filename: null })
+      const filename = deriveFilenameFromTitle(title)
+
+      const { data, error } = await client
+        .from("conversions")
+        .insert({
+          user_id: scope.userId,
+          filename,
+          file_type: "md",
+          title,
+          markdown_text: input.markdown,
+          word_count: countWords(input.markdown),
+          tags: input.tags ?? [],
+          project_id: input.projectId ?? null,
+          in_vault: true,
+          source_type: "mcp",
+        })
+        .select(DETAIL_COLUMNS)
+        .single()
+      if (error) throw new VaultError("DB_ERROR", error.message)
+      return toVaultDocument(data as ConversionRow)
+    },
+
+    async appendToDocument(
+      id: string,
+      addition: string,
+      opts: AppendToDocumentOptions = {}
+    ): Promise<VaultDocument> {
+      if (!addition.trim()) {
+        throw new VaultError("INVALID_REQUEST", "addition must not be empty.")
+      }
+      const { data, error } = await client.rpc("vault_append_to_document", {
+        p_user_id: scope.userId,
+        p_document_id: id,
+        p_addition: addition,
+        p_actor: opts.actor ?? "mcp",
+        p_actor_key_id: opts.actorKeyId ?? null,
+        p_reason: opts.reason ?? null,
+      })
+      if (error) {
+        if (error.code === "P0002") throw new VaultError("NOT_FOUND", "Document not found.")
+        if (error.code === "28000") throw new VaultError("AUTH_REQUIRED", "Not authorized for this document.")
+        throw new VaultError("DB_ERROR", error.message)
+      }
+      const rows = (data ?? []) as ConversionRow[]
+      if (!rows[0]) throw new VaultError("NOT_FOUND", "Document not found.")
+      return toVaultDocument(rows[0])
+    },
+
+    async organizeDocument(id: string, opts: OrganizeDocumentOptions): Promise<VaultDocument> {
+      const addTags = opts.addTags ?? []
+      const removeTags = opts.removeTags ?? []
+      if (addTags.length === 0 && removeTags.length === 0) {
+        throw new VaultError("INVALID_REQUEST", "Provide at least one tag to add or remove.")
+      }
+      const { data, error } = await client.rpc("vault_organize_document", {
+        p_user_id: scope.userId,
+        p_document_id: id,
+        p_add_tags: addTags,
+        p_remove_tags: removeTags,
+        p_actor: opts.actor ?? "mcp",
+        p_actor_key_id: opts.actorKeyId ?? null,
+        p_reason: opts.reason ?? null,
+      })
+      if (error) {
+        if (error.code === "P0002") throw new VaultError("NOT_FOUND", "Document not found.")
+        if (error.code === "28000") throw new VaultError("AUTH_REQUIRED", "Not authorized for this document.")
+        throw new VaultError("DB_ERROR", error.message)
+      }
+      const rows = (data ?? []) as ConversionRow[]
+      if (!rows[0]) throw new VaultError("NOT_FOUND", "Document not found.")
+      return toVaultDocument(rows[0])
+    },
+
+    async removeFromVault(id: string): Promise<void> {
+      const { data, error } = await scoped(
+        client.from("conversions").update({ in_vault: false }),
+        scope
+      )
+        .eq("id", id)
+        .select("id")
+        .maybeSingle()
+      if (error) throw new VaultError("DB_ERROR", error.message)
+      if (!data) throw new VaultError("NOT_FOUND", "Document not found.")
     },
 
     async listDocumentsByCursor(

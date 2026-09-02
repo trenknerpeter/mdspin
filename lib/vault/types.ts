@@ -128,6 +128,30 @@ export interface UpdateDocumentOptions {
   actor?: RevisionActor
   actorKeyId?: string
   reason?: string
+  /** Stage 4: overrides vault_update_document's anti-truncation guard. Only meaningful
+   *  when actor is "mcp" — see the guard's own actor-scoping in the migration. */
+  confirmShrink?: boolean
+}
+
+export interface CreateDocumentInput {
+  title?: string | null
+  markdown: string
+  tags?: string[]
+  projectId?: string | null
+}
+
+export interface AppendToDocumentOptions {
+  actor?: RevisionActor
+  actorKeyId?: string
+  reason?: string
+}
+
+export interface OrganizeDocumentOptions {
+  addTags?: string[]
+  removeTags?: string[]
+  actor?: RevisionActor
+  actorKeyId?: string
+  reason?: string
 }
 
 export interface PageInfo {

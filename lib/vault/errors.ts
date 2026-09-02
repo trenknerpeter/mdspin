@@ -13,6 +13,9 @@ export type VaultErrorCode =
   | "NOT_FOUND"
   | "INVALID_REQUEST"
   | "VERSION_CONFLICT"
+  | "IMMUTABLE_SOURCE"
+  | "SUSPICIOUS_SHRINK"
+  | "WRITE_QUOTA_EXCEEDED"
   | "DB_ERROR"
 
 const STATUS_BY_CODE: Record<VaultErrorCode, number> = {
@@ -21,6 +24,9 @@ const STATUS_BY_CODE: Record<VaultErrorCode, number> = {
   NOT_FOUND: 404,
   INVALID_REQUEST: 400,
   VERSION_CONFLICT: 409,
+  IMMUTABLE_SOURCE: 409,
+  SUSPICIOUS_SHRINK: 409,
+  WRITE_QUOTA_EXCEEDED: 429,
   DB_ERROR: 500,
 }
 

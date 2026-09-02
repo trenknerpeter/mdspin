@@ -36,6 +36,14 @@ class FakeBuilder {
     this.calls.push({ method: "update", args })
     return this
   }
+  select(...args: unknown[]) {
+    this.calls.push({ method: "select", args })
+    return this
+  }
+  single() {
+    this.calls.push({ method: "single", args: [] })
+    return this
+  }
   then(resolve: (v: unknown) => unknown, reject?: (e: unknown) => unknown) {
     return Promise.resolve(this.result).then(resolve, reject)
   }
@@ -52,6 +60,18 @@ class FakeClient {
     return {
       select: (_cols: string, _opts?: unknown) => {
         const b = new FakeBuilder(this.resultsByTable[table])
+        this.builders.push(b)
+        return b
+      },
+      insert: (row: unknown) => {
+        const b = new FakeBuilder(this.resultsByTable[table])
+        b.calls.push({ method: "insert", args: [row] })
+        this.builders.push(b)
+        return b
+      },
+      update: (patch: unknown) => {
+        const b = new FakeBuilder(this.resultsByTable[table])
+        b.calls.push({ method: "update", args: [patch] })
         this.builders.push(b)
         return b
       },
@@ -396,6 +416,7 @@ describe("updateDocument", () => {
       args: {
         p_user_id: "user-123", p_document_id: "doc-1", p_expected_version: 1,
         p_patch: { title: "New title" }, p_actor: "user", p_actor_key_id: null, p_reason: null,
+        p_confirm_shrink: false,
       },
     })
     expect(doc.title).toBe("New title")
@@ -557,5 +578,107 @@ describe("listDocumentsByCursor", () => {
     expect(eqCalls(builder)).toContainEqual({ method: "eq", args: ["user_id", "user-123"] })
     expect(eqCalls(builder)).toContainEqual({ method: "eq", args: ["project_id", "proj-1"] })
     expect(builder.calls).toContainEqual({ method: "overlaps", args: ["tags", ["pm"]] })
+  })
+})
+
+describe("createDocument", () => {
+  it("inserts with user_id from scope, source_type mcp, and derives a filename from the title", async () => {
+    const client = new FakeClient({
+      conversions: {
+        data: { id: "d1", filename: "my-note.md", title: "My Note", file_type: "md", word_count: 2, project_id: null, tags: [], source_type: "mcp", converted_at: "t", updated_at: "t", version: 1, markdown_text: "hi there" },
+        error: null,
+      },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    const doc = await repo.createDocument({ title: "My Note", markdown: "hi there" })
+    expect(doc.title).toBe("My Note")
+    expect(doc.sourceType).toBe("mcp")
+  })
+
+  it("rejects a project_id the user doesn't own", async () => {
+    const client = new FakeClient({ projects: { data: null, error: null } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(repo.createDocument({ markdown: "x", projectId: "not-mine" })).rejects.toMatchObject({ code: "INVALID_REQUEST" })
+  })
+})
+
+describe("appendToDocument", () => {
+  it("calls vault_append_to_document with actor defaulted to mcp", async () => {
+    const client = new FakeClient({}, {
+      vault_append_to_document: { data: [{ id: "d1", filename: "f.md", title: null, file_type: "md", word_count: 3, project_id: null, tags: [], source_type: "note", converted_at: "t", updated_at: "t", version: 2 }], error: null },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    const doc = await repo.appendToDocument("d1", "more text")
+    expect(doc.version).toBe(2)
+    expect(client.rpcCalls[0]).toEqual({ name: "vault_append_to_document", args: { p_user_id: "user-123", p_document_id: "d1", p_addition: "more text", p_actor: "mcp", p_actor_key_id: null, p_reason: null } })
+  })
+
+  it("rejects an empty addition before calling the RPC", async () => {
+    const client = new FakeClient()
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(repo.appendToDocument("d1", "   ")).rejects.toMatchObject({ code: "INVALID_REQUEST" })
+    expect(client.rpcCalls).toHaveLength(0)
+  })
+
+  it("maps NOT_FOUND", async () => {
+    const client = new FakeClient({}, { vault_append_to_document: { data: null, error: { code: "P0002", message: "x" } } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(repo.appendToDocument("d1", "x")).rejects.toMatchObject({ code: "NOT_FOUND" })
+  })
+})
+
+describe("organizeDocument", () => {
+  it("calls vault_organize_document with add/remove tags", async () => {
+    const client = new FakeClient({}, {
+      vault_organize_document: { data: [{ id: "d1", filename: "f.md", title: null, file_type: "md", word_count: 1, project_id: null, tags: ["a"], source_type: "note", converted_at: "t", updated_at: "t", version: 3 }], error: null },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    const doc = await repo.organizeDocument("d1", { addTags: ["a"], removeTags: ["b"] })
+    expect(doc.tags).toEqual(["a"])
+    expect(client.rpcCalls[0].args).toMatchObject({ p_add_tags: ["a"], p_remove_tags: ["b"], p_actor: "mcp" })
+  })
+
+  it("rejects when neither add nor remove tags are given", async () => {
+    const client = new FakeClient()
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(repo.organizeDocument("d1", {})).rejects.toMatchObject({ code: "INVALID_REQUEST" })
+  })
+})
+
+describe("removeFromVault", () => {
+  it("updates in_vault to false, scoped to user_id", async () => {
+    const client = new FakeClient({ conversions: { data: { id: "d1" }, error: null } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await repo.removeFromVault("d1")
+    const b = client.builders[0]
+    expect(b.calls[0]).toEqual({ method: "update", args: [{ in_vault: false }] })
+    expect(eqCalls(b).map((c) => c.args)).toContainEqual(["user_id", "user-123"])
+  })
+
+  it("throws NOT_FOUND when no row matches", async () => {
+    const client = new FakeClient({ conversions: { data: null, error: null } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(repo.removeFromVault("nope")).rejects.toMatchObject({ code: "NOT_FOUND" })
+  })
+})
+
+describe("updateDocument confirmShrink wiring", () => {
+  it("passes p_confirm_shrink through, defaulting to false", async () => {
+    const client = new FakeClient({}, {
+      vault_update_document: { data: [{ id: "d1", filename: "f.md", title: null, file_type: "md", word_count: 1, project_id: null, tags: [], source_type: "note", converted_at: "t", updated_at: "t", version: 2 }], error: null },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await repo.updateDocument("d1", { markdown: "x" }, { expectedVersion: 1, confirmShrink: true })
+    expect(client.rpcCalls[0].args).toMatchObject({ p_confirm_shrink: true })
+  })
+
+  it("maps IMMUTABLE_SOURCE and SUSPICIOUS_SHRINK", async () => {
+    const client = new FakeClient({}, { vault_update_document: { data: null, error: { code: "0A000", message: "x" } } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(repo.updateDocument("d1", { markdown: "x" }, { expectedVersion: 1 })).rejects.toMatchObject({ code: "IMMUTABLE_SOURCE" })
+
+    const client2 = new FakeClient({}, { vault_update_document: { data: null, error: { code: "22001", message: "x", details: '{"previous_length":5000,"new_length":100}' } } })
+    const repo2 = createVaultRepo(client2 as never, SCOPE)
+    await expect(repo2.updateDocument("d1", { markdown: "x" }, { expectedVersion: 1 })).rejects.toMatchObject({ code: "SUSPICIOUS_SHRINK" })
   })
 })

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import {
   deriveTitle,
+  deriveFilenameFromTitle,
   extractHeadings,
   titleFromFilename,
   cleanHeadingText,
@@ -136,5 +137,20 @@ describe("deriveTitle", () => {
   it("falls back to UNTITLED when everything is empty", () => {
     expect(deriveTitle({ body: "", filename: null })).toBe(UNTITLED)
     expect(deriveTitle({ body: "   ", filename: ".md" })).toBe(UNTITLED)
+  })
+})
+
+describe("deriveFilenameFromTitle", () => {
+  it("slugifies a title into a .md filename", () => {
+    expect(deriveFilenameFromTitle("Q3 Pricing Notes!")).toBe("q3-pricing-notes.md")
+  })
+
+  it("falls back to untitled.md for a title with no alphanumerics", () => {
+    expect(deriveFilenameFromTitle("!!!")).toBe("untitled.md")
+  })
+
+  it("caps length so a very long title doesn't produce an unbounded filename", () => {
+    const long = "a".repeat(500)
+    expect(deriveFilenameFromTitle(long).length).toBeLessThanOrEqual(63) // 60 + ".md"
   })
 })

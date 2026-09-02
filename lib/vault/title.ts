@@ -88,6 +88,18 @@ export function titleFromFilename(filename: string): string {
   return cleanHeadingText(base.replace(/[-_]+/g, " "))
 }
 
+/** A safe .md filename derived from a title — mirrors createNote()'s "untitled.md"
+ *  fallback (lib/library.ts) for the empty case. Lowercased, non-alphanumerics collapsed
+ *  to a single '-', capped well under any filesystem/URL length limit. */
+export function deriveFilenameFromTitle(title: string): string {
+  const slug = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60)
+  return `${slug || "untitled"}.md`
+}
+
 /**
  * Title precedence: frontmatter `title` -> first H1 in the body -> filename -> UNTITLED.
  *
