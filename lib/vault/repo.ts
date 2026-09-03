@@ -67,6 +67,7 @@ async function fetchProjectIdsByDocument(
   )
     .in("document_id", documentIds)
     .order("added_at", { ascending: true })
+    .order("project_id", { ascending: true })
   if (error) throw new VaultError("DB_ERROR", error.message)
 
   for (const r of (data ?? []) as { document_id: string; project_id: string }[]) {

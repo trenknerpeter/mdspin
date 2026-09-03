@@ -304,6 +304,15 @@ describe("document_projects integration — Stage 5 Phase B", () => {
     // Exactly 1 builder: the insert. No document_projects round trip for a write-return.
     expect(client.builders).toHaveLength(1)
   })
+
+  it("surfaces an error from the document_projects lookup as a VaultError, not an unhandled rejection", async () => {
+    const client = new FakeClient({
+      conversions: { data: BASE_ROW, error: null },
+      document_projects: { data: null, error: { message: "connection reset" } },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(repo.getDocument("doc-1")).rejects.toThrow("connection reset")
+  })
 })
 
 describe("getRelatedDocuments", () => {
