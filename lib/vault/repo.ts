@@ -11,7 +11,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
 import type { CursorPage, DocumentCursor, DocumentFilter, GetDocumentOptions, Page, SearchOptions, UpdateDocumentOptions, VaultDocument, VaultDocumentPatch, VaultProject, VaultRelatedDocument, VaultScope, VaultSearchResult, VaultStats } from "./types"
 import type { AppendToDocumentOptions, CreateDocumentInput, CreateProjectInput, OrganizeDocumentOptions, ProjectPatch } from "./types"
-import { buildDocumentPatchPayload, buildProjectPatchPayload, toVaultDocument, toVaultProject, toVaultRelatedDocument, toVaultSearchResult, toVaultStats, type ConversionRow, type ProjectRow, type RelatedDocumentRow, type SearchRow, type StatsRow } from "./mappers"
+import { buildDocumentPatchPayload, buildProjectPatchPayload, projectIdsFromColumn, toVaultDocument, toVaultProject, toVaultRelatedDocument, toVaultSearchResult, toVaultStats, type ConversionRow, type ProjectRow, type RelatedDocumentRow, type SearchRow, type StatsRow } from "./mappers"
 import { clampLimit, clampOffset, buildPage, escapeIlikeTerm, isValidUuid, isValidTimestamp } from "./query"
 import { VaultError } from "./errors"
 import { embedQueryOrNull } from "./embeddings"
@@ -44,6 +44,37 @@ const DETAIL_COLUMNS = `${LIST_COLUMNS}, markdown_text`
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function scoped(builder: any, scope: VaultScope): any {
   return builder.eq("user_id", scope.userId)
+}
+
+/**
+ * Batched project-membership lookup for a page of documents at once — never call this
+ * once per row. Returns ids ordered earliest-linked-first per document, matching the
+ * "primary project" convention Phase A's SQL (find_related_documents,
+ * vault_search_documents) already uses, so a caller that only wants "the" project for
+ * display can just take index 0.
+ */
+async function fetchProjectIdsByDocument(
+  client: SupabaseClient,
+  scope: VaultScope,
+  documentIds: string[]
+): Promise<Map<string, string[]>> {
+  const map = new Map<string, string[]>()
+  if (documentIds.length === 0) return map
+
+  const { data, error } = await scoped(
+    client.from("document_projects").select("document_id, project_id, added_at"),
+    scope
+  )
+    .in("document_id", documentIds)
+    .order("added_at", { ascending: true })
+  if (error) throw new VaultError("DB_ERROR", error.message)
+
+  for (const r of (data ?? []) as { document_id: string; project_id: string }[]) {
+    const existing = map.get(r.document_id)
+    if (existing) existing.push(r.project_id)
+    else map.set(r.document_id, [r.project_id])
+  }
+  return map
 }
 
 export interface VaultRepo {
@@ -118,7 +149,11 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
       if (error) throw new VaultError("DB_ERROR", error.message)
 
       const rows = (data ?? []) as ConversionRow[]
-      return buildPage(rows.map(toVaultDocument), { limit, offset, total: count ?? rows.length })
+      const projectIdsByDoc = await fetchProjectIdsByDocument(client, scope, rows.map((r) => r.id))
+      return buildPage(
+        rows.map((r) => toVaultDocument(r, projectIdsByDoc.get(r.id) ?? [])),
+        { limit, offset, total: count ?? rows.length }
+      )
     },
 
     async getDocument(id: string, opts: GetDocumentOptions = {}): Promise<VaultDocument | null> {
@@ -128,7 +163,10 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
         .eq("in_vault", true)
         .maybeSingle()
       if (error) throw new VaultError("DB_ERROR", error.message)
-      return data ? toVaultDocument(data as ConversionRow) : null
+      if (!data) return null
+      const row = data as ConversionRow
+      const projectIdsByDoc = await fetchProjectIdsByDocument(client, scope, [row.id])
+      return toVaultDocument(row, projectIdsByDoc.get(row.id) ?? [])
     },
 
     async listProjects(): Promise<VaultProject[]> {
@@ -225,7 +263,11 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
       if (error) throw new VaultError("DB_ERROR", error.message)
       const rows = (data ?? []) as SearchRow[]
       const total = rows[0]?.total_count ?? 0
-      return buildPage(rows.map(toVaultSearchResult), { limit, offset, total })
+      const projectIdsByDoc = await fetchProjectIdsByDocument(client, scope, rows.map((r) => r.id))
+      return buildPage(
+        rows.map((r) => toVaultSearchResult(r, projectIdsByDoc.get(r.id) ?? [])),
+        { limit, offset, total }
+      )
     },
 
     async updateDocument(
@@ -286,7 +328,7 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
       }
       const rows = (data ?? []) as ConversionRow[]
       if (!rows[0]) throw new VaultError("NOT_FOUND", "Document not found.")
-      return toVaultDocument(rows[0])
+      return toVaultDocument(rows[0], projectIdsFromColumn(rows[0]))
     },
 
     async createDocument(input: CreateDocumentInput): Promise<VaultDocument> {
@@ -319,7 +361,8 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
         .select(DETAIL_COLUMNS)
         .single()
       if (error) throw new VaultError("DB_ERROR", error.message)
-      return toVaultDocument(data as ConversionRow)
+      const row = data as ConversionRow
+      return toVaultDocument(row, projectIdsFromColumn(row))
     },
 
     async appendToDocument(
@@ -345,7 +388,7 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
       }
       const rows = (data ?? []) as ConversionRow[]
       if (!rows[0]) throw new VaultError("NOT_FOUND", "Document not found.")
-      return toVaultDocument(rows[0])
+      return toVaultDocument(rows[0], projectIdsFromColumn(rows[0]))
     },
 
     async organizeDocument(id: string, opts: OrganizeDocumentOptions): Promise<VaultDocument> {
@@ -370,7 +413,7 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
       }
       const rows = (data ?? []) as ConversionRow[]
       if (!rows[0]) throw new VaultError("NOT_FOUND", "Document not found.")
-      return toVaultDocument(rows[0])
+      return toVaultDocument(rows[0], projectIdsFromColumn(rows[0]))
     },
 
     async removeFromVault(id: string): Promise<void> {
@@ -416,7 +459,8 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
       if (error) throw new VaultError("DB_ERROR", error.message)
 
       const rows = (data ?? []) as ConversionRow[]
-      const docs = rows.map(toVaultDocument)
+      const projectIdsByDoc = await fetchProjectIdsByDocument(client, scope, rows.map((r) => r.id))
+      const docs = rows.map((r) => toVaultDocument(r, projectIdsByDoc.get(r.id) ?? []))
       const last = rows[rows.length - 1]
       const nextCursor: DocumentCursor | null =
         rows.length === limit && last ? { updatedAt: last.updated_at, id: last.id } : null

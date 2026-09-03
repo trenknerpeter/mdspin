@@ -16,6 +16,10 @@ class FakeBuilder {
     this.calls.push({ method: "overlaps", args })
     return this
   }
+  in(...args: unknown[]) {
+    this.calls.push({ method: "in", args })
+    return this
+  }
   or(...args: unknown[]) {
     this.calls.push({ method: "or", args })
     return this
@@ -142,6 +146,7 @@ describe("createVaultRepo — the scoped() choke point", () => {
         },
         error: null,
       },
+      document_projects: { data: [], error: null },
     })
     const repo = createVaultRepo(client as never, SCOPE)
     const doc = await repo.getDocument("doc-1")
@@ -209,6 +214,7 @@ describe("createVaultRepo — the scoped() choke point", () => {
         },
         error: null,
       },
+      document_projects: { data: [], error: null },
     })
     const repo = createVaultRepo(client as never, SCOPE)
     const doc = await repo.getDocument("doc-1")
@@ -226,6 +232,77 @@ describe("createVaultRepo — the scoped() choke point", () => {
     const repo = createVaultRepo(client as never, SCOPE)
     const projects = await repo.listProjects()
     expect(projects[0].instructions).toBe("Focus on pricing.")
+  })
+})
+
+describe("document_projects integration — Stage 5 Phase B", () => {
+  const BASE_ROW = {
+    id: "doc-1", filename: "f.md", title: null, file_type: "markdown", word_count: 1,
+    project_id: "proj-1", tags: [], source_type: "note",
+    converted_at: "2026-08-01T00:00:00Z", updated_at: "2026-08-01T00:00:00Z", version: 1,
+  }
+
+  it("getDocument returns every linked project, not just the column value, when a document has more than one", async () => {
+    const client = new FakeClient({
+      conversions: { data: BASE_ROW, error: null },
+      document_projects: {
+        data: [
+          { document_id: "doc-1", project_id: "proj-1" },
+          { document_id: "doc-1", project_id: "proj-2" },
+        ],
+        error: null,
+      },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    const doc = await repo.getDocument("doc-1")
+    expect(doc?.projectIds).toEqual(["proj-1", "proj-2"])
+  })
+
+  it("listDocuments looks up project links for every row in the page in one batched query, not one per row", async () => {
+    const client = new FakeClient({
+      conversions: { data: [BASE_ROW, { ...BASE_ROW, id: "doc-2" }], error: null, count: 2 },
+      document_projects: {
+        data: [
+          { document_id: "doc-1", project_id: "proj-1" },
+          { document_id: "doc-2", project_id: "proj-9" },
+        ],
+        error: null,
+      },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    const page = await repo.listDocuments()
+    expect(page.data.map((d) => d.projectIds)).toEqual([["proj-1"], ["proj-9"]])
+    // Exactly 2 builders total: one for conversions, one batched document_projects lookup.
+    expect(client.builders).toHaveLength(2)
+  })
+
+  it("the document_projects lookup is scoped by user_id, same as every other query", async () => {
+    const client = new FakeClient({
+      conversions: { data: BASE_ROW, error: null },
+      document_projects: { data: [], error: null },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await repo.getDocument("doc-1")
+    const documentProjectsBuilder = client.builders[1]
+    expect(eqCalls(documentProjectsBuilder)).toContainEqual({ method: "eq", args: ["user_id", "user-123"] })
+  })
+
+  it("skips the document_projects query entirely when the base query returns no rows", async () => {
+    const client = new FakeClient({ conversions: { data: [], error: null, count: 0 } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await repo.listDocuments()
+    expect(client.builders).toHaveLength(1)
+  })
+
+  it("createDocument's returned projectIds come from the column, not a document_projects query", async () => {
+    const client = new FakeClient({
+      conversions: { data: { ...BASE_ROW, id: "d1", project_id: "proj-5", markdown_text: "hi" }, error: null },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    const doc = await repo.createDocument({ markdown: "hi" })
+    expect(doc.projectIds).toEqual(["proj-5"])
+    // Exactly 1 builder: the insert. No document_projects round trip for a write-return.
+    expect(client.builders).toHaveLength(1)
   })
 })
 
@@ -321,7 +398,7 @@ describe("getStats", () => {
 
 describe("searchDocuments", () => {
   it("calls vault_search_documents with clamped paging and maps rows + total from the page", async () => {
-    const client = new FakeClient({}, {
+    const client = new FakeClient({ document_projects: { data: [{ document_id: "doc-3", project_id: "proj-2" }], error: null } }, {
       vault_search_documents: {
         data: [
           {
@@ -548,6 +625,7 @@ describe("listDocumentsByCursor", () => {
         data: [fullRow("d1", "2026-08-02T00:00:00Z"), fullRow("d2", "2026-08-01T00:00:00Z")],
         error: null,
       },
+      document_projects: { data: [], error: null },
     })
     const repo = createVaultRepo(client as never, SCOPE)
     const page = await repo.listDocumentsByCursor({ limit: 2 })
@@ -564,6 +642,7 @@ describe("listDocumentsByCursor", () => {
         }],
         error: null,
       },
+      document_projects: { data: [], error: null },
     })
     const repo = createVaultRepo(client as never, SCOPE)
     const page = await repo.listDocumentsByCursor({ limit: 5 })
