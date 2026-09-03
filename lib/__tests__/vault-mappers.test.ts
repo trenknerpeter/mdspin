@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { buildProjectPatchPayload, toVaultDocument, toVaultProject, type ConversionRow, type ProjectRow } from "@/lib/vault/mappers"
+import { buildProjectPatchPayload, projectIdsFromColumn, toVaultDocument, toVaultProject, type ConversionRow, type ProjectRow } from "@/lib/vault/mappers"
 
 function row(overrides: Partial<ConversionRow> = {}): ConversionRow {
   return {
@@ -19,31 +19,36 @@ function row(overrides: Partial<ConversionRow> = {}): ConversionRow {
 }
 
 describe("toVaultDocument", () => {
-  it("wraps a single project_id into a one-element array", () => {
-    expect(toVaultDocument(row({ project_id: "proj-1" })).projectIds).toEqual(["proj-1"])
+  it("passes the given projectIds through unchanged", () => {
+    expect(toVaultDocument(row(), ["proj-1"]).projectIds).toEqual(["proj-1"])
   })
 
-  it("maps a null project_id to an empty array, not [null]", () => {
-    expect(toVaultDocument(row({ project_id: null })).projectIds).toEqual([])
+  it("passes through an empty projectIds array", () => {
+    expect(toVaultDocument(row(), []).projectIds).toEqual([])
+  })
+
+  it("passes through more than one projectId — this is the whole point of Stage 5 Phase B", () => {
+    expect(toVaultDocument(row(), ["proj-1", "proj-2"]).projectIds).toEqual(["proj-1", "proj-2"])
   })
 
   it("defaults a null tags column to an empty array", () => {
-    expect(toVaultDocument(row({ tags: null })).tags).toEqual([])
+    expect(toVaultDocument(row({ tags: null }), []).tags).toEqual([])
   })
 
   it("collapses an omitted markdown_text (list query) to null", () => {
     const r = row()
     delete (r as { markdown_text?: string | null }).markdown_text
-    expect(toVaultDocument(r).markdown).toBeNull()
+    expect(toVaultDocument(r, []).markdown).toBeNull()
   })
 
   it("passes through a selected markdown_text (detail query)", () => {
-    expect(toVaultDocument(row({ markdown_text: "# Hello" })).markdown).toBe("# Hello")
+    expect(toVaultDocument(row({ markdown_text: "# Hello" }), []).markdown).toBe("# Hello")
   })
 
   it("maps every remaining field 1:1 with the expected renames", () => {
     const doc = toVaultDocument(
-      row({ id: "d1", filename: "f.md", title: "T", file_type: "markdown", word_count: 9, source_type: "note", version: 3 })
+      row({ id: "d1", filename: "f.md", title: "T", file_type: "markdown", word_count: 9, source_type: "note", version: 3 }),
+      []
     )
     expect(doc).toMatchObject({
       id: "d1",
@@ -57,13 +62,23 @@ describe("toVaultDocument", () => {
   })
 
   it("maps summary and summary_status, defaulting summary_status to pending when absent", () => {
-    const withSummary = toVaultDocument(row({ summary: "A short summary.", summary_status: "ready" }))
+    const withSummary = toVaultDocument(row({ summary: "A short summary.", summary_status: "ready" }), [])
     expect(withSummary.summary).toBe("A short summary.")
     expect(withSummary.summaryStatus).toBe("ready")
 
-    const withoutSummary = toVaultDocument(row())
+    const withoutSummary = toVaultDocument(row(), [])
     expect(withoutSummary.summary).toBeNull()
     expect(withoutSummary.summaryStatus).toBe("pending")
+  })
+})
+
+describe("projectIdsFromColumn", () => {
+  it("wraps a non-null project_id into a one-element array", () => {
+    expect(projectIdsFromColumn({ project_id: "proj-1" })).toEqual(["proj-1"])
+  })
+
+  it("maps a null project_id to an empty array, not [null]", () => {
+    expect(projectIdsFromColumn({ project_id: null })).toEqual([])
   })
 })
 

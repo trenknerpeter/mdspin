@@ -32,15 +32,14 @@ export interface ProjectRow {
   instructions?: string | null
 }
 
-export function toVaultDocument(row: ConversionRow): VaultDocument {
+export function toVaultDocument(row: ConversionRow, projectIds: string[]): VaultDocument {
   return {
     id: row.id,
     filename: row.filename,
     title: row.title,
     fileType: row.file_type,
     wordCount: row.word_count,
-    // Single project_id -> array, per the array-shaped-contract decision (types.ts).
-    projectIds: row.project_id ? [row.project_id] : [],
+    projectIds,
     tags: row.tags ?? [],
     sourceType: row.source_type,
     convertedAt: row.converted_at,
@@ -50,6 +49,13 @@ export function toVaultDocument(row: ConversionRow): VaultDocument {
     summary: row.summary ?? null,
     summaryStatus: row.summary_status ?? "pending",
   }
+}
+
+/** For call sites that just wrote/returned a single-project row and know no second link
+ *  can exist yet (multi-project write isn't exposed) — derives projectIds without a
+ *  document_projects round trip. See Stage 5 Phase B's Global Constraints. */
+export function projectIdsFromColumn(row: Pick<ConversionRow, "project_id">): string[] {
+  return row.project_id ? [row.project_id] : []
 }
 
 export function toVaultProject(row: ProjectRow): VaultProject {
@@ -110,8 +116,8 @@ export interface SearchRow extends ConversionRow {
   total_count: number
 }
 
-export function toVaultSearchResult(row: SearchRow): VaultSearchResult {
-  return { ...toVaultDocument(row), rank: row.rank, snippet: row.snippet }
+export function toVaultSearchResult(row: SearchRow, projectIds: string[]): VaultSearchResult {
+  return { ...toVaultDocument(row, projectIds), rank: row.rank, snippet: row.snippet }
 }
 
 export function buildDocumentPatchPayload(patch: VaultDocumentPatch): Record<string, unknown> {
