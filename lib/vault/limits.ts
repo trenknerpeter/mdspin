@@ -28,9 +28,11 @@ export const SCAN_CONCURRENCY = 8
 /** Chars of each doc sent to the summary LLM. Lower than CLUSTER_DOC_CAP (6000) because
  *  a 40-word summary only needs the head plus an outline. */
 export const SUMMARY_DOC_CAP = 4000
-/** Docs per Make webhook call. Make bills per operation, so batching turns a 200-doc
- *  import into ~40 scenario runs instead of 200. */
-export const SUMMARY_BATCH_SIZE = 5
+/** Docs per Make webhook call. This is 1 because the MDSpin Summary scenario accepts
+ *  exactly one document per call — batching would need an Iterator + Aggregator added on
+ *  the Make side first. (parseSummaryResponse already understands the multi-doc
+ *  `{summaries:[...]}` shape, so the app side is ready when the scenario is.) */
+export const SUMMARY_BATCH_SIZE = 1
 /** Hard server-side cap on a stored summary. A summary that isn't short defeats the
  *  purpose — enforce it rather than trusting the model. */
 export const SUMMARY_MAX_CHARS = 400

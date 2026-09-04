@@ -265,6 +265,10 @@ export function buildConversionRows(
     project_id: opts.projectId,
     tags: opts.tags,
     in_vault: true,
+    // Enqueue for summarisation. Redundant with the column default added in
+    // 20260904000000_enqueue_summaries_backfill.sql, but explicit here so the intent is
+    // visible at the write site and directly unit-testable.
+    summary_status: "pending",
   }))
 }
 
@@ -338,14 +342,32 @@ export interface UpdateSpinFields {
   markdown_text?: string
 }
 
+// Pure payload builder for updateSpin, exported so the invalidation rule below is
+// unit-testable — updateSpin itself does I/O and this repo's vitest config only collects
+// lib/**/*.test.ts.
+export function buildSpinUpdatePayload(fields: UpdateSpinFields): Record<string, unknown> {
+  const payload: Record<string, unknown> = { ...fields }
+  if (fields.markdown_text !== undefined) {
+    payload.word_count = countWords(fields.markdown_text)
+    // Re-queue the summary whenever the body changes, so it never describes a version of
+    // the document that no longer exists. The MCP write paths get this from
+    // vault_update_document / vault_append_to_document; this is the browser note editor,
+    // which writes through PostgREST directly and so needs it stated here too.
+    //
+    // Attempts reset to 0 because this is a genuinely new piece of work, not a retry of
+    // the old one — a doc that previously exhausted its budget deserves a fresh chance
+    // against its new content.
+    payload.summary_status = "pending"
+    payload.summary_attempts = 0
+  }
+  return payload
+}
+
 // Returns the updated row (full detail fields) so callers can trust the fresh
 // word_count/updated_at/version rather than guessing at them locally.
 export async function updateSpin(id: string, fields: UpdateSpinFields): Promise<Spin> {
   const supabase = createClient()
-  const payload: Record<string, unknown> = { ...fields }
-  if (fields.markdown_text !== undefined) {
-    payload.word_count = countWords(fields.markdown_text)
-  }
+  const payload = buildSpinUpdatePayload(fields)
   const { data, error } = await supabase
     .from("conversions")
     .update(payload)
@@ -376,24 +398,13 @@ export async function createNote(): Promise<Spin> {
       word_count: 0,
       in_vault: true,
       source_type: "note",
+      summary_status: "pending",
     })
     .select(SPIN_DETAIL_FIELDS)
     .single()
   if (error) throw error
   const row = data as ConversionRow
   return toSpin(row, projectIdsFromColumn(row))
-}
-
-// Count of in-vault docs still waiting on a summary — powers the backfill banner.
-export async function countPendingSummaries(): Promise<number> {
-  const supabase = createClient()
-  const { count, error } = await supabase
-    .from("conversions")
-    .select("id", { count: "exact", head: true })
-    .eq("in_vault", true)
-    .eq("summary_status", "pending")
-  if (error) throw error
-  return count ?? 0
 }
 
 export async function deleteSpin(id: string) {
@@ -462,6 +473,21 @@ export async function addToVault(
   if (opts?.tags !== undefined) update.tags = opts.tags
   const { error } = await supabase.from("conversions").update(update).in("id", ids)
   if (error) throw error
+
+  // Enqueue for summarisation, but only for rows that were never enqueued (legacy
+  // pre-default History conversions). This is the one path the column default cannot
+  // cover, because it UPDATEs an existing row rather than inserting one.
+  //
+  // Deliberately a second scoped statement rather than a field on `update` above: setting
+  // summary_status unconditionally would wipe a 'ready' or 'manual' status whenever a
+  // document is removed from the vault and later re-added, throwing away a real summary
+  // and re-spending a Make operation to regenerate it.
+  const { error: enqueueError } = await supabase
+    .from("conversions")
+    .update({ summary_status: "pending" })
+    .in("id", ids)
+    .is("summary_status", null)
+  if (enqueueError) throw enqueueError
 }
 
 // Insert brand-new rows straight into the Vault (anonymous resume path).

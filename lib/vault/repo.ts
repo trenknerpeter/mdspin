@@ -358,6 +358,7 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
           project_id: input.projectId ?? null,
           in_vault: true,
           source_type: "mcp",
+          summary_status: "pending",
         })
         .select(DETAIL_COLUMNS)
         .single()

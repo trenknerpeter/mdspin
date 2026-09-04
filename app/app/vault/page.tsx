@@ -9,6 +9,7 @@ import { SpinDetailPanel } from "@/components/library/spin-detail-panel"
 import { VaultViewToggle } from "@/components/library/vault-view-toggle"
 import { AddToVaultMenu } from "@/components/vault/add-to-vault-menu"
 import { EmbeddingBackfillBanner } from "@/components/vault/embedding-backfill-banner"
+import { SummaryBackfillBanner } from "@/components/vault/summary-backfill-banner"
 import { getSpinMarkdown, primaryProjectId, UNFILED } from "@/lib/library"
 
 export default function VaultPage() {
@@ -87,6 +88,7 @@ export default function VaultPage() {
 
         <div className="min-w-0 flex-1">
           <EmbeddingBackfillBanner />
+          <SummaryBackfillBanner />
 
           {/* Search */}
           <div className="relative mb-4">

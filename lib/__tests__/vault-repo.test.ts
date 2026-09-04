@@ -694,6 +694,7 @@ describe("createDocument", () => {
         project_id: null,
         in_vault: true,
         source_type: "mcp",
+        summary_status: "pending",
       }],
     })
   })
