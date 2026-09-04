@@ -150,9 +150,9 @@ export function useLibrary() {
       setSelectedSpinExtra((prev) => (prev && prev.id === id ? { ...prev, ...updated } : prev))
       await refreshSidebars()
       // If the spin no longer matches the active project filter, drop it from the view.
-      // Checked against `updated.project_ids` (the real post-save membership from the
-      // server), not the save payload's singular `fields.project_id` — a doc's true
-      // membership is what the filter cares about, not what was just requested.
+      // Checked against `updated.project_ids` (derived from the just-saved conversions.project_id
+      // column, via projectIdsFromColumn), not the save payload's singular `fields.project_id` —
+      // a doc's true membership is what the filter cares about, not what was just requested.
       if (
         fields.project_id !== undefined &&
         ((selectedProject === UNFILED && updated.project_ids.length > 0) ||

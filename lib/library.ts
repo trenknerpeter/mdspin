@@ -232,7 +232,7 @@ const SPIN_COMMON_FIELDS =
 // Used by listSpins/listHistory. Omits markdown_text: a single document can be
 // 2.4MB, and list pages fetch up to 100 rows on every filter change. PostgREST
 // simply won't include the key when it isn't selected, so callers go through
-// withNullMarkdown() to get a Spin with an explicit `markdown_text: null`
+// toSpin() to get a Spin with an explicit `markdown_text: null`
 // rather than `undefined`. Content requires getSpin() or updateSpin()'s
 // returned row.
 const SPIN_LIST_FIELDS = SPIN_COMMON_FIELDS
