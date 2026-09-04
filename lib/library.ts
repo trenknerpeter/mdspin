@@ -25,6 +25,34 @@ export interface Spin {
   // Always populated on a row fetched via getSpin/createNote/updateSpin.
   markdown_text: string | null
   word_count: number | null
+  /** Real membership from document_projects, earliest-linked-first (Stage 5 Phase C).
+   *  Every document has 0 or 1 entries today — no write path can create a second. */
+  project_ids: string[]
+  tags: string[]
+  in_vault: boolean
+  source_type: SourceType
+  converted_at: string
+  updated_at: string
+  version: number
+  brief: string | null
+  brief_generated_at: string | null
+  summary: string | null
+  summary_status: SummaryStatus | null
+  summary_generated_at: string | null
+  source_bytes: number | null
+}
+
+/** Raw `conversions` row shape as selected by this file's queries — still carries the
+ *  singular `project_id` column, since that's what the database actually has until
+ *  Stage 5 Phase D. `toSpin()` is the one seam that turns it into the array-shaped
+ *  `Spin.project_ids` the rest of the app sees. */
+interface ConversionRow {
+  id: string
+  filename: string
+  title: string | null
+  file_type: string
+  markdown_text?: string | null
+  word_count: number | null
   project_id: string | null
   tags: string[]
   in_vault: boolean
@@ -38,6 +66,68 @@ export interface Spin {
   summary_status: SummaryStatus | null
   summary_generated_at: string | null
   source_bytes: number | null
+}
+
+export function toSpin(row: ConversionRow, projectIds: string[]): Spin {
+  return {
+    id: row.id,
+    filename: row.filename,
+    title: row.title,
+    file_type: row.file_type,
+    markdown_text: row.markdown_text ?? null,
+    word_count: row.word_count,
+    project_ids: projectIds,
+    tags: row.tags,
+    in_vault: row.in_vault,
+    source_type: row.source_type,
+    converted_at: row.converted_at,
+    updated_at: row.updated_at,
+    version: row.version,
+    brief: row.brief,
+    brief_generated_at: row.brief_generated_at,
+    summary: row.summary,
+    summary_status: row.summary_status,
+    summary_generated_at: row.summary_generated_at,
+    source_bytes: row.source_bytes,
+  }
+}
+
+/** Parallel to lib/vault/mappers.ts's identically-named helper — deliberately duplicated,
+ *  not imported, matching this file's existing independence from lib/vault/ (see the
+ *  Cloud Knowledge Hub strategy's "shared repo core" decision, which keeps this legacy
+ *  browser layer separate for now rather than becoming a thin shim over it). */
+export function projectIdsFromColumn(row: { project_id: string | null }): string[] {
+  return row.project_id ? [row.project_id] : []
+}
+
+/** The array is always earliest-linked-first (see fetchProjectIdsByDocument's ordering
+ *  below), so index 0 is "the" project for any surface that only shows one badge per
+ *  document — recent-spins.tsx, the Vault list, and spin-detail-panel.tsx's dropdown. */
+export function primaryProjectId(spin: Pick<Spin, "project_ids">): string | null {
+  return spin.project_ids[0] ?? null
+}
+
+/** Batched project-membership lookup — never call this once per row. No explicit
+ *  user_id filter: unlike lib/vault/repo.ts (which also serves a service-role path where
+ *  RLS is bypassed), every query in this file is the anon/browser client, and every other
+ *  query here already relies on RLS alone. */
+export async function fetchProjectIdsByDocument(documentIds: string[]): Promise<Map<string, string[]>> {
+  const map = new Map<string, string[]>()
+  if (documentIds.length === 0) return map
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from("document_projects")
+    .select("document_id, project_id")
+    .in("document_id", documentIds)
+    .order("added_at", { ascending: true })
+    .order("project_id", { ascending: true })
+  if (error) throw error
+  for (const r of (data ?? []) as { document_id: string; project_id: string }[]) {
+    const existing = map.get(r.document_id)
+    if (existing) existing.push(r.project_id)
+    else map.set(r.document_id, [r.project_id])
+  }
+  return map
 }
 
 // Lighter than Spin: exactly what find_related_conversions returns and what list rows render.
@@ -148,10 +238,6 @@ const SPIN_COMMON_FIELDS =
 const SPIN_LIST_FIELDS = SPIN_COMMON_FIELDS
 const SPIN_DETAIL_FIELDS = `${SPIN_COMMON_FIELDS}, markdown_text`
 
-function withNullMarkdown(rows: unknown[]): Spin[] {
-  return (rows as Omit<Spin, "markdown_text">[]).map((r) => ({ ...r, markdown_text: null }))
-}
-
 function escapeIlike(q: string) {
   // Keep the .or() filter safe: strip commas/parens that would break PostgREST syntax.
   return q.replace(/[,()]/g, " ").trim()
@@ -207,7 +293,9 @@ export async function listSpins(params: ListSpinsParams): Promise<Spin[]> {
     .order("converted_at", { ascending: false })
     .range(params.from, params.to)
   if (error) throw error
-  return withNullMarkdown(data ?? [])
+  const rows = (data ?? []) as ConversionRow[]
+  const projectIdsByDoc = await fetchProjectIdsByDocument(rows.map((r) => r.id))
+  return rows.map((r) => toSpin(r, projectIdsByDoc.get(r.id) ?? []))
 }
 
 // Sibling docs in the SAME project as the source, ranked by content affinity.
@@ -236,7 +324,10 @@ export async function getSpin(id: string): Promise<Spin | null> {
     .eq("in_vault", true)
     .maybeSingle()
   if (error) throw error
-  return (data as Spin) ?? null
+  if (!data) return null
+  const row = data as ConversionRow
+  const projectIdsByDoc = await fetchProjectIdsByDocument([row.id])
+  return toSpin(row, projectIdsByDoc.get(row.id) ?? [])
 }
 
 export interface UpdateSpinFields {
@@ -262,7 +353,8 @@ export async function updateSpin(id: string, fields: UpdateSpinFields): Promise<
     .select(SPIN_DETAIL_FIELDS)
     .single()
   if (error) throw error
-  return data as Spin
+  const row = data as ConversionRow
+  return toSpin(row, projectIdsFromColumn(row))
 }
 
 // Create an empty note directly in the Vault. A note IS a vault doc from the
@@ -288,7 +380,8 @@ export async function createNote(): Promise<Spin> {
     .select(SPIN_DETAIL_FIELDS)
     .single()
   if (error) throw error
-  return data as Spin
+  const row = data as ConversionRow
+  return toSpin(row, projectIdsFromColumn(row))
 }
 
 // Count of in-vault docs still waiting on a summary — powers the backfill banner.
@@ -319,14 +412,21 @@ export interface SpinStats {
 // Cheap at current scale; revisit with an RPC if libraries grow very large.
 export async function listSpinStats(): Promise<SpinStats> {
   const supabase = createClient()
-  const { data, error } = await supabase.from("conversions").select("project_id").eq("in_vault", true)
+  const { data, error } = await supabase.from("conversions").select("id").eq("in_vault", true)
   if (error) throw error
-  const rows = (data ?? []) as { project_id: string | null }[]
+  const rows = (data ?? []) as { id: string }[]
+  const projectIdsByDoc = await fetchProjectIdsByDocument(rows.map((r) => r.id))
   const byProject: Record<string, number> = {}
   let unfiled = 0
   for (const row of rows) {
-    if (row.project_id) byProject[row.project_id] = (byProject[row.project_id] ?? 0) + 1
-    else unfiled++
+    const projectIds = projectIdsByDoc.get(row.id) ?? []
+    if (projectIds.length === 0) {
+      unfiled++
+    } else {
+      for (const projectId of projectIds) {
+        byProject[projectId] = (byProject[projectId] ?? 0) + 1
+      }
+    }
   }
   return { total: rows.length, unfiled, byProject }
 }
@@ -402,7 +502,9 @@ export async function listHistory(params: {
     .order("converted_at", { ascending: false })
     .range(params.from, params.to)
   if (error) throw error
-  return withNullMarkdown(data ?? [])
+  const rows = (data ?? []) as ConversionRow[]
+  const projectIdsByDoc = await fetchProjectIdsByDocument(rows.map((r) => r.id))
+  return rows.map((r) => toSpin(r, projectIdsByDoc.get(r.id) ?? []))
 }
 
 // Fetch just the markdown for one of the user's own conversions, vault or not
