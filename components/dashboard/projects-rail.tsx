@@ -1,7 +1,6 @@
 "use client"
 
-import Link from "next/link"
-import { Inbox } from "lucide-react"
+import { DashboardListRow } from "@/components/dashboard/dashboard-list-row"
 import { type Project, type SpinStats } from "@/lib/library"
 
 const formatDate = (iso: string) =>
@@ -12,6 +11,9 @@ const formatDate = (iso: string) =>
 // so a low-activity project can still have a correct count with no date).
 // A project absent from that window shows no date at all: never "never",
 // never a guess.
+//
+// Shares DashboardListRow with RecentVault (count then date, in that order)
+// so the two cards read as the same design component side by side.
 export function ProjectsRail({
   projects,
   stats,
@@ -34,36 +36,22 @@ export function ProjectsRail({
         <ul className="divide-y divide-[#1E1E1E]">
           {projects.map((p) => (
             <li key={p.id}>
-              <Link
+              <DashboardListRow
                 href={`/app/vault?project=${p.id}`}
-                className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-[#1A1A1A]"
-              >
-                <span
-                  className="h-2.5 w-2.5 shrink-0 rounded-sm"
-                  style={{ background: p.color ?? "#4A4A46" }}
-                />
-                <span className="min-w-0 flex-1 truncate text-sm text-[#F0EDE8]">{p.name}</span>
-                {lastActivity[p.id] && (
-                  <span className="shrink-0 text-xs text-[#4A4A46]">
-                    {formatDate(lastActivity[p.id])}
-                  </span>
-                )}
-                <span className="shrink-0 text-xs text-[#888480]">
-                  {stats.byProject[p.id] ?? 0}
-                </span>
-              </Link>
+                color={p.color}
+                title={p.name}
+                count={String(stats.byProject[p.id] ?? 0)}
+                date={lastActivity[p.id] ? formatDate(lastActivity[p.id]) : undefined}
+              />
             </li>
           ))}
           {stats.unfiled > 0 && (
             <li>
-              <Link
+              <DashboardListRow
                 href="/app/vault?project=unfiled"
-                className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-[#1A1A1A]"
-              >
-                <Inbox className="h-3.5 w-3.5 shrink-0 text-[#4A4A46]" />
-                <span className="min-w-0 flex-1 truncate text-sm text-[#F0EDE8]">Unfiled</span>
-                <span className="shrink-0 text-xs text-[#888480]">{stats.unfiled}</span>
-              </Link>
+                title="Unfiled"
+                count={String(stats.unfiled)}
+              />
             </li>
           )}
         </ul>

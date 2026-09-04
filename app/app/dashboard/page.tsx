@@ -69,7 +69,7 @@ export default function DashboardPage() {
       ) : (
         <div className="space-y-6">
           <ConversionBand stats={d.stats} savings={d.savings} />
-          <VaultPulse pulse={d.pulse} vaultCount={d.stats.vaultCount} />
+          <VaultPulse docs={d.vaultDocs} vaultCount={d.stats.vaultCount} />
 
           <div className="grid gap-6 lg:grid-cols-5">
             <div className="lg:col-span-2">

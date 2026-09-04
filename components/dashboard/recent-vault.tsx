@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { FileText, ArrowRight } from "lucide-react"
+import { ArrowRight } from "lucide-react"
+import { DashboardListRow } from "@/components/dashboard/dashboard-list-row"
 import { primaryProjectId, type Spin, type Project } from "@/lib/library"
 
 const formatDate = (iso: string) =>
@@ -11,6 +12,10 @@ const formatDate = (iso: string) =>
 // Preview line is title/filename only — never s.summary. Every doc in the
 // live vault currently has summary_status "pending", so a summary-dependent
 // preview would just show blank rows.
+//
+// Shares DashboardListRow with ProjectsRail (count then date, in that order,
+// leading dot = the doc's primary project color) so the two cards read as
+// the same design component side by side.
 export function RecentVault({ docs, projects }: { docs: Spin[]; projects: Project[] }) {
   return (
     <div className="rounded-xl border border-[#2A2A2A] bg-[#161616]">
@@ -35,30 +40,13 @@ export function RecentVault({ docs, projects }: { docs: Spin[]; projects: Projec
             const project = projects.find((p) => p.id === primaryProjectId(s))
             return (
               <li key={s.id}>
-                <Link
+                <DashboardListRow
                   href={`/app/vault?spin=${s.id}`}
-                  className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-[#1A1A1A]"
-                >
-                  <FileText className="h-4 w-4 shrink-0 text-[#4A4A46]" />
-                  <span className="min-w-0 flex-1 truncate text-sm text-[#F0EDE8]">
-                    {s.title || s.filename}
-                  </span>
-                  {s.word_count != null && (
-                    <span className="shrink-0 text-xs text-[#4A4A46]">
-                      {s.word_count.toLocaleString()} words
-                    </span>
-                  )}
-                  {project && (
-                    <span
-                      className="h-2 w-2 shrink-0 rounded-sm"
-                      style={{ background: project.color ?? "#888480" }}
-                      title={project.name}
-                    />
-                  )}
-                  <span className="shrink-0 text-xs text-[#4A4A46]">
-                    {formatDate(s.converted_at)}
-                  </span>
-                </Link>
+                  color={project?.color}
+                  title={s.title || s.filename}
+                  count={s.word_count != null ? `${s.word_count.toLocaleString()} words` : undefined}
+                  date={formatDate(s.converted_at)}
+                />
               </li>
             )
           })}

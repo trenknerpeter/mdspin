@@ -6,7 +6,6 @@ import {
   fetchDashboardRows,
   computeDashboardStats,
   computeCumulativeSavings,
-  computeVaultPulse,
   computeProjectActivity,
   type DashboardRow,
 } from "@/lib/dashboard"
@@ -63,8 +62,10 @@ export function useDashboard() {
 
   const stats = useMemo(() => computeDashboardStats(rows), [rows])
   const savings = useMemo(() => computeCumulativeSavings(rows, BAND_MONTHLY_CALLS), [rows])
-  const pulse = useMemo(() => computeVaultPulse(vaultDocs), [vaultDocs])
   const projectActivity = useMemo(() => computeProjectActivity(vaultDocs), [vaultDocs])
+  // Vault pulse's window (Today/7/30) is user-controlled, so it computes its
+  // own pulse + activity series from vaultDocs internally, the same way
+  // SavingsPanel owns its calls/mo input and derives savings itself.
 
   return {
     user,
@@ -77,7 +78,6 @@ export function useDashboard() {
     spinStats,
     stats,
     savings,
-    pulse,
     projectActivity,
   }
 }

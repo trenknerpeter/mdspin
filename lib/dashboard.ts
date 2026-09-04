@@ -73,9 +73,12 @@ export interface ActivityPoint {
   count: number
 }
 
-// Pure: spins-per-day for the last `days` days, oldest→newest, zero-filled.
+// Pure: rows-per-day for the last `days` days, oldest→newest, zero-filled.
+// Structural on purpose (only reads converted_at) so callers can pass either
+// DashboardRow[] (History's conversions) or a vault doc window (Dashboard's
+// Vault pulse) without a near-duplicate function.
 export function computeActivitySeries(
-  rows: DashboardRow[],
+  rows: Pick<DashboardRow, "converted_at">[],
   days = 30,
   now: Date = new Date()
 ): ActivityPoint[] {
