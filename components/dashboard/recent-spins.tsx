@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { FileText, ArrowRight } from "lucide-react"
-import type { Spin, Project } from "@/lib/library"
+import { primaryProjectId, type Spin, type Project } from "@/lib/library"
 
 export function RecentSpins({ spins, projects }: { spins: Spin[]; projects: Project[] }) {
   const formatDate = (iso: string) =>
@@ -26,7 +26,7 @@ export function RecentSpins({ spins, projects }: { spins: Spin[]; projects: Proj
       ) : (
         <ul className="divide-y divide-[#1E1E1E]">
           {spins.map((s) => {
-            const project = projects.find((p) => p.id === s.project_id)
+            const project = projects.find((p) => p.id === primaryProjectId(s))
             return (
               <li key={s.id}>
                 <Link

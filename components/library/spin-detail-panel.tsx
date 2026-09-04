@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { TagInput } from "@/components/library/tag-input"
 import { MarkdownEditor, type EditorMode } from "@/components/library/markdown-editor"
 import { SummarySection } from "@/components/library/summary-section"
-import { UNFILED, type Project, type Spin, type UpdateSpinFields } from "@/lib/library"
+import { primaryProjectId, UNFILED, type Project, type Spin, type UpdateSpinFields } from "@/lib/library"
 import { RelatedSpins } from "@/components/library/related-spins"
 import { ClusterBriefSection } from "@/components/library/cluster-brief-section"
 import type { SummaryStatus } from "@/lib/vault/summary"
@@ -95,7 +95,7 @@ export function SpinDetailPanel({
 
     if (isNewDoc || contentJustArrived) {
       setTitle(spin.title ?? "")
-      setProjectId(spin.project_id ?? UNFILED)
+      setProjectId(primaryProjectId(spin) ?? UNFILED)
       setTags(spin.tags ?? [])
       setContent(spin.markdown_text ?? "")
       // markdown_text is `null` (not yet fetched — list row mid-fetch) vs `""`
@@ -111,7 +111,7 @@ export function SpinDetailPanel({
 
   const dirty =
     title !== (spin.title ?? "") ||
-    projectId !== (spin.project_id ?? UNFILED) ||
+    projectId !== (primaryProjectId(spin) ?? UNFILED) ||
     !sameTags(tags, spin.tags ?? []) ||
     content !== (spin.markdown_text ?? "")
 

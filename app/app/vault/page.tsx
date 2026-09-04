@@ -9,7 +9,7 @@ import { SpinDetailPanel } from "@/components/library/spin-detail-panel"
 import { VaultViewToggle } from "@/components/library/vault-view-toggle"
 import { AddToVaultMenu } from "@/components/vault/add-to-vault-menu"
 import { EmbeddingBackfillBanner } from "@/components/vault/embedding-backfill-banner"
-import { getSpinMarkdown } from "@/lib/library"
+import { getSpinMarkdown, primaryProjectId } from "@/lib/library"
 
 export default function VaultPage() {
   const lib = useLibrary()
@@ -173,7 +173,7 @@ export default function VaultPage() {
                           <span>{formatDate(c.converted_at)}</span>
                           {c.word_count != null && <span>{c.word_count.toLocaleString()} words</span>}
                           {(() => {
-                            const project = lib.projects.find((p) => p.id === c.project_id)
+                            const project = lib.projects.find((p) => p.id === primaryProjectId(c))
                             return project ? (
                               <span className="inline-flex items-center gap-1.5 text-[#888480]">
                                 <span
