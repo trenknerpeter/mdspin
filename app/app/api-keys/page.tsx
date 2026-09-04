@@ -186,8 +186,8 @@ export default function ApiKeysPage() {
           <div className="w-full max-w-lg rounded-xl border border-[#2A2A2A] bg-[#161616] p-6 shadow-2xl">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h2 className="text-lg font-bold font-[family-name:var(--font-syne)]">Your new API key</h2>
-                <p className="text-xs text-[#888480] mt-1 font-[family-name:var(--font-dm-sans)]">
+                <h2 className="text-lg font-bold font-display">Your new API key</h2>
+                <p className="text-xs text-[#888480] mt-1 font-sans">
                   Copy this key now — it will never be shown again.
                 </p>
               </div>
@@ -228,8 +228,8 @@ export default function ApiKeysPage() {
       {confirmRevoke && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-xl border border-[#2A2A2A] bg-[#161616] p-6 shadow-2xl">
-            <h2 className="text-base font-bold font-[family-name:var(--font-syne)] mb-2">Revoke this key?</h2>
-            <p className="text-sm text-[#888480] font-[family-name:var(--font-dm-sans)] mb-6">
+            <h2 className="text-base font-bold font-display mb-2">Revoke this key?</h2>
+            <p className="text-sm text-[#888480] font-sans mb-6">
               This is permanent. Any integrations using this key will stop working immediately.
             </p>
             <div className="flex gap-3">
@@ -251,15 +251,15 @@ export default function ApiKeysPage() {
       )}
 
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[#F0EDE8] font-[family-name:var(--font-syne)]">API Keys</h1>
-        <p className="text-sm text-[#888480] font-[family-name:var(--font-dm-sans)]">
+        <h1 className="text-2xl font-bold text-[#F0EDE8] font-display">API Keys</h1>
+        <p className="text-sm text-[#888480] font-sans">
           {activeKeys.length} active key{activeKeys.length !== 1 ? "s" : ""}
         </p>
       </div>
 
       {/* Fetch error banner */}
       {fetchError && (
-        <div className="mb-6 flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400 font-[family-name:var(--font-dm-sans)]">
+        <div className="mb-6 flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400 font-sans">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {fetchError}
         </div>
@@ -267,7 +267,7 @@ export default function ApiKeysPage() {
 
       {/* Generate new key */}
       <div className="mb-8 rounded-xl border border-[#2A2A2A] bg-[#161616] p-5">
-        <h2 className="text-sm font-semibold mb-3 font-[family-name:var(--font-syne)]">Generate new key</h2>
+        <h2 className="text-sm font-semibold mb-3 font-display">Generate new key</h2>
         <div className="flex gap-2">
           <input
             type="text"
@@ -276,7 +276,7 @@ export default function ApiKeysPage() {
             maxLength={100}
             onChange={(e) => setNameInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") handleGenerate() }}
-            className="flex-1 rounded-lg border border-[#2A2A2A] bg-[#0C0C0C] px-3 py-2 text-sm text-[#F0EDE8] placeholder-[#4A4A46] focus:border-[#FF4800] focus:outline-none transition-colors font-[family-name:var(--font-dm-sans)]"
+            className="flex-1 rounded-lg border border-[#2A2A2A] bg-[#0C0C0C] px-3 py-2 text-sm text-[#F0EDE8] placeholder-[#4A4A46] focus:border-[#FF4800] focus:outline-none transition-colors font-sans"
           />
           <button
             onClick={handleGenerate}
@@ -288,7 +288,7 @@ export default function ApiKeysPage() {
           </button>
         </div>
         {generateError && (
-          <p className="mt-2 flex items-center gap-1.5 text-xs text-red-400 font-[family-name:var(--font-dm-sans)]">
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-red-400 font-sans">
             <AlertCircle className="h-3.5 w-3.5 shrink-0" />
             {generateError}
           </p>
@@ -299,13 +299,13 @@ export default function ApiKeysPage() {
       {activeKeys.length === 0 ? (
         <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-12 text-center">
           <Key className="mx-auto h-8 w-8 text-[#4A4A46] mb-3" />
-          <p className="text-sm text-[#888480] font-[family-name:var(--font-dm-sans)]">
+          <p className="text-sm text-[#888480] font-sans">
             No active API keys. Generate one above to get started.
           </p>
         </div>
       ) : (
         <div className="rounded-xl border border-[#2A2A2A] overflow-hidden">
-          <table className="w-full text-sm font-[family-name:var(--font-dm-sans)]">
+          <table className="w-full text-sm font-sans">
             <thead>
               <tr className="border-b border-[#2A2A2A] bg-[#161616]">
                 <th className="px-4 py-3 text-left text-xs font-medium text-[#4A4A46] uppercase tracking-wide">Name</th>
@@ -358,7 +358,7 @@ export default function ApiKeysPage() {
       {/* Revoked keys count */}
       {revokedKeys.length > 0 && (
         <div className="mt-4">
-          <p className="text-xs text-[#4A4A46] font-[family-name:var(--font-dm-sans)]">
+          <p className="text-xs text-[#4A4A46] font-sans">
             {revokedKeys.length} revoked key{revokedKeys.length !== 1 ? "s" : ""} not shown
           </p>
         </div>

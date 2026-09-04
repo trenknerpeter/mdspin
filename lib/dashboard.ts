@@ -129,3 +129,98 @@ export function computeCumulativeSavings(
     trackedCount,
   }
 }
+
+// Structural row types below take only what each function needs, so callers
+// can pass either a DashboardRow-shaped object or a full library Spin without
+// this module importing lib/library.ts.
+
+export interface VaultPulseRow {
+  converted_at: string
+  source_type: string
+}
+
+export interface VaultPulseBucket {
+  sourceType: string
+  count: number
+}
+
+export interface VaultPulse {
+  windowDays: number // the window actually reported (may differ from the requested one)
+  total: number
+  bySource: VaultPulseBucket[] // desc by count
+  widened: boolean // true when the primary window was empty and we fell back
+}
+
+// Pure: how many vault docs arrived recently, split by how they arrived.
+// `converted_at` is each row's insert timestamp regardless of source_type (see
+// createNote/buildConversionRows in lib/library.ts), so it genuinely means
+// "when this doc arrived" — not "when it was last edited".
+//
+// If the primary window (default 7 days) is empty, widen once to
+// `fallbackDays` (default 30) rather than rendering a permanently blank card.
+// If that's still empty, callers render one honest "nothing new" line — never
+// an inferred number.
+export function computeVaultPulse(
+  docs: VaultPulseRow[],
+  opts?: { windowDays?: number; fallbackDays?: number; now?: Date }
+): VaultPulse {
+  const windowDays = opts?.windowDays ?? 7
+  const fallbackDays = opts?.fallbackDays ?? 30
+  const now = opts?.now ?? new Date()
+
+  const countWithin = (days: number): VaultPulseBucket[] => {
+    const cutoff = now.getTime() - days * 24 * 60 * 60 * 1000
+    const counts = new Map<string, number>()
+    for (const d of docs) {
+      if (new Date(d.converted_at).getTime() < cutoff) continue
+      counts.set(d.source_type, (counts.get(d.source_type) ?? 0) + 1)
+    }
+    return Array.from(counts.entries())
+      .map(([sourceType, count]) => ({ sourceType, count }))
+      .sort((a, b) => b.count - a.count)
+  }
+
+  const primary = countWithin(windowDays)
+  const primaryTotal = primary.reduce((sum, b) => sum + b.count, 0)
+  if (primaryTotal > 0) {
+    return { windowDays, total: primaryTotal, bySource: primary, widened: false }
+  }
+
+  const widened = countWithin(fallbackDays)
+  const widenedTotal = widened.reduce((sum, b) => sum + b.count, 0)
+  return { windowDays: fallbackDays, total: widenedTotal, bySource: widened, widened: true }
+}
+
+export interface ProjectActivityRow {
+  converted_at: string
+  project_ids: string[]
+}
+
+// Pure: most recent arrival per project, from whatever doc window the caller
+// passes in. Projects with no doc in that window get no entry — the dashboard
+// must show no date rather than guess one ("empty beats speculative").
+export function computeProjectActivity(docs: ProjectActivityRow[]): Record<string, string> {
+  const latest: Record<string, string> = {}
+  for (const d of docs) {
+    for (const projectId of d.project_ids) {
+      if (!latest[projectId] || d.converted_at > latest[projectId]) {
+        latest[projectId] = d.converted_at
+      }
+    }
+  }
+  return latest
+}
+
+const SOURCE_LABELS: Record<string, string> = {
+  mcp: "Added by an agent",
+  upload: "Uploaded",
+  note: "Written here",
+  conversion: "Converted",
+  api: "Via API",
+}
+
+// Passthrough fallback is deliberate: it absorbs any future source_type
+// without a crash or a blank label.
+export function sourceLabel(sourceType: string): string {
+  return SOURCE_LABELS[sourceType] ?? sourceType
+}

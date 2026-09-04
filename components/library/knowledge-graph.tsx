@@ -224,7 +224,7 @@ export function KnowledgeGraph() {
         {selected ? (
           <>
             <div className="mb-3 flex items-start justify-between gap-2">
-              <h2 className="font-[family-name:var(--font-syne)] text-base font-bold leading-snug text-[#F0EDE8]">
+              <h2 className="font-display text-base font-bold leading-snug text-[#F0EDE8]">
                 {selected.label}
               </h2>
               <button

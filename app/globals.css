@@ -81,10 +81,21 @@
   --sidebar-ring: oklch(0.439 0 0);
 }
 
-@theme inline {
+/*
+ * Font vars live in a plain (non-inline) @theme block, not the inline block
+ * below. Tailwind v4 bakes an `inline` block's values directly into the
+ * utility CSS instead of emitting a var() reference — that would make the
+ * .app-chrome override below a silent no-op. Colors stay in the inline
+ * block on purpose: that indirection is what lets `.dark` and color-mix
+ * opacity modifiers keep working.
+ */
+@theme {
   --font-sans: var(--font-dm-sans), 'DM Sans', ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), 'JetBrains Mono', ui-monospace, monospace;
   --font-display: var(--font-syne), 'Syne', ui-sans-serif, system-ui, sans-serif;
+}
+
+@theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -129,6 +140,16 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  /*
+   * Signed-in app shell gets a calmer display face than the marketing site.
+   * Syne is a poster face — great for the landing page headline, fights the
+   * numbers in a dashboard. Scoped so marketing keeps Syne unchanged.
+   */
+  .app-chrome {
+    --font-display: var(--font-instrument-sans), 'Instrument Sans', ui-sans-serif, system-ui,
+      sans-serif;
   }
 
   .prose-blog {

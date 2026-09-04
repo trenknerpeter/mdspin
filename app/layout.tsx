@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Syne, DM_Sans, JetBrains_Mono } from 'next/font/google'
+import { Syne, DM_Sans, JetBrains_Mono, Instrument_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { AuthProvider } from '@/components/auth-provider'
 import { JsonLd } from './json-ld'
@@ -21,6 +21,11 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-jetbrains-mono',
   weight: ['400', '500'],
+})
+
+const instrumentSans = Instrument_Sans({
+  subsets: ['latin'],
+  variable: '--font-instrument-sans',
 })
 
 export const metadata: Metadata = {
@@ -81,7 +86,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${syne.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={`${syne.variable} ${dmSans.variable} ${jetbrainsMono.variable} ${instrumentSans.variable}`}>
       <body className="antialiased">
         <JsonLd />
         <AuthProvider>

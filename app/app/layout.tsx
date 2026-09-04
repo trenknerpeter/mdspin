@@ -12,7 +12,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     // `dark` scopes the shadcn theme tokens (--sidebar, --background, …) to their
     // dark values across the whole app shell, matching the rest of MDSpin's dark UI.
-    <SidebarProvider className="dark bg-[#0C0C0C]">
+    <SidebarProvider className="dark app-chrome bg-[#0C0C0C]">
       <AppSidebar />
       <SidebarInset className="bg-[#0C0C0C]">
         <header className="flex h-12 items-center gap-2 border-b border-[#1E1E1E] px-4">

@@ -9,7 +9,7 @@ import { SpinDetailPanel } from "@/components/library/spin-detail-panel"
 import { VaultViewToggle } from "@/components/library/vault-view-toggle"
 import { AddToVaultMenu } from "@/components/vault/add-to-vault-menu"
 import { EmbeddingBackfillBanner } from "@/components/vault/embedding-backfill-banner"
-import { getSpinMarkdown, primaryProjectId } from "@/lib/library"
+import { getSpinMarkdown, primaryProjectId, UNFILED } from "@/lib/library"
 
 export default function VaultPage() {
   const lib = useLibrary()
@@ -19,8 +19,13 @@ export default function VaultPage() {
   useEffect(() => {
     // window.location (not useSearchParams) is intentional: this runs client-side only
     // in a mount effect, so it needs no Suspense boundary and has no SSR/hydration concern.
-    const id = new URLSearchParams(window.location.search).get("spin")
+    const params = new URLSearchParams(window.location.search)
+    const id = params.get("spin")
     if (id) lib.openSpin(id).catch(() => {})
+    // Dashboard project-rail links land here as ?project=<id> or ?project=unfiled
+    // (the readable form of the internal UNFILED sentinel).
+    const project = params.get("project")
+    if (project) lib.setSelectedProject(project === "unfiled" ? UNFILED : project)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -53,10 +58,10 @@ export default function VaultPage() {
     <div className="mx-auto max-w-6xl">
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>
-          <h1 className="font-[family-name:var(--font-syne)] text-2xl font-bold text-[#F0EDE8]">
+          <h1 className="font-display text-2xl font-bold text-[#F0EDE8]">
             Knowledge Vault
           </h1>
-          <p className="font-[family-name:var(--font-dm-sans)] text-sm text-[#888480]">
+          <p className="font-sans text-sm text-[#888480]">
             {lib.stats.total} item{lib.stats.total !== 1 ? "s" : ""} in your Vault
           </p>
         </div>
@@ -103,7 +108,7 @@ export default function VaultPage() {
             </div>
           ) : lib.error ? (
             <div className="rounded-xl border border-[#FF4800]/30 bg-[#161616] p-12 text-center">
-              <p className="font-[family-name:var(--font-dm-sans)] text-sm text-[#FF4800]">
+              <p className="font-sans text-sm text-[#FF4800]">
                 Couldn&apos;t load your spins: {lib.error}
               </p>
               <button
@@ -118,7 +123,7 @@ export default function VaultPage() {
               <FileText className="mx-auto mb-3 h-8 w-8 text-[#4A4A46]" />
               {filtersActive ? (
                 <>
-                  <p className="font-[family-name:var(--font-dm-sans)] text-sm text-[#888480]">
+                  <p className="font-sans text-sm text-[#888480]">
                     No spins match these filters.
                   </p>
                   <button
@@ -130,10 +135,10 @@ export default function VaultPage() {
                 </>
               ) : (
                 <>
-                  <p className="font-[family-name:var(--font-dm-sans)] text-sm text-[#888480]">
+                  <p className="font-sans text-sm text-[#888480]">
                     Your Vault is empty.
                   </p>
-                  <p className="font-[family-name:var(--font-dm-sans)] text-sm text-[#888480]">
+                  <p className="font-sans text-sm text-[#888480]">
                     Add markdown directly, or convert a file first.
                   </p>
                   <div className="mt-4 flex justify-center gap-3">

@@ -72,13 +72,13 @@ function SignUpForm() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-[#F0EDE8] font-[family-name:var(--font-syne)] mb-2">This email is already registered</h1>
-          <p className="text-[#999] text-sm font-[family-name:var(--font-dm-sans)] mb-6">
+          <h1 className="text-2xl font-bold text-[#F0EDE8] font-display mb-2">This email is already registered</h1>
+          <p className="text-[#999] text-sm font-sans mb-6">
             An account with <span className="text-[#F0EDE8]">{email}</span> already exists. Sign in instead.
           </p>
           <Link
             href={`/auth/sign-in?email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`}
-            className="inline-block w-full py-2.5 rounded-lg bg-[#FF4800] text-white font-semibold text-sm hover:bg-[#E04000] transition-colors font-[family-name:var(--font-dm-sans)]"
+            className="inline-block w-full py-2.5 rounded-lg bg-[#FF4800] text-white font-semibold text-sm hover:bg-[#E04000] transition-colors font-sans"
           >
             Sign in
           </Link>
@@ -96,11 +96,11 @@ function SignUpForm() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-[#F0EDE8] font-[family-name:var(--font-syne)] mb-2">Check your email</h1>
-          <p className="text-[#999] text-sm font-[family-name:var(--font-dm-sans)] mb-6">
+          <h1 className="text-2xl font-bold text-[#F0EDE8] font-display mb-2">Check your email</h1>
+          <p className="text-[#999] text-sm font-sans mb-6">
             We sent a confirmation link to <span className="text-[#F0EDE8]">{email}</span>. Click the link to activate your account.
           </p>
-          <Link href="/" className="text-[#FF4800] text-sm hover:underline font-[family-name:var(--font-dm-sans)]">
+          <Link href="/" className="text-[#FF4800] text-sm hover:underline font-sans">
             Back to MDSpin
           </Link>
         </div>
@@ -114,17 +114,17 @@ function SignUpForm() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
             <div className="w-8 h-8 bg-[#FF4800] rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm font-[family-name:var(--font-syne)]">M</span>
+              <span className="text-white font-bold text-sm font-display">M</span>
             </div>
-            <span className="text-[#F0EDE8] font-bold text-xl font-[family-name:var(--font-syne)]">MDSpin</span>
+            <span className="text-[#F0EDE8] font-bold text-xl font-display">MDSpin</span>
           </Link>
-          <h1 className="text-2xl font-bold text-[#F0EDE8] font-[family-name:var(--font-syne)]">Create your account</h1>
-          <p className="text-[#999] text-sm mt-1 font-[family-name:var(--font-dm-sans)]">Sign up to save your conversion history</p>
+          <h1 className="text-2xl font-bold text-[#F0EDE8] font-display">Create your account</h1>
+          <p className="text-[#999] text-sm mt-1 font-sans">Sign up to save your conversion history</p>
         </div>
 
         <button
           onClick={handleGoogleSignIn}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] text-[#F0EDE8] hover:bg-[#222] transition-colors font-[family-name:var(--font-dm-sans)] text-sm mb-6"
+          className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] text-[#F0EDE8] hover:bg-[#222] transition-colors font-sans text-sm mb-6"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
@@ -137,25 +137,25 @@ function SignUpForm() {
 
         <div className="flex items-center gap-3 mb-6">
           <div className="flex-1 h-px bg-[#2A2A2A]" />
-          <span className="text-[#666] text-xs font-[family-name:var(--font-dm-sans)]">or</span>
+          <span className="text-[#666] text-xs font-sans">or</span>
           <div className="flex-1 h-px bg-[#2A2A2A]" />
         </div>
 
         <form onSubmit={handleSignUp} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm text-[#999] mb-1.5 font-[family-name:var(--font-dm-sans)]">Email</label>
+            <label htmlFor="email" className="block text-sm text-[#999] mb-1.5 font-sans">Email</label>
             <input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-3 py-2.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[#F0EDE8] placeholder-[#555] text-sm focus:outline-none focus:border-[#FF4800] transition-colors font-[family-name:var(--font-dm-sans)]"
+              className="w-full px-3 py-2.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[#F0EDE8] placeholder-[#555] text-sm focus:outline-none focus:border-[#FF4800] transition-colors font-sans"
               placeholder="you@example.com"
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm text-[#999] mb-1.5 font-[family-name:var(--font-dm-sans)]">Password</label>
+            <label htmlFor="password" className="block text-sm text-[#999] mb-1.5 font-sans">Password</label>
             <input
               id="password"
               type="password"
@@ -163,25 +163,25 @@ function SignUpForm() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full px-3 py-2.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[#F0EDE8] placeholder-[#555] text-sm focus:outline-none focus:border-[#FF4800] transition-colors font-[family-name:var(--font-dm-sans)]"
+              className="w-full px-3 py-2.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[#F0EDE8] placeholder-[#555] text-sm focus:outline-none focus:border-[#FF4800] transition-colors font-sans"
               placeholder="At least 6 characters"
             />
           </div>
 
           {error && (
-            <p className="text-red-400 text-sm font-[family-name:var(--font-dm-sans)]">{error}</p>
+            <p className="text-red-400 text-sm font-sans">{error}</p>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-lg bg-[#FF4800] text-white font-semibold text-sm hover:bg-[#E04000] transition-colors disabled:opacity-50 font-[family-name:var(--font-dm-sans)]"
+            className="w-full py-2.5 rounded-lg bg-[#FF4800] text-white font-semibold text-sm hover:bg-[#E04000] transition-colors disabled:opacity-50 font-sans"
           >
             {loading ? "Creating account..." : "Create account"}
           </button>
         </form>
 
-        <p className="text-center text-sm text-[#666] mt-6 font-[family-name:var(--font-dm-sans)]">
+        <p className="text-center text-sm text-[#666] mt-6 font-sans">
           Already have an account?{" "}
           <Link href="/auth/sign-in" className="text-[#FF4800] hover:underline">Sign in</Link>
         </p>

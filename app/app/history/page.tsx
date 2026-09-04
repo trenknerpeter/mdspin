@@ -1,10 +1,13 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import Link from "next/link"
 import { Copy, Download, Trash2, Check, FileText, Search, BookmarkPlus, BookmarkCheck } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { listHistory, deleteSpin, addToVault, getSpinMarkdown, type Spin } from "@/lib/library"
+import { fetchDashboardRows, computeActivitySeries, type DashboardRow } from "@/lib/dashboard"
+import { SavingsPanel } from "@/components/history/savings-panel"
+import { ActivityChart } from "@/components/history/activity-chart"
 
 const PAGE = 100
 
@@ -18,12 +21,27 @@ export default function HistoryPage() {
   const [limit, setLimit] = useState(PAGE)
   const [hasMore, setHasMore] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [analyticsRows, setAnalyticsRows] = useState<DashboardRow[]>([])
 
   useEffect(() => {
     const t = setTimeout(() => setQuery(search.trim()), 250)
     return () => clearTimeout(t)
   }, [search])
   useEffect(() => setLimit(PAGE), [query])
+
+  // Own effect keyed on `user` only — not inside `load`, which re-runs on
+  // every debounced search keystroke and every "Load more" click. Keeping
+  // this separate means the savings card and chart never refetch/flicker
+  // while typing. Swallow errors: History must still render if this
+  // secondary query fails.
+  useEffect(() => {
+    if (!user) return
+    fetchDashboardRows()
+      .then(setAnalyticsRows)
+      .catch(() => {})
+  }, [user])
+
+  const activity = useMemo(() => computeActivitySeries(analyticsRows), [analyticsRows])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -92,11 +110,18 @@ export default function HistoryPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
-        <h1 className="font-[family-name:var(--font-syne)] text-2xl font-bold text-[#F0EDE8]">History</h1>
-        <p className="font-[family-name:var(--font-dm-sans)] text-sm text-[#888480]">
+        <h1 className="font-display text-2xl font-bold text-[#F0EDE8]">History</h1>
+        <p className="font-sans text-sm text-[#888480]">
           Everything you&apos;ve converted
         </p>
       </div>
+
+      {analyticsRows.length > 0 && (
+        <div className="mb-6 space-y-4">
+          <SavingsPanel rows={analyticsRows} />
+          <ActivityChart data={activity} />
+        </div>
+      )}
 
       <div className="relative mb-4">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4A4A46]" />

@@ -3,6 +3,9 @@ import {
   computeDashboardStats,
   computeActivitySeries,
   computeCumulativeSavings,
+  computeVaultPulse,
+  computeProjectActivity,
+  sourceLabel,
   type DashboardRow,
 } from "@/lib/dashboard"
 
@@ -86,5 +89,70 @@ describe("computeCumulativeSavings", () => {
   it("is all zero when no row has source_bytes", () => {
     const s = computeCumulativeSavings([row({ source_bytes: null })], 20)
     expect(s).toMatchObject({ tokensSaved: 0, monthlySavings: 0, reductionPct: 0, trackedFrom: null, trackedCount: 0 })
+  })
+})
+
+describe("computeVaultPulse", () => {
+  it("counts docs within the primary window, split by source, desc by count", () => {
+    const docs = [
+      { converted_at: "2026-06-19T00:00:00Z", source_type: "mcp" },
+      { converted_at: "2026-06-18T00:00:00Z", source_type: "upload" },
+      { converted_at: "2026-06-17T00:00:00Z", source_type: "upload" },
+      { converted_at: "2025-01-01T00:00:00Z", source_type: "note" }, // outside window
+    ]
+    const p = computeVaultPulse(docs, { now: NOW })
+    expect(p.windowDays).toBe(7)
+    expect(p.widened).toBe(false)
+    expect(p.total).toBe(3)
+    expect(p.bySource).toEqual([
+      { sourceType: "upload", count: 2 },
+      { sourceType: "mcp", count: 1 },
+    ])
+  })
+
+  it("widens to fallbackDays when the primary window is empty", () => {
+    const docs = [{ converted_at: "2026-05-25T00:00:00Z", source_type: "conversion" }] // 26 days back
+    const p = computeVaultPulse(docs, { now: NOW })
+    expect(p.widened).toBe(true)
+    expect(p.windowDays).toBe(30)
+    expect(p.total).toBe(1)
+  })
+
+  it("reports zero, never an inferred number, when even the widened window is empty", () => {
+    const docs = [{ converted_at: "2025-01-01T00:00:00Z", source_type: "conversion" }]
+    const p = computeVaultPulse(docs, { now: NOW })
+    expect(p.widened).toBe(true)
+    expect(p.windowDays).toBe(30)
+    expect(p.total).toBe(0)
+    expect(p.bySource).toEqual([])
+  })
+})
+
+describe("computeProjectActivity", () => {
+  it("keeps the most recent converted_at per project", () => {
+    const docs = [
+      { converted_at: "2026-06-01T00:00:00Z", project_ids: ["p1"] },
+      { converted_at: "2026-06-10T00:00:00Z", project_ids: ["p1"] },
+      { converted_at: "2026-06-05T00:00:00Z", project_ids: ["p2"] },
+    ]
+    const activity = computeProjectActivity(docs)
+    expect(activity).toEqual({ p1: "2026-06-10T00:00:00Z", p2: "2026-06-05T00:00:00Z" })
+  })
+
+  it("omits projects with no doc in the given window rather than guessing", () => {
+    const docs = [{ converted_at: "2026-06-01T00:00:00Z", project_ids: ["p1"] }]
+    const activity = computeProjectActivity(docs)
+    expect(activity.p2).toBeUndefined()
+  })
+})
+
+describe("sourceLabel", () => {
+  it("maps known source types to human labels", () => {
+    expect(sourceLabel("mcp")).toBe("Added by an agent")
+    expect(sourceLabel("upload")).toBe("Uploaded")
+  })
+
+  it("passes through unknown source types instead of throwing or blanking", () => {
+    expect(sourceLabel("make")).toBe("make")
   })
 })

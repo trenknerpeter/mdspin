@@ -25,10 +25,10 @@ export default function VaultAddPage() {
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Back to Vault
         </Link>
-        <h1 className="font-[family-name:var(--font-syne)] text-2xl font-bold text-[#F0EDE8]">
+        <h1 className="font-display text-2xl font-bold text-[#F0EDE8]">
           Add to your Vault
         </h1>
-        <p className="font-[family-name:var(--font-dm-sans)] text-sm text-[#888480]">
+        <p className="font-sans text-sm text-[#888480]">
           Upload markdown files, import a folder, or paste text directly.
         </p>
       </div>

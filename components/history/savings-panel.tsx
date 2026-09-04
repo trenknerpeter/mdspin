@@ -4,7 +4,7 @@ import { useMemo, useState } from "react"
 import { TrendingDown } from "lucide-react"
 import { computeCumulativeSavings, type DashboardRow } from "@/lib/dashboard"
 
-export function InsightsPanel({ rows }: { rows: DashboardRow[] }) {
+export function SavingsPanel({ rows }: { rows: DashboardRow[] }) {
   const [monthlyCalls, setMonthlyCalls] = useState(20) // ROI reuse multiplier
   const savings = useMemo(() => computeCumulativeSavings(rows, monthlyCalls), [rows, monthlyCalls])
 
@@ -27,10 +27,10 @@ export function InsightsPanel({ rows }: { rows: DashboardRow[] }) {
 
       {savings.trackedCount === 0 ? (
         <div className="px-5 py-8 text-center">
-          <p className="font-[family-name:var(--font-dm-sans)] text-sm text-[#888480]">
+          <p className="font-sans text-sm text-[#888480]">
             Savings tracking starts with your next conversion.
           </p>
-          <p className="mt-1 font-[family-name:var(--font-dm-sans)] text-xs text-[#4A4A46]">
+          <p className="mt-1 font-sans text-xs text-[#4A4A46]">
             We measure the tokens you save by feeding LLMs clean Markdown instead of raw files.
           </p>
         </div>
@@ -41,7 +41,7 @@ export function InsightsPanel({ rows }: { rows: DashboardRow[] }) {
               <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4A4A46]">
                 Token Reduction
               </p>
-              <p className="mt-1.5 font-[family-name:var(--font-syne)] text-2xl font-bold text-[#FF4800]">
+              <p className="mt-1.5 font-display text-2xl font-bold text-[#FF4800]">
                 &minus;{savings.reductionPct}%
               </p>
               <p className="mt-0.5 font-mono text-[10px] text-[#888480]">
@@ -52,7 +52,7 @@ export function InsightsPanel({ rows }: { rows: DashboardRow[] }) {
               <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4A4A46]">
                 Cost Savings
               </p>
-              <p className="mt-1.5 font-[family-name:var(--font-syne)] text-2xl font-bold text-[#FF4800]">
+              <p className="mt-1.5 font-display text-2xl font-bold text-[#FF4800]">
                 ~${savings.monthlySavings.toFixed(2)}
                 <span className="text-sm font-normal text-[#888480]">/mo</span>
               </p>

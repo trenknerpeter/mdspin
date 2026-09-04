@@ -131,7 +131,7 @@ function OAuthConsentForm() {
   if (checkingSession) {
     return (
       <div className="min-h-screen bg-[#0C0C0C] flex items-center justify-center px-4">
-        <p className="text-[#999] font-[family-name:var(--font-dm-sans)]">Loading...</p>
+        <p className="text-[#999] font-sans">Loading...</p>
       </div>
     )
   }
@@ -141,9 +141,9 @@ function OAuthConsentForm() {
       <div className="min-h-screen bg-[#0C0C0C] flex items-center justify-center px-4">
         <div className="w-full max-w-sm text-center">
           <div className="w-8 h-8 bg-[#FF4800] rounded-lg flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-sm font-[family-name:var(--font-syne)]">M</span>
+            <span className="text-white font-bold text-sm font-display">M</span>
           </div>
-          <p className="text-[#F0EDE8] font-[family-name:var(--font-dm-sans)]">Connecting to Make.com...</p>
+          <p className="text-[#F0EDE8] font-sans">Connecting to Make.com...</p>
         </div>
       </div>
     )
@@ -157,30 +157,30 @@ function OAuthConsentForm() {
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 mb-6">
               <div className="w-8 h-8 bg-[#FF4800] rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm font-[family-name:var(--font-syne)]">M</span>
+                <span className="text-white font-bold text-sm font-display">M</span>
               </div>
-              <span className="text-[#F0EDE8] font-bold text-xl font-[family-name:var(--font-syne)]">MDSpin</span>
+              <span className="text-[#F0EDE8] font-bold text-xl font-display">MDSpin</span>
             </div>
-            <h1 className="text-2xl font-bold text-[#F0EDE8] font-[family-name:var(--font-syne)]">Authorize Make.com</h1>
-            <p className="text-[#999] text-sm mt-1 font-[family-name:var(--font-dm-sans)]">
+            <h1 className="text-2xl font-bold text-[#F0EDE8] font-display">Authorize Make.com</h1>
+            <p className="text-[#999] text-sm mt-1 font-sans">
               Allow Make.com to access your MDSpin account
             </p>
           </div>
 
           <div className="mb-6 px-4 py-4 rounded-lg border border-[#2A2A2A] bg-[#141414]">
-            <p className="text-[#F0EDE8] text-sm font-[family-name:var(--font-dm-sans)] mb-1">
+            <p className="text-[#F0EDE8] text-sm font-sans mb-1">
               Signed in as
             </p>
-            <p className="text-[#FF4800] text-sm font-medium font-[family-name:var(--font-dm-sans)]">
+            <p className="text-[#FF4800] text-sm font-medium font-sans">
               {loggedInEmail}
             </p>
           </div>
 
           <div className="mb-6 px-4 py-3 rounded-lg border border-[#2A2A2A] bg-[#141414]">
-            <p className="text-[#999] text-xs font-[family-name:var(--font-dm-sans)] mb-2">
+            <p className="text-[#999] text-xs font-sans mb-2">
               Make.com will be able to:
             </p>
-            <ul className="text-[#999] text-xs font-[family-name:var(--font-dm-sans)] space-y-1">
+            <ul className="text-[#999] text-xs font-sans space-y-1">
               <li>- Convert Google Docs and Slides to Markdown</li>
               <li>- Convert uploaded files (PDF, DOCX) to Markdown</li>
               <li>- Save files to your Google Drive</li>
@@ -188,19 +188,19 @@ function OAuthConsentForm() {
           </div>
 
           {error && (
-            <p className="text-red-400 text-sm font-[family-name:var(--font-dm-sans)] mb-4">{error}</p>
+            <p className="text-red-400 text-sm font-sans mb-4">{error}</p>
           )}
 
           <button
             onClick={handleConsent}
-            className="w-full py-2.5 rounded-lg bg-[#FF4800] text-white font-semibold text-sm hover:bg-[#E04000] transition-colors font-[family-name:var(--font-dm-sans)] mb-3"
+            className="w-full py-2.5 rounded-lg bg-[#FF4800] text-white font-semibold text-sm hover:bg-[#E04000] transition-colors font-sans mb-3"
           >
             Authorize
           </button>
 
           <button
             onClick={handleSignOut}
-            className="w-full py-2.5 rounded-lg border border-[#2A2A2A] bg-transparent text-[#999] text-sm hover:bg-[#1A1A1A] transition-colors font-[family-name:var(--font-dm-sans)]"
+            className="w-full py-2.5 rounded-lg border border-[#2A2A2A] bg-transparent text-[#999] text-sm hover:bg-[#1A1A1A] transition-colors font-sans"
           >
             Use a different account
           </button>
@@ -216,25 +216,25 @@ function OAuthConsentForm() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-6">
             <div className="w-8 h-8 bg-[#FF4800] rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm font-[family-name:var(--font-syne)]">M</span>
+              <span className="text-white font-bold text-sm font-display">M</span>
             </div>
-            <span className="text-[#F0EDE8] font-bold text-xl font-[family-name:var(--font-syne)]">MDSpin</span>
+            <span className="text-[#F0EDE8] font-bold text-xl font-display">MDSpin</span>
           </div>
-          <h1 className="text-2xl font-bold text-[#F0EDE8] font-[family-name:var(--font-syne)]">Connect to Make.com</h1>
-          <p className="text-[#999] text-sm mt-1 font-[family-name:var(--font-dm-sans)]">
+          <h1 className="text-2xl font-bold text-[#F0EDE8] font-display">Connect to Make.com</h1>
+          <p className="text-[#999] text-sm mt-1 font-sans">
             Sign in to authorize Make.com to access your MDSpin account
           </p>
         </div>
 
         <div className="mb-6 px-4 py-3 rounded-lg border border-[#2A2A2A] bg-[#141414]">
-          <p className="text-[#999] text-xs font-[family-name:var(--font-dm-sans)]">
+          <p className="text-[#999] text-xs font-sans">
             Make.com will be able to convert documents and manage files on your behalf.
           </p>
         </div>
 
         <button
           onClick={handleGoogleSignIn}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] text-[#F0EDE8] hover:bg-[#222] transition-colors font-[family-name:var(--font-dm-sans)] text-sm mb-6"
+          className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] text-[#F0EDE8] hover:bg-[#222] transition-colors font-sans text-sm mb-6"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
@@ -247,50 +247,50 @@ function OAuthConsentForm() {
 
         <div className="flex items-center gap-3 mb-6">
           <div className="flex-1 h-px bg-[#2A2A2A]" />
-          <span className="text-[#666] text-xs font-[family-name:var(--font-dm-sans)]">or</span>
+          <span className="text-[#666] text-xs font-sans">or</span>
           <div className="flex-1 h-px bg-[#2A2A2A]" />
         </div>
 
         <form onSubmit={handleSignIn} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm text-[#999] mb-1.5 font-[family-name:var(--font-dm-sans)]">Email</label>
+            <label htmlFor="email" className="block text-sm text-[#999] mb-1.5 font-sans">Email</label>
             <input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-3 py-2.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[#F0EDE8] placeholder-[#555] text-sm focus:outline-none focus:border-[#FF4800] transition-colors font-[family-name:var(--font-dm-sans)]"
+              className="w-full px-3 py-2.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[#F0EDE8] placeholder-[#555] text-sm focus:outline-none focus:border-[#FF4800] transition-colors font-sans"
               placeholder="you@example.com"
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm text-[#999] mb-1.5 font-[family-name:var(--font-dm-sans)]">Password</label>
+            <label htmlFor="password" className="block text-sm text-[#999] mb-1.5 font-sans">Password</label>
             <input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-3 py-2.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[#F0EDE8] placeholder-[#555] text-sm focus:outline-none focus:border-[#FF4800] transition-colors font-[family-name:var(--font-dm-sans)]"
+              className="w-full px-3 py-2.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[#F0EDE8] placeholder-[#555] text-sm focus:outline-none focus:border-[#FF4800] transition-colors font-sans"
               placeholder="Your password"
             />
           </div>
 
           {error && (
-            <p className="text-red-400 text-sm font-[family-name:var(--font-dm-sans)]">{error}</p>
+            <p className="text-red-400 text-sm font-sans">{error}</p>
           )}
 
           <button
             type="submit"
             disabled={loading || !clientId}
-            className="w-full py-2.5 rounded-lg bg-[#FF4800] text-white font-semibold text-sm hover:bg-[#E04000] transition-colors disabled:opacity-50 font-[family-name:var(--font-dm-sans)]"
+            className="w-full py-2.5 rounded-lg bg-[#FF4800] text-white font-semibold text-sm hover:bg-[#E04000] transition-colors disabled:opacity-50 font-sans"
           >
             {loading ? "Signing in..." : "Sign in & Authorize"}
           </button>
         </form>
 
-        <p className="text-center text-sm text-[#666] mt-6 font-[family-name:var(--font-dm-sans)]">
+        <p className="text-center text-sm text-[#666] mt-6 font-sans">
           Don&apos;t have an account?{" "}
           <Link
             href={`/auth/sign-up?next=${encodeURIComponent(

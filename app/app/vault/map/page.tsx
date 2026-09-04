@@ -8,10 +8,10 @@ export default function VaultMapPage() {
     <div className="mx-auto max-w-6xl">
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>
-          <h1 className="font-[family-name:var(--font-syne)] text-2xl font-bold text-[#F0EDE8]">
+          <h1 className="font-display text-2xl font-bold text-[#F0EDE8]">
             Knowledge Map
           </h1>
-          <p className="font-[family-name:var(--font-dm-sans)] text-sm text-[#888480]">
+          <p className="font-sans text-sm text-[#888480]">
             Your Vault as a connected graph — clustered by topic and project.
           </p>
         </div>

@@ -58,30 +58,30 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[#F0EDE8] font-[family-name:var(--font-syne)]">Settings</h1>
-        <p className="text-sm text-[#888480] font-[family-name:var(--font-dm-sans)]">
+        <h1 className="text-2xl font-bold text-[#F0EDE8] font-display">Settings</h1>
+        <p className="text-sm text-[#888480] font-sans">
           Conversion presets (spin profiles)
         </p>
       </div>
 
-      <p className="mb-6 rounded-lg border border-[#1E1E1E] bg-[#161616] px-4 py-3 text-xs text-[#888480] font-[family-name:var(--font-dm-sans)]">
+      <p className="mb-6 rounded-lg border border-[#1E1E1E] bg-[#161616] px-4 py-3 text-xs text-[#888480] font-sans">
         Presets save and are sent with every conversion now; their effect on output activates once the backend honors options.
       </p>
 
       {error && (
-        <div className="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400 font-[family-name:var(--font-dm-sans)]">
+        <div className="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400 font-sans">
           {error}
         </div>
       )}
 
       {/* Existing presets */}
       <div className="mb-8">
-        <h2 className="mb-3 text-sm font-semibold text-[#F0EDE8] font-[family-name:var(--font-syne)]">
+        <h2 className="mb-3 text-sm font-semibold text-[#F0EDE8] font-display">
           Your presets
         </h2>
         {presets.length === 0 ? (
           <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-8 text-center">
-            <p className="text-sm text-[#888480] font-[family-name:var(--font-dm-sans)]">
+            <p className="text-sm text-[#888480] font-sans">
               No presets yet. Create one below.
             </p>
           </div>
@@ -94,7 +94,7 @@ export default function SettingsPage() {
                   i !== presets.length - 1 ? "border-b border-[#1E1E1E]" : ""
                 } hover:bg-[#161616] transition-colors`}
               >
-                <span className="text-sm text-[#F0EDE8] font-[family-name:var(--font-dm-sans)]">
+                <span className="text-sm text-[#F0EDE8] font-sans">
                   {p.name}
                   {p.is_default && (
                     <span className="ml-2 text-xs text-[#FF4800]">(default)</span>
@@ -116,11 +116,11 @@ export default function SettingsPage() {
 
       {/* Create preset */}
       <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-5">
-        <h2 className="mb-4 text-sm font-semibold text-[#F0EDE8] font-[family-name:var(--font-syne)]">
+        <h2 className="mb-4 text-sm font-semibold text-[#F0EDE8] font-display">
           Create preset
         </h2>
 
-        <label className="mb-1.5 block text-xs text-[#888480] font-[family-name:var(--font-dm-sans)]">
+        <label className="mb-1.5 block text-xs text-[#888480] font-sans">
           Name
         </label>
         <input
@@ -128,13 +128,13 @@ export default function SettingsPage() {
           placeholder="e.g. Clean docs"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="mb-4 w-full rounded-lg border border-[#2A2A2A] bg-[#0C0C0C] px-3 py-2 text-sm text-[#F0EDE8] placeholder-[#4A4A46] focus:border-[#FF4800] focus:outline-none transition-colors font-[family-name:var(--font-dm-sans)]"
+          className="mb-4 w-full rounded-lg border border-[#2A2A2A] bg-[#0C0C0C] px-3 py-2 text-sm text-[#F0EDE8] placeholder-[#4A4A46] focus:border-[#FF4800] focus:outline-none transition-colors font-sans"
         />
 
         <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {PRESET_OPTION_FIELDS.map((field) => (
             <div key={field.key}>
-              <label className="mb-1.5 block text-xs text-[#888480] font-[family-name:var(--font-dm-sans)]">
+              <label className="mb-1.5 block text-xs text-[#888480] font-sans">
                 {field.label}
               </label>
               <select
@@ -142,7 +142,7 @@ export default function SettingsPage() {
                 onChange={(e) =>
                   setOptions((prev) => ({ ...prev, [field.key]: e.target.value }))
                 }
-                className="w-full rounded-lg border border-[#2A2A2A] bg-[#0C0C0C] px-3 py-2 text-sm text-[#F0EDE8] focus:border-[#FF4800] focus:outline-none transition-colors font-[family-name:var(--font-dm-sans)]"
+                className="w-full rounded-lg border border-[#2A2A2A] bg-[#0C0C0C] px-3 py-2 text-sm text-[#F0EDE8] focus:border-[#FF4800] focus:outline-none transition-colors font-sans"
               >
                 {field.values.map((v) => (
                   <option key={v} value={v}>
