@@ -6,7 +6,7 @@
 // The pure `buildGraph` shaping is split out so it can be unit-tested.
 
 import { createClient } from "@/lib/supabase/client"
-import { listProjects, type Project } from "@/lib/library"
+import { fetchProjectIdsByDocument, listProjects, type Project } from "@/lib/library"
 
 const UNFILED_COLOR = "#888480"
 
@@ -22,8 +22,15 @@ export interface GraphNodeRow {
   title: string | null
   file_type: string
   word_count: number | null
-  project_id: string | null
+  project_ids: string[]
   tags: string[]
+}
+
+/** r.project_ids is always earliest-linked-first (see lib/library.ts's
+ *  fetchProjectIdsByDocument), so index 0 is the primary project — same convention as
+ *  the Stage 5 Phase A SQL and Phase B/C TypeScript layers. */
+export function pickPrimaryProject(projectIds: string[]): string | null {
+  return projectIds[0] ?? null
 }
 
 export interface GraphEdgeRow {
@@ -67,15 +74,18 @@ export function buildGraph(
   })
   const nameByProject = new Map(projects.map((p) => [p.id, p.name]))
 
-  const nodes: GraphNode[] = nodeRows.map((r) => ({
-    id: r.id,
-    label: r.title || r.filename,
-    fileType: r.file_type,
-    wordCount: r.word_count,
-    projectId: r.project_id,
-    community: r.project_id ? nameByProject.get(r.project_id) ?? "Unfiled" : "Unfiled",
-    color: r.project_id ? colorByProject.get(r.project_id) ?? UNFILED_COLOR : UNFILED_COLOR,
-  }))
+  const nodes: GraphNode[] = nodeRows.map((r) => {
+    const projectId = pickPrimaryProject(r.project_ids)
+    return {
+      id: r.id,
+      label: r.title || r.filename,
+      fileType: r.file_type,
+      wordCount: r.word_count,
+      projectId,
+      community: projectId ? nameByProject.get(projectId) ?? "Unfiled" : "Unfiled",
+      color: projectId ? colorByProject.get(projectId) ?? UNFILED_COLOR : UNFILED_COLOR,
+    }
+  })
 
   const nodeIds = new Set(nodes.map((n) => n.id))
   const best = new Map<string, GraphLink>()
@@ -96,15 +106,17 @@ export async function getKnowledgeGraph(maxPerNode = 5): Promise<KnowledgeGraph>
   const [nodesRes, edgesRes, projects] = await Promise.all([
     supabase
       .from("conversions")
-      .select("id, filename, title, file_type, word_count, project_id, tags")
+      .select("id, filename, title, file_type, word_count, tags")
       .eq("in_vault", true),
     supabase.rpc("build_knowledge_graph", { max_per_node: maxPerNode }),
     listProjects(),
   ])
   if (nodesRes.error) throw nodesRes.error
   if (edgesRes.error) throw edgesRes.error
+  const nodeRows = (nodesRes.data ?? []) as Omit<GraphNodeRow, "project_ids">[]
+  const projectIdsByDoc = await fetchProjectIdsByDocument(nodeRows.map((r) => r.id))
   return buildGraph(
-    (nodesRes.data ?? []) as GraphNodeRow[],
+    nodeRows.map((r) => ({ ...r, project_ids: projectIdsByDoc.get(r.id) ?? [] })),
     (edgesRes.data ?? []) as GraphEdgeRow[],
     projects
   )

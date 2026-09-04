@@ -13,7 +13,7 @@ function node(partial: Partial<GraphNodeRow> & { id: string }): GraphNodeRow {
     title: null,
     file_type: "pdf",
     word_count: 10,
-    project_id: null,
+    project_ids: [],
     tags: [],
     ...partial,
   }
@@ -22,9 +22,9 @@ function node(partial: Partial<GraphNodeRow> & { id: string }): GraphNodeRow {
 describe("buildGraph", () => {
   it("labels with title, falling back to filename, and resolves community + color", () => {
     const nodes = [
-      node({ id: "a", title: "Alpha", project_id: "p1" }),
-      node({ id: "b", title: null, filename: "beta.pdf", project_id: "p2" }),
-      node({ id: "c", project_id: null }), // unfiled
+      node({ id: "a", title: "Alpha", project_ids: ["p1"] }),
+      node({ id: "b", title: null, filename: "beta.pdf", project_ids: ["p2"] }),
+      node({ id: "c", project_ids: [] }), // unfiled
     ]
     const g = buildGraph(nodes, [], projects)
     const a = g.nodes.find((n) => n.id === "a")!
@@ -55,5 +55,13 @@ describe("buildGraph", () => {
     ]
     const g = buildGraph(nodes, edges, projects)
     expect(g.links).toHaveLength(0)
+  })
+
+  it("picks the first project as primary when a node has more than one (pickPrimaryProject)", () => {
+    const nodes = [node({ id: "a", project_ids: ["p2", "p1"] })]
+    const g = buildGraph(nodes, [], projects)
+    const a = g.nodes.find((n) => n.id === "a")!
+    expect(a.projectId).toBe("p2")
+    expect(a.community).toBe("Marketing")
   })
 })
