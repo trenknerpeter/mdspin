@@ -15,6 +15,12 @@ function sameTags(a: string[], b: string[]) {
   return a.length === b.length && a.every((t, i) => t === b[i])
 }
 
+// Matches the old fixed "edit" width — now the shared default for both
+// preview and edit, since a manual drag hasn't happened yet.
+const DEFAULT_PANEL_WIDTH = 768
+const MIN_PANEL_WIDTH = 380
+const PANEL_WIDTH_STORAGE_KEY = "spin-detail-panel-width"
+
 export function SpinDetailPanel({
   spin,
   projects,
@@ -51,6 +57,13 @@ export function SpinDetailPanel({
   const [relatedLoading, setRelatedLoading] = useState(true)
   const [brief, setBrief] = useState<string | null>(null)
   const [briefAt, setBriefAt] = useState<string | null>(null)
+  const [manualWidth, setManualWidth] = useState<number | null>(null)
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(PANEL_WIDTH_STORAGE_KEY)
+    const parsed = stored ? Number(stored) : NaN
+    if (Number.isFinite(parsed)) setManualWidth(parsed)
+  }, [])
 
   // Has this doc id had its real content synced into form state yet? Guards
   // against re-syncing on every *update* to the same doc (see below).
@@ -164,12 +177,53 @@ export function SpinDetailPanel({
   const fieldLabel = "text-[10px] font-semibold uppercase tracking-wide text-[#888480]"
   const inputBase =
     "w-full rounded-lg border border-[#2A2A2A] bg-[#0E0E0E] px-3 py-2 text-sm text-[#F0EDE8] focus:border-[#4A4A46] focus:outline-none"
-  const sheetWidth =
-    editorMode === "edit" ? "sm:max-w-3xl" : brief ? "sm:max-w-2xl" : "sm:max-w-md"
+  const panelWidth = manualWidth ?? DEFAULT_PANEL_WIDTH
+
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startWidth = panelWidth
+    document.body.style.cursor = "col-resize"
+    document.body.style.userSelect = "none"
+
+    const clamp = (px: number) => {
+      const max = Math.min(window.innerWidth - 48, 1400)
+      return Math.max(MIN_PANEL_WIDTH, Math.min(px, max))
+    }
+
+    // Panel is right-anchored, so dragging left (mouse moves to a smaller
+    // clientX than startX) should widen it.
+    const onMove = (moveEvent: MouseEvent) => {
+      setManualWidth(clamp(startWidth + (startX - moveEvent.clientX)))
+    }
+    const onUp = () => {
+      document.body.style.cursor = ""
+      document.body.style.userSelect = ""
+      window.removeEventListener("mousemove", onMove)
+      window.removeEventListener("mouseup", onUp)
+      setManualWidth((w) => {
+        const finalWidth = w ?? startWidth
+        window.localStorage.setItem(PANEL_WIDTH_STORAGE_KEY, String(finalWidth))
+        return finalWidth
+      })
+    }
+    window.addEventListener("mousemove", onMove)
+    window.addEventListener("mouseup", onUp)
+  }
 
   return (
     <Sheet open={!!spin} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className={`w-full gap-0 border-[#2A2A2A] bg-[#161616] ${sheetWidth}`}>
+      <SheetContent
+        style={{ ["--panel-width" as string]: `${panelWidth}px` }}
+        className="w-full gap-0 border-[#2A2A2A] bg-[#161616] sm:w-[var(--panel-width)] sm:max-w-[90vw]"
+      >
+        <div
+          onMouseDown={handleResizeStart}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize panel"
+          className="absolute inset-y-0 left-0 z-10 hidden w-1.5 -translate-x-0.5 touch-none cursor-col-resize select-none hover:bg-[#FF4800]/40 sm:block"
+        />
         <SheetHeader className="border-b border-[#2A2A2A]">
           <SheetTitle className="truncate pr-8 text-[#F0EDE8]">
             {spin.title || spin.filename}
