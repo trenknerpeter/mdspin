@@ -442,6 +442,88 @@ export async function listSpinStats(): Promise<SpinStats> {
   return { total: rows.length, unfiled, byProject }
 }
 
+/** One folder card's worth of data. `projectId: null` is the Unfiled card. */
+export interface FolderSummary {
+  projectId: string | null
+  count: number
+  /** converted_at of the newest doc in this folder, or null when the folder is empty.
+   *  Null rather than a guessed date: the card must show nothing rather than invent
+   *  activity ("empty beats speculative"). */
+  lastActivity: string | null
+  /** Up to 3 doc titles, newest first — a preview of what's inside. */
+  recentTitles: string[]
+}
+
+const RECENT_TITLES_PER_FOLDER = 3
+
+export interface FolderSummaryRow {
+  title: string | null
+  filename: string
+  converted_at: string
+  project_ids: string[]
+}
+
+/** Pure: fold vault rows into one summary per folder, plus an Unfiled bucket.
+ *  `rows` MUST already be sorted newest-first — the caller's query does that, so this
+ *  stays a single pass and `recentTitles` order falls out for free.
+ *  Every project gets an entry even at count 0, so a freshly created folder still
+ *  renders a card instead of silently disappearing from the grid. */
+export function computeFolderSummaries(
+  rows: FolderSummaryRow[],
+  projects: Pick<Project, "id">[]
+): FolderSummary[] {
+  const byId = new Map<string | null, FolderSummary>()
+  const blank = (projectId: string | null): FolderSummary => ({
+    projectId,
+    count: 0,
+    lastActivity: null,
+    recentTitles: [],
+  })
+  for (const p of projects) byId.set(p.id, blank(p.id))
+  byId.set(null, blank(null))
+
+  for (const row of rows) {
+    // A doc with no project membership belongs to the Unfiled bucket.
+    const keys: (string | null)[] = row.project_ids.length > 0 ? row.project_ids : [null]
+    for (const key of keys) {
+      // Ignore membership pointing at a project we weren't given (deleted mid-flight).
+      const bucket = byId.get(key)
+      if (!bucket) continue
+      bucket.count++
+      if (!bucket.lastActivity || row.converted_at > bucket.lastActivity) {
+        bucket.lastActivity = row.converted_at
+      }
+      if (bucket.recentTitles.length < RECENT_TITLES_PER_FOLDER) {
+        bucket.recentTitles.push(row.title || row.filename)
+      }
+    }
+  }
+  return Array.from(byId.values())
+}
+
+// Raw rows for the folder grid, newest-first (computeFolderSummaries relies on that
+// order). Deliberately split from computeFolderSummaries so the caller can fetch this in
+// parallel with listProjects rather than chaining behind it, and so the folding logic
+// stays pure and unit-testable. Like listSpinStats/listTags this scans the user's vault
+// rows client-side — cheap at current scale; revisit with an RPC if libraries grow large.
+export async function listFolderRows(): Promise<FolderSummaryRow[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from("conversions")
+    .select("id, title, filename, converted_at")
+    .eq("in_vault", true)
+    .order("converted_at", { ascending: false })
+  if (error) throw error
+  const rows = (data ?? []) as { id: string; title: string | null; filename: string; converted_at: string }[]
+  const projectIdsByDoc = await fetchProjectIdsByDocument(rows.map((r) => r.id))
+  return rows.map((r) => ({
+    title: r.title,
+    filename: r.filename,
+    converted_at: r.converted_at,
+    project_ids: projectIdsByDoc.get(r.id) ?? [],
+  }))
+}
+
 // Distinct tags with counts, computed client-side from the user's vault rows.
 // Cheap at current scale; revisit with an RPC if libraries grow very large.
 export async function listTags(): Promise<TagCount[]> {

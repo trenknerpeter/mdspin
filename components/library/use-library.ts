@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAuth } from "@/components/auth-provider"
 import {
+  computeFolderSummaries,
   createNote,
   createProject,
   deleteProject,
   deleteSpin,
   getSpin,
+  listFolderRows,
   listProjects,
   listSpinStats,
   listSpins,
@@ -16,6 +18,7 @@ import {
   updateSpin,
   removeFromVault,
   UNFILED,
+  type FolderSummary,
   type Project,
   type Spin,
   type SpinStats,
@@ -33,6 +36,7 @@ export function useLibrary() {
   const [tags, setTags] = useState<TagCount[]>([])
   const [stats, setStats] = useState<SpinStats>({ total: 0, unfiled: 0, byProject: {} })
   const [spins, setSpins] = useState<Spin[]>([])
+  const [folders, setFolders] = useState<FolderSummary[]>([])
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -66,10 +70,19 @@ export function useLibrary() {
   }, [selectedProject, selectedTag, query])
 
   const refreshSidebars = useCallback(async () => {
-    const [p, t, s] = await Promise.all([listProjects(), listTags(), listSpinStats()])
+    // Folder rows are fetched alongside the rest rather than after listProjects, then
+    // folded locally — computeFolderSummaries only needs the project ids, so there's no
+    // reason to serialise the two requests.
+    const [p, t, s, folderRows] = await Promise.all([
+      listProjects(),
+      listTags(),
+      listSpinStats(),
+      listFolderRows(),
+    ])
     setProjects(p)
     setTags(t)
     setStats(s)
+    setFolders(computeFolderSummaries(folderRows, p))
   }, [])
 
   const fetchSpins = useCallback(async () => {
@@ -242,6 +255,7 @@ export function useLibrary() {
     tags,
     stats,
     spins,
+    folders,
     loading,
     error,
     // filters
