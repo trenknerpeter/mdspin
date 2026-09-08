@@ -45,7 +45,7 @@ describe("buildResearchProjectPrompt", () => {
 
   it("embeds the project's name, instructions, and the research procedure", async () => {
     const repo = fakeRepo({
-      getProject: async () => ({ id: "p1", name: "Strategy", color: null, createdAt: "x", instructions: "Focus on pricing." }),
+      getProject: async () => ({ id: "p1", name: "Strategy", color: null, createdAt: "x", instructions: "Focus on pricing.", parentId: null }),
     })
     const result = await buildResearchProjectPrompt(repo, "p1")
     const text = result.messages[0].content.text
@@ -57,7 +57,7 @@ describe("buildResearchProjectPrompt", () => {
 
   it("omits the instructions paragraph when the project has none", async () => {
     const repo = fakeRepo({
-      getProject: async () => ({ id: "p1", name: "Strategy", color: null, createdAt: "x", instructions: null }),
+      getProject: async () => ({ id: "p1", name: "Strategy", color: null, createdAt: "x", instructions: null, parentId: null }),
     })
     const result = await buildResearchProjectPrompt(repo, "p1")
     expect(result.messages[0].content.text).not.toContain("Project instructions:")

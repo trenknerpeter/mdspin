@@ -18,6 +18,23 @@ import { embedQueryOrNull } from "./embeddings"
 import { deriveFilenameFromTitle, deriveTitle } from "./title"
 import { countWords } from "./text"
 
+/** The projects_single_level trigger and the composite parent FK both reject bad nesting
+ *  at the database. Surface those as INVALID_REQUEST rather than letting a raw 23514 /
+ *  23503 fall through as DB_ERROR -> 500, which tells an agent nothing actionable. */
+function projectParentError(message: string): VaultError {
+  const m = message.toLowerCase()
+  if (
+    m.includes("nest one level") ||
+    m.includes("its own parent") ||
+    m.includes("cannot itself become a sub-folder") ||
+    m.includes("must be one of your own projects") ||
+    m.includes("projects_parent_user_fkey")
+  ) {
+    return new VaultError("INVALID_REQUEST", message)
+  }
+  return new VaultError("DB_ERROR", message)
+}
+
 const LIST_COLUMNS =
   "id, filename, title, file_type, word_count, project_id, tags, source_type, converted_at, updated_at, version, summary, summary_status"
 const DETAIL_COLUMNS = `${LIST_COLUMNS}, markdown_text`
@@ -172,7 +189,7 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
 
     async listProjects(): Promise<VaultProject[]> {
       const { data, error } = await scoped(
-        client.from("projects").select("id, name, color, created_at, instructions"),
+        client.from("projects").select("id, name, color, created_at, instructions, parent_id"),
         scope
       ).order("created_at", { ascending: true })
       if (error) throw new VaultError("DB_ERROR", error.message)
@@ -181,7 +198,7 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
 
     async getProject(id: string): Promise<VaultProject | null> {
       const { data, error } = await scoped(
-        client.from("projects").select("id, name, color, created_at, instructions"),
+        client.from("projects").select("id, name, color, created_at, instructions, parent_id"),
         scope
       )
         .eq("id", id)
@@ -198,10 +215,11 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
           name: input.name,
           color: input.color ?? null,
           instructions: input.instructions ?? null,
+          parent_id: input.parentId ?? null,
         })
-        .select("id, name, color, created_at, instructions")
+        .select("id, name, color, created_at, instructions, parent_id")
         .single()
-      if (error) throw new VaultError("DB_ERROR", error.message)
+      if (error) throw projectParentError(error.message)
       return toVaultProject(data as ProjectRow)
     },
 
@@ -215,9 +233,9 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
         scope
       )
         .eq("id", id)
-        .select("id, name, color, created_at, instructions")
+        .select("id, name, color, created_at, instructions, parent_id")
         .maybeSingle()
-      if (error) throw new VaultError("DB_ERROR", error.message)
+      if (error) throw projectParentError(error.message)
       if (!data) throw new VaultError("NOT_FOUND", "Project not found.")
       return toVaultProject(data as ProjectRow)
     },

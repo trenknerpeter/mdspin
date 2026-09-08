@@ -6,7 +6,12 @@
 // The pure `buildGraph` shaping is split out so it can be unit-tested.
 
 import { createClient } from "@/lib/supabase/client"
-import { fetchProjectIdsByDocument, listProjects, type Project } from "@/lib/library"
+import {
+  fetchProjectIdsByDocument,
+  listProjects,
+  rootProjectId,
+  type Project,
+} from "@/lib/library"
 
 const UNFILED_COLOR = "#888480"
 
@@ -68,22 +73,34 @@ export function buildGraph(
   edgeRows: GraphEdgeRow[],
   projects: Project[]
 ): KnowledgeGraph {
-  const colorByProject = new Map<string, string>()
-  projects.forEach((p, i) => {
-    colorByProject.set(p.id, p.color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length])
+  // Colour and community are keyed by ROOT project, not by the document's own folder:
+  // a project split into six sub-folders should stay one visual community on the map,
+  // not fragment into six colours.
+  const byId = new Map(projects.map((p) => [p.id, p]))
+  const roots = projects.filter((p) => !p.parent_id)
+
+  // Fallback colours are assigned over ROOTS only. Indexing over all projects would mean
+  // creating a single sub-folder shifts every later project's palette index, silently
+  // re-colouring unrelated nodes for a reason the user never asked for.
+  const colorByRoot = new Map<string, string>()
+  roots.forEach((p, i) => {
+    colorByRoot.set(p.id, p.color ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length])
   })
   const nameByProject = new Map(projects.map((p) => [p.id, p.name]))
 
   const nodes: GraphNode[] = nodeRows.map((r) => {
+    // pickPrimaryProject stays "which folder is this document in" — a sub-folder is the
+    // right answer there, so the root is resolved here at the display site instead.
     const projectId = pickPrimaryProject(r.project_ids)
+    const rootId = rootProjectId(projectId, byId)
     return {
       id: r.id,
       label: r.title || r.filename,
       fileType: r.file_type,
       wordCount: r.word_count,
       projectId,
-      community: projectId ? nameByProject.get(projectId) ?? "Unfiled" : "Unfiled",
-      color: projectId ? colorByProject.get(projectId) ?? UNFILED_COLOR : UNFILED_COLOR,
+      community: rootId ? nameByProject.get(rootId) ?? "Unfiled" : "Unfiled",
+      color: rootId ? colorByRoot.get(rootId) ?? UNFILED_COLOR : UNFILED_COLOR,
     }
   })
 

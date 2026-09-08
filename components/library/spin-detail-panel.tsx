@@ -253,11 +253,30 @@ export function SpinDetailPanel({
               className={inputBase + " appearance-none"}
             >
               <option value={UNFILED}>Unfiled</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
+              {/* Grouped one level deep. The value stays a scalar project id — a
+                  sub-folder is just another project — so no write path changes. */}
+              {projects
+                .filter((p) => !p.parent_id)
+                .map((root) => {
+                  const children = projects.filter((c) => c.parent_id === root.id)
+                  if (children.length === 0) {
+                    return (
+                      <option key={root.id} value={root.id}>
+                        {root.name}
+                      </option>
+                    )
+                  }
+                  return (
+                    <optgroup key={root.id} label={root.name}>
+                      <option value={root.id}>{root.name}</option>
+                      {children.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )
+                })}
             </select>
           </div>
 

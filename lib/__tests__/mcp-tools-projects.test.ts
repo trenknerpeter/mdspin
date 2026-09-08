@@ -40,7 +40,7 @@ function fakeRepo(overrides: Partial<VaultRepo> = {}): VaultRepo {
 describe("runListProjects", () => {
   it("shapes every project via compactProject (no instructions)", async () => {
     const repo = fakeRepo({
-      listProjects: async () => [{ id: "p1", name: "Strategy", color: null, createdAt: "x", instructions: "secret notes" }],
+      listProjects: async () => [{ id: "p1", name: "Strategy", color: null, createdAt: "x", instructions: "secret notes", parentId: null }],
     })
     const result = await runListProjects(repo)
     expect(result.projects).toEqual([{ id: "p1", name: "Strategy" }])
@@ -50,7 +50,7 @@ describe("runListProjects", () => {
 describe("runGetProject", () => {
   it("includes instructions via compactProjectDetail", async () => {
     const repo = fakeRepo({
-      getProject: async () => ({ id: "p1", name: "Strategy", color: null, createdAt: "x", instructions: "Focus on pricing." }),
+      getProject: async () => ({ id: "p1", name: "Strategy", color: null, createdAt: "x", instructions: "Focus on pricing.", parentId: null }),
     })
     const result = await runGetProject(repo, "p1")
     expect(result).toEqual({ id: "p1", name: "Strategy", instructions: "Focus on pricing.", created_at: "x" })
@@ -86,21 +86,74 @@ describe("runGetRelatedDocuments", () => {
   })
 })
 
+describe("project sub-folders", () => {
+  const roots = [
+    { id: "p1", name: "Plato PM", color: null, createdAt: "x", instructions: null, parentId: null },
+    { id: "s1", name: "Saheed", color: null, createdAt: "x", instructions: null, parentId: "p1" },
+    { id: "s2", name: "Jon", color: null, createdAt: "x", instructions: null, parentId: "p1" },
+    { id: "p2", name: "Strategy", color: null, createdAt: "x", instructions: null, parentId: null },
+  ]
+
+  it("get_project lists a project's sub-folders inline", async () => {
+    const repo = {
+      getProject: async () => roots[0],
+      listProjects: async () => roots,
+    } as unknown as Parameters<typeof runGetProject>[0]
+    const result = (await runGetProject(repo, "p1")) as Record<string, unknown>
+    expect(result.children).toEqual([
+      { id: "s1", name: "Saheed" },
+      { id: "s2", name: "Jon" },
+    ])
+  })
+
+  it("omits children entirely for a project that has none", async () => {
+    const repo = {
+      getProject: async () => roots[3],
+      listProjects: async () => roots,
+    } as unknown as Parameters<typeof runGetProject>[0]
+    expect(await runGetProject(repo, "p2")).not.toHaveProperty("children")
+  })
+
+  it("a sub-folder reports no children of its own — nesting is one level", async () => {
+    const repo = {
+      getProject: async () => roots[1],
+      listProjects: async () => roots,
+    } as unknown as Parameters<typeof runGetProject>[0]
+    expect(await runGetProject(repo, "s1")).not.toHaveProperty("children")
+  })
+
+  it("create_project forwards parent_id as parentId", async () => {
+    const createProject = vi.fn().mockResolvedValue(roots[1])
+    const repo = { createProject } as unknown as Parameters<typeof runCreateProject>[0]
+    await runCreateProject(repo, { name: "Saheed", parent_id: "p1" })
+    expect(createProject).toHaveBeenCalledWith({
+      name: "Saheed", color: undefined, instructions: undefined, parentId: "p1",
+    })
+  })
+
+  it("update_project forwards a null parent_id as a promotion to top level", async () => {
+    const updateProject = vi.fn().mockResolvedValue(roots[0])
+    const repo = { updateProject } as unknown as Parameters<typeof runUpdateProject>[0]
+    await runUpdateProject(repo, { project_id: "s1", parent_id: null })
+    expect(updateProject).toHaveBeenCalledWith("s1", { parentId: null })
+  })
+})
+
 describe("runCreateProject", () => {
   it("passes name/color/instructions through and shapes the result via compactProjectDetail", async () => {
     const createProject = vi.fn().mockResolvedValue({
-      id: "p1", name: "Explore", color: "blue", createdAt: "t", instructions: "Focus on new ideas.",
+      id: "p1", name: "Explore", color: "blue", createdAt: "t", instructions: "Focus on new ideas.", parentId: null,
     })
     const repo = fakeRepo({ createProject })
     const result = await runCreateProject(repo, { name: "Explore", color: "blue", instructions: "Focus on new ideas." })
-    expect(createProject).toHaveBeenCalledWith({ name: "Explore", color: "blue", instructions: "Focus on new ideas." })
+    expect(createProject).toHaveBeenCalledWith({ name: "Explore", color: "blue", instructions: "Focus on new ideas.", parentId: undefined })
     expect(result).toEqual({ id: "p1", name: "Explore", color: "blue", instructions: "Focus on new ideas.", created_at: "t" })
   })
 })
 
 describe("runUpdateProject", () => {
   it("builds a patch from only the provided fields", async () => {
-    const updateProject = vi.fn().mockResolvedValue({ id: "p1", name: "Renamed", color: null, createdAt: "t", instructions: null })
+    const updateProject = vi.fn().mockResolvedValue({ id: "p1", name: "Renamed", color: null, createdAt: "t", instructions: null, parentId: null })
     const repo = fakeRepo({ updateProject })
     await runUpdateProject(repo, { project_id: "p1", name: "Renamed" })
     expect(updateProject).toHaveBeenCalledWith("p1", { name: "Renamed" })

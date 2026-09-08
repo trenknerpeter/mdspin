@@ -225,7 +225,7 @@ describe("createVaultRepo — the scoped() choke point", () => {
   it("listProjects surfaces instructions through to the mapped VaultProject", async () => {
     const client = new FakeClient({
       projects: {
-        data: [{ id: "p1", name: "Strategy", color: null, created_at: "2026-08-01T00:00:00Z", instructions: "Focus on pricing." }],
+        data: [{ id: "p1", name: "Strategy", color: null, created_at: "2026-08-01T00:00:00Z", instructions: "Focus on pricing.", parent_id: null }],
         error: null,
       },
     })
@@ -791,7 +791,7 @@ describe("createProject", () => {
   it("inserts with user_id from scope, name, color, and instructions", async () => {
     const client = new FakeClient({
       projects: {
-        data: { id: "p1", name: "Explore", color: "blue", created_at: "t", instructions: null },
+        data: { id: "p1", name: "Explore", color: "blue", created_at: "t", instructions: null, parent_id: null },
         error: null,
       },
     })
@@ -800,19 +800,19 @@ describe("createProject", () => {
     expect(project.name).toBe("Explore")
     expect(client.builders[0].calls[0]).toEqual({
       method: "insert",
-      args: [{ user_id: "user-123", name: "Explore", color: "blue", instructions: null }],
+      args: [{ user_id: "user-123", name: "Explore", color: "blue", instructions: null, parent_id: null }],
     })
   })
 
   it("defaults color and instructions to null when omitted", async () => {
     const client = new FakeClient({
-      projects: { data: { id: "p1", name: "Explore", color: null, created_at: "t", instructions: null }, error: null },
+      projects: { data: { id: "p1", name: "Explore", color: null, created_at: "t", instructions: null, parent_id: null }, error: null },
     })
     const repo = createVaultRepo(client as never, SCOPE)
     await repo.createProject({ name: "Explore" })
     expect(client.builders[0].calls[0]).toEqual({
       method: "insert",
-      args: [{ user_id: "user-123", name: "Explore", color: null, instructions: null }],
+      args: [{ user_id: "user-123", name: "Explore", color: null, instructions: null, parent_id: null }],
     })
   })
 })
@@ -820,7 +820,7 @@ describe("createProject", () => {
 describe("updateProject", () => {
   it("updates only the given fields, scoped to user_id", async () => {
     const client = new FakeClient({
-      projects: { data: { id: "p1", name: "Renamed", color: "blue", created_at: "t", instructions: "Focus on X." }, error: null },
+      projects: { data: { id: "p1", name: "Renamed", color: "blue", created_at: "t", instructions: "Focus on X.", parent_id: null }, error: null },
     })
     const repo = createVaultRepo(client as never, SCOPE)
     const project = await repo.updateProject("p1", { name: "Renamed" })

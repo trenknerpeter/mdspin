@@ -1,7 +1,7 @@
 "use client"
 
 import { DashboardListRow } from "@/components/dashboard/dashboard-list-row"
-import { type Project, type SpinStats } from "@/lib/library"
+import { rollUpProjectCounts, type Project, type SpinStats } from "@/lib/library"
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
@@ -14,6 +14,10 @@ const formatDate = (iso: string) =>
 //
 // Shares DashboardListRow with RecentVault (count then date, in that order)
 // so the two cards read as the same design component side by side.
+//
+// Only top-level projects are listed. Sub-folders would otherwise show up here as
+// peers of their own parent, with small counts, making the dashboard disagree with
+// the Vault's folder grid — their documents are counted into the parent's row instead.
 export function ProjectsRail({
   projects,
   stats,
@@ -23,6 +27,16 @@ export function ProjectsRail({
   stats: SpinStats
   lastActivity: Record<string, string>
 }) {
+  const roots = projects.filter((p) => !p.parent_id)
+  const counts = rollUpProjectCounts(stats.byProject, projects)
+  // Newest activity anywhere in the project, sub-folders included.
+  const activityOf = (rootId: string) =>
+    [rootId, ...projects.filter((p) => p.parent_id === rootId).map((p) => p.id)]
+      .map((id) => lastActivity[id])
+      .filter(Boolean)
+      .sort()
+      .pop()
+
   return (
     <div className="rounded-xl border border-[#2A2A2A] bg-[#161616]">
       <div className="border-b border-[#2A2A2A] px-5 py-3">
@@ -30,21 +44,24 @@ export function ProjectsRail({
           Projects
         </span>
       </div>
-      {projects.length === 0 && stats.unfiled === 0 ? (
+      {roots.length === 0 && stats.unfiled === 0 ? (
         <p className="px-5 py-6 text-center text-sm text-[#888480]">No projects yet.</p>
       ) : (
         <ul className="divide-y divide-[#1E1E1E]">
-          {projects.map((p) => (
-            <li key={p.id}>
-              <DashboardListRow
-                href={`/app/vault?project=${p.id}`}
-                color={p.color}
-                title={p.name}
-                count={String(stats.byProject[p.id] ?? 0)}
-                date={lastActivity[p.id] ? formatDate(lastActivity[p.id]) : undefined}
-              />
-            </li>
-          ))}
+          {roots.map((p) => {
+            const date = activityOf(p.id)
+            return (
+              <li key={p.id}>
+                <DashboardListRow
+                  href={`/app/vault?project=${p.id}`}
+                  color={p.color}
+                  title={p.name}
+                  count={String(counts[p.id] ?? 0)}
+                  date={date ? formatDate(date) : undefined}
+                />
+              </li>
+            )
+          })}
           {stats.unfiled > 0 && (
             <li>
               <DashboardListRow

@@ -41,7 +41,7 @@ describe("compactProject", () => {
   it("never includes instructions, even if present on the domain object", () => {
     const project: VaultProject = {
       id: "p1", name: "Strategy", color: "#FF4800", createdAt: "2026-08-01T00:00:00Z",
-      instructions: "Focus on pricing.",
+      instructions: "Focus on pricing.", parentId: null,
     }
     expect(compactProject(project)).toEqual({ id: "p1", name: "Strategy", color: "#FF4800" })
   })
@@ -51,7 +51,7 @@ describe("compactProjectDetail", () => {
   it("includes instructions when present", () => {
     const project: VaultProject = {
       id: "p1", name: "Strategy", color: null, createdAt: "2026-08-01T00:00:00Z",
-      instructions: "Focus on pricing.",
+      instructions: "Focus on pricing.", parentId: null,
     }
     expect(compactProjectDetail(project)).toEqual({
       id: "p1", name: "Strategy", instructions: "Focus on pricing.", created_at: "2026-08-01T00:00:00Z",
@@ -59,7 +59,7 @@ describe("compactProjectDetail", () => {
   })
   it("omits instructions when null", () => {
     const project: VaultProject = {
-      id: "p1", name: "Strategy", color: null, createdAt: "2026-08-01T00:00:00Z", instructions: null,
+      id: "p1", name: "Strategy", color: null, createdAt: "2026-08-01T00:00:00Z", instructions: null, parentId: null,
     }
     expect(compactProjectDetail(project)).not.toHaveProperty("instructions")
   })

@@ -61,13 +61,19 @@ describe("documentToJson", () => {
 
 describe("projectToJson", () => {
   it("renames created_at", () => {
-    const project: VaultProject = { id: "p1", name: "Strategy", color: "#FF4800", createdAt: "2026-08-01T00:00:00Z", instructions: null }
+    const project: VaultProject = { id: "p1", name: "Strategy", color: "#FF4800", createdAt: "2026-08-01T00:00:00Z", instructions: null, parentId: null }
     expect(projectToJson(project)).toEqual({
       id: "p1",
       name: "Strategy",
       color: "#FF4800",
       created_at: "2026-08-01T00:00:00Z",
+      parent_id: null,
     })
+  })
+
+  it("carries parent_id so clients can build the folder tree themselves", () => {
+    const sub: VaultProject = { id: "s1", name: "Saheed", color: null, createdAt: "2026-09-08T00:00:00Z", instructions: null, parentId: "p1" }
+    expect(projectToJson(sub).parent_id).toBe("p1")
   })
 })
 

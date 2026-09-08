@@ -30,12 +30,15 @@ export function documentToJson(doc: VaultDocument) {
   }
 }
 
+// Deliberately flat: `parent_id` is the stable contract and clients can build the tree
+// themselves, rather than the API picking a nesting shape for them.
 export function projectToJson(project: VaultProject) {
   return {
     id: project.id,
     name: project.name,
     color: project.color,
     created_at: project.createdAt,
+    parent_id: project.parentId,
   }
 }
 

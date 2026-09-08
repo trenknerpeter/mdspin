@@ -3,8 +3,8 @@ import { buildGraph, type GraphNodeRow, type GraphEdgeRow } from "@/lib/graph"
 import type { Project } from "@/lib/library"
 
 const projects: Project[] = [
-  { id: "p1", name: "Research", color: "#123456", created_at: "" },
-  { id: "p2", name: "Marketing", color: null, created_at: "" }, // no color → fallback
+  { id: "p1", name: "Research", color: "#123456", created_at: "", parent_id: null },
+  { id: "p2", name: "Marketing", color: null, created_at: "", parent_id: null }, // no color → fallback
 ]
 
 function node(partial: Partial<GraphNodeRow> & { id: string }): GraphNodeRow {
@@ -63,5 +63,45 @@ describe("buildGraph", () => {
     const a = g.nodes.find((n) => n.id === "a")!
     expect(a.projectId).toBe("p2")
     expect(a.community).toBe("Marketing")
+  })
+})
+
+describe("buildGraph with sub-folders", () => {
+  // p1 "Research" is a root with an explicit colour; s1 is a sub-folder of it.
+  const nested: Project[] = [
+    { id: "p1", name: "Research", color: "#123456", created_at: "", parent_id: null },
+    { id: "s1", name: "Saheed", color: null, created_at: "", parent_id: "p1" },
+  ]
+
+  it("colours a document in a sub-folder by its ROOT, so the project stays one community", () => {
+    const g = buildGraph(
+      [node({ id: "a", project_ids: ["p1"] }), node({ id: "b", project_ids: ["s1"] })],
+      [],
+      nested
+    )
+    const [a, b] = g.nodes
+    expect(b.color).toBe(a.color)
+    expect(b.community).toBe("Research")
+  })
+
+  it("still reports the document's own folder as projectId", () => {
+    const g = buildGraph([node({ id: "b", project_ids: ["s1"] })], [], nested)
+    expect(g.nodes[0].projectId).toBe("s1")
+  })
+
+  it("does not let a new sub-folder shift a colourless root's fallback colour", () => {
+    const before: Project[] = [
+      { id: "p1", name: "Research", color: "#123456", created_at: "", parent_id: null },
+      { id: "p2", name: "Marketing", color: null, created_at: "", parent_id: null },
+    ]
+    // Same roots, but a sub-folder now sits between them in the array.
+    const after: Project[] = [
+      { id: "p1", name: "Research", color: "#123456", created_at: "", parent_id: null },
+      { id: "s1", name: "Saheed", color: null, created_at: "", parent_id: "p1" },
+      { id: "p2", name: "Marketing", color: null, created_at: "", parent_id: null },
+    ]
+    const colorOf = (projects: Project[]) =>
+      buildGraph([node({ id: "m", project_ids: ["p2"] })], [], projects).nodes[0].color
+    expect(colorOf(after)).toBe(colorOf(before))
   })
 })

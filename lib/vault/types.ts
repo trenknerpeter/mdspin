@@ -52,6 +52,10 @@ export interface VaultProject {
   name: string
   color: string | null
   createdAt: string
+  /** projects.parent_id — the top-level project this one nests under, or null when it
+   *  IS top-level. Nesting is capped at one level, so a project with a parentId never
+   *  has children of its own. */
+  parentId: string | null
   /** projects.instructions — agent-facing operating notes for this project (Stage 2c).
    *  Small enough to select unconditionally; list_projects' MCP tool chooses to omit it
    *  in its own output shaping (lib/mcp/format.ts), not here. */
@@ -158,6 +162,9 @@ export interface CreateProjectInput {
   name: string
   color?: string | null
   instructions?: string | null
+  /** Nest under a top-level project. Nesting is one level only — passing a project that
+   *  is itself a sub-project is rejected. */
+  parentId?: string | null
 }
 
 /** Same "only keys present are changed" convention as VaultDocumentPatch — build with
@@ -168,6 +175,8 @@ export type ProjectPatch = Partial<{
   name: string
   color: string | null
   instructions: string | null
+  /** null promotes a sub-folder back to top level. */
+  parentId: string | null
 }>
 
 export interface PageInfo {

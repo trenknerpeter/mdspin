@@ -30,6 +30,7 @@ export interface ProjectRow {
   color: string | null
   created_at: string
   instructions?: string | null
+  parent_id?: string | null
 }
 
 export function toVaultDocument(row: ConversionRow, projectIds: string[]): VaultDocument {
@@ -65,6 +66,7 @@ export function toVaultProject(row: ProjectRow): VaultProject {
     color: row.color,
     createdAt: row.created_at,
     instructions: row.instructions ?? null,
+    parentId: row.parent_id ?? null,
   }
 }
 
@@ -134,5 +136,6 @@ export function buildProjectPatchPayload(patch: ProjectPatch): Record<string, un
   if ("name" in patch) payload.name = patch.name
   if ("color" in patch) payload.color = patch.color
   if ("instructions" in patch) payload.instructions = patch.instructions
+  if ("parentId" in patch) payload.parent_id = patch.parentId
   return payload
 }

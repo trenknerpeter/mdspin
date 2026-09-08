@@ -81,6 +81,9 @@ export default function VaultPage() {
         <div className="flex gap-8">
           <LibraryRail
             projects={lib.projects}
+            roots={lib.roots}
+            childrenByParent={lib.childrenByParent}
+            statsRollup={lib.statsRollup}
             tags={lib.tags}
             stats={lib.stats}
             selectedProject={lib.selectedProject}

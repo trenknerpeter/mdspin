@@ -14,7 +14,9 @@ import {
   listSpinStats,
   listSpins,
   listTags,
+  descendantProjectIds,
   renameProject,
+  rollUpProjectCounts,
   updateSpin,
   removeFromVault,
   UNFILED,
@@ -58,6 +60,32 @@ export function useLibrary() {
 
   const fetchToken = useRef(0)
 
+  // ---- Derived project tree (one level: root -> sub-folder -> docs) ----
+  const roots = useMemo(() => projects.filter((p) => !p.parent_id), [projects])
+  const childrenByParent = useMemo(() => {
+    const m = new Map<string, Project[]>()
+    for (const p of projects) {
+      if (!p.parent_id) continue
+      const list = m.get(p.parent_id)
+      if (list) list.push(p)
+      else m.set(p.parent_id, [p])
+    }
+    return m
+  }, [projects])
+
+  // Selecting a root shows its sub-folders' documents too; selecting a sub-folder (or
+  // Unfiled) shows only its own, since a sub-folder can't have children.
+  const descendantIds = useMemo(() => {
+    if (!selectedProject || selectedProject === UNFILED) return []
+    return descendantProjectIds(selectedProject, projects).filter((id) => id !== selectedProject)
+  }, [selectedProject, projects])
+
+  // Folder cards and root rail rows show rolled-up counts; sub-folder rows show direct.
+  const statsRollup = useMemo(
+    () => rollUpProjectCounts(stats.byProject, projects),
+    [stats.byProject, projects]
+  )
+
   // Debounce the search box into `query`
   useEffect(() => {
     const t = setTimeout(() => setQuery(search.trim()), 250)
@@ -92,6 +120,7 @@ export function useLibrary() {
     try {
       const rows = await listSpins({
         projectId: selectedProject,
+        descendantIds,
         tag: selectedTag,
         query,
         from: 0,
@@ -107,7 +136,7 @@ export function useLibrary() {
     } finally {
       if (token === fetchToken.current) setLoading(false)
     }
-  }, [selectedProject, selectedTag, query, limit])
+  }, [selectedProject, descendantIds, selectedTag, query, limit])
 
   // Initial load + reloads on filter/pagination changes
   useEffect(() => {
@@ -130,8 +159,8 @@ export function useLibrary() {
   // ---- Mutations ----
 
   const addProject = useCallback(
-    async (name: string) => {
-      const created = await createProject(name)
+    async (name: string, parentId?: string | null) => {
+      const created = await createProject(name, null, parentId ?? null)
       setProjects((prev) => [...prev, created])
       return created
     },
@@ -166,15 +195,23 @@ export function useLibrary() {
       // Checked against `updated.project_ids` (derived from the just-saved conversions.project_id
       // column, via projectIdsFromColumn), not the save payload's singular `fields.project_id` —
       // a doc's true membership is what the filter cares about, not what was just requested.
+      // Compared against the resolved subtree, not selectedProject alone: moving a doc
+      // from "Plato PM" into its "Saheed" sub-folder still matches the active root
+      // filter, and dropping it there would make it look like it vanished.
+      const visibleProjectIds =
+        selectedProject && selectedProject !== UNFILED
+          ? [selectedProject, ...descendantIds]
+          : []
       if (
         fields.project_id !== undefined &&
         ((selectedProject === UNFILED && updated.project_ids.length > 0) ||
-          (selectedProject && selectedProject !== UNFILED && !updated.project_ids.includes(selectedProject)))
+          (visibleProjectIds.length > 0 &&
+            !updated.project_ids.some((pid) => visibleProjectIds.includes(pid))))
       ) {
         setSpins((prev) => prev.filter((s) => s.id !== id))
       }
     },
-    [selectedProject, refreshSidebars]
+    [selectedProject, descendantIds, refreshSidebars]
   )
 
   // New note: a note IS a vault doc the instant it's created, so it's prepended
@@ -252,6 +289,9 @@ export function useLibrary() {
   return {
     // data
     projects,
+    roots,
+    childrenByParent,
+    statsRollup,
     tags,
     stats,
     spins,

@@ -40,12 +40,31 @@ export function FolderGrid({
 
   const projectById = new Map(projects.map((p) => [p.id, p]))
   const nameById = new Map(projects.map((p) => [p.id, p.name]))
+  const summaryById = new Map(summaries.map((s) => [s.projectId, s]))
 
-  // Drop summaries for projects that vanished between fetches rather than rendering
-  // a nameless card.
+  // Only roots get a card; their sub-folders ride along as chips. Drop summaries for
+  // projects that vanished between fetches rather than rendering a nameless card.
   const visible = sortFolders(summaries, nameById).filter(
-    (s) => s.projectId === null || projectById.has(s.projectId)
+    (s) => s.projectId === null || projectById.get(s.projectId)?.parent_id == null
   )
+
+  // A root's card counts its own documents plus everything in its sub-folders, and its
+  // "last activity" is the newest of any of them — otherwise filing documents one level
+  // down would make a busy project look empty and stale.
+  const rollUp = (s: FolderSummary): FolderSummary => {
+    if (s.projectId === null) return s
+    const children = projects.filter((p) => p.parent_id === s.projectId)
+    if (children.length === 0) return s
+    const kids = children.map((c) => summaryById.get(c.id)).filter(Boolean) as FolderSummary[]
+    return {
+      ...s,
+      count: s.count + kids.reduce((n, k) => n + k.count, 0),
+      lastActivity: [s.lastActivity, ...kids.map((k) => k.lastActivity)]
+        .filter((d): d is string => !!d)
+        .sort()
+        .pop() ?? null,
+    }
+  }
 
   const submitNew = async () => {
     const name = draft.trim()
@@ -66,13 +85,20 @@ export function FolderGrid({
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {visible.map((s) => {
         const project = s.projectId ? projectById.get(s.projectId) : null
+        const subFolders = s.projectId
+          ? projects
+              .filter((p) => p.parent_id === s.projectId)
+              .map((p) => ({ id: p.id, name: p.name, count: summaryById.get(p.id)?.count ?? 0 }))
+          : []
         return (
           <FolderCard
             key={s.projectId ?? "__unfiled__"}
-            summary={s}
+            summary={rollUp(s)}
             name={project?.name ?? "Unfiled"}
             color={project?.color ?? null}
+            subFolders={subFolders}
             onOpen={() => onOpenFolder(s.projectId)}
+            onOpenSubFolder={(id) => onOpenFolder(id)}
           />
         )
       })}

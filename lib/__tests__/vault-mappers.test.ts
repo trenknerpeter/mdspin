@@ -90,7 +90,7 @@ describe("toVaultProject", () => {
       name: "Strategy",
       color: "#FF4800",
       createdAt: "2026-08-01T00:00:00Z",
-      instructions: null,
+      instructions: null, parentId: null,
     })
   })
 

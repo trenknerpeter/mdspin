@@ -41,7 +41,7 @@ describe("buildOverview", () => {
   it("combines stats, projects (no counts), and the 10 most recent documents", async () => {
     const repo = fakeRepo({
       getStats: async () => ({ documentCount: 15, projectCount: 4, topTags: [{ tag: "pm", count: 5 }] }),
-      listProjects: async () => [{ id: "p1", name: "Strategy", color: null, createdAt: "x", instructions: null }],
+      listProjects: async () => [{ id: "p1", name: "Strategy", color: null, createdAt: "x", instructions: null, parentId: null }],
       listDocuments: async (filter: { limit: number }) => {
         expect(filter).toEqual({ limit: 10 })
         return {

@@ -14,6 +14,9 @@ export interface Project {
   name: string
   color: string | null
   created_at: string
+  /** Sub-folders nest exactly one level, so a project with a parent_id never has
+   *  children of its own — enforced by the projects_single_level trigger. */
+  parent_id: string | null
 }
 
 export interface Spin {
@@ -107,6 +110,42 @@ export function primaryProjectId(spin: Pick<Spin, "project_ids">): string | null
   return spin.project_ids[0] ?? null
 }
 
+/** The top-level project a project belongs to — itself when it has no parent.
+ *  One level of nesting means this is a single lookup, never a walk.
+ *  Mirrors the `coalesce(p.parent_id, p.id)` idiom in find_related_documents,
+ *  vault_search_documents and vault_stats — change them together. */
+export function rootProjectId(
+  projectId: string | null,
+  byId: Map<string, Pick<Project, "parent_id">>
+): string | null {
+  if (!projectId) return null
+  return byId.get(projectId)?.parent_id ?? projectId
+}
+
+/** A project plus its sub-folders — the set of project ids whose documents belong
+ *  "inside" it. Returns [projectId] for a sub-folder (it can't have children). */
+export function descendantProjectIds(
+  projectId: string,
+  projects: Pick<Project, "id" | "parent_id">[]
+): string[] {
+  return [projectId, ...projects.filter((p) => p.parent_id === projectId).map((p) => p.id)]
+}
+
+/** Direct per-project counts -> counts including one level of sub-folders.
+ *  A doc filed in a sub-folder counts once at the sub-folder and once at its root,
+ *  which is what a folder card should show. */
+export function rollUpProjectCounts(
+  byProject: Record<string, number>,
+  projects: Pick<Project, "id" | "parent_id">[]
+): Record<string, number> {
+  const out: Record<string, number> = { ...byProject }
+  for (const p of projects) {
+    if (!p.parent_id) continue
+    out[p.parent_id] = (out[p.parent_id] ?? 0) + (byProject[p.id] ?? 0)
+  }
+  return out
+}
+
 /** Batched project-membership lookup — never call this once per row. No explicit
  *  user_id filter: unlike lib/vault/repo.ts (which also serves a service-role path where
  *  RLS is bypassed), every query in this file is the anon/browser client, and every other
@@ -176,6 +215,11 @@ export interface TagCount {
 
 export interface ListSpinsParams {
   projectId?: string | null // a project id, UNFILED, or null/undefined for "all"
+  /** Sub-folder ids to fold into projectId, resolved by the caller from its in-memory
+   *  project list (descendantProjectIds) — one level means this is a filter, never a
+   *  query. Pass [] to mean "just this folder, not its sub-folders"; the grid decides,
+   *  the data layer doesn't guess. */
+  descendantIds?: string[]
   tag?: string | null
   query?: string | null
   from: number
@@ -189,13 +233,17 @@ export async function listProjects(): Promise<Project[]> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from("projects")
-    .select("id, name, color, created_at")
+    .select("id, name, color, created_at, parent_id")
     .order("created_at", { ascending: true })
   if (error) throw error
   return (data ?? []) as Project[]
 }
 
-export async function createProject(name: string, color?: string | null): Promise<Project> {
+export async function createProject(
+  name: string,
+  color?: string | null,
+  parentId?: string | null
+): Promise<Project> {
   const supabase = createClient()
   const {
     data: { user },
@@ -203,8 +251,8 @@ export async function createProject(name: string, color?: string | null): Promis
   if (!user) throw new Error("Not signed in")
   const { data, error } = await supabase
     .from("projects")
-    .insert({ user_id: user.id, name, color: color ?? null })
-    .select("id, name, color, created_at")
+    .insert({ user_id: user.id, name, color: color ?? null, parent_id: parentId ?? null })
+    .select("id, name, color, created_at, parent_id")
     .single()
   if (error) throw error
   return data as Project
@@ -280,7 +328,9 @@ export async function listSpins(params: ListSpinsParams): Promise<Spin[]> {
   if (params.projectId === UNFILED) {
     q = q.is("project_id", null)
   } else if (params.projectId) {
-    q = q.eq("project_id", params.projectId)
+    const ids = [params.projectId, ...(params.descendantIds ?? [])]
+    // .eq for the single-id case keeps today's query plan (and today's behaviour) intact.
+    q = ids.length === 1 ? q.eq("project_id", ids[0]) : q.in("project_id", ids)
   }
 
   if (params.tag) {
@@ -405,6 +455,21 @@ export async function createNote(): Promise<Spin> {
   if (error) throw error
   const row = data as ConversionRow
   return toSpin(row, projectIdsFromColumn(row))
+}
+
+/** Move several documents into a project (or to Unfiled with null) in one update.
+ *  Writes conversions.project_id, never document_projects directly: the
+ *  conversions_sync_document_projects trigger mirrors the change, and writing the join
+ *  table straight would be silently wiped the next time anything touched project_id
+ *  (see 20260903000001_stage5_sync_trigger.sql). */
+export async function moveSpinsToProject(ids: string[], projectId: string | null) {
+  if (ids.length === 0) return
+  const supabase = createClient()
+  const { error } = await supabase
+    .from("conversions")
+    .update({ project_id: projectId })
+    .in("id", ids)
+  if (error) throw error
 }
 
 export async function deleteSpin(id: string) {
