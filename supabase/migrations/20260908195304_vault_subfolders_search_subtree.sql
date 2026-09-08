@@ -1,0 +1,22 @@
+-- RECORD ONLY. Applied to the hosted Supabase project (ixdsddfxkrkytiitfici) via the
+-- Supabase MCP on 2026-09-08; this project has no migration runner.
+--
+-- Body-only change to vault_search_documents: p_project_id now matches a project OR its
+-- sub-folders, so filtering by a root keeps returning documents once they're filed one
+-- level deeper. Passing a sub-project still matches only itself -- a sub-project cannot
+-- have children, so the p.parent_id branch simply never fires. No new parameter needed.
+-- Measured on the live vault: filtering by Plato PM returned 11 before and after a split.
+--
+-- Only the `scope` CTE's project predicate changed; everything else is verbatim from
+-- 20260903000003_stage5_redefine_vault_search_documents.sql:
+--
+--       and (p_project_id is null or exists (
+--         select 1
+--         from public.document_projects dp
+--         join public.projects p on p.id = dp.project_id
+--         where dp.document_id = c.id
+--           and (p.id = p_project_id or p.parent_id = p_project_id)
+--       ))
+--
+-- See the live definition for the full body (pg_get_functiondef), or the prior migration
+-- for the unchanged CTEs.
