@@ -14,7 +14,7 @@ export interface Project {
   name: string
   color: string | null
   created_at: string
-  /** Sub-folders nest exactly one level, so a project with a parent_id never has
+  /** Subprojects nest exactly one level, so a project with a parent_id never has
    *  children of its own — enforced by the projects_single_level trigger. */
   parent_id: string | null
 }
@@ -122,8 +122,8 @@ export function rootProjectId(
   return byId.get(projectId)?.parent_id ?? projectId
 }
 
-/** A project plus its sub-folders — the set of project ids whose documents belong
- *  "inside" it. Returns [projectId] for a sub-folder (it can't have children). */
+/** A project plus its subprojects — the set of project ids whose documents belong
+ *  "inside" it. Returns [projectId] for a subproject (it can't have children). */
 export function descendantProjectIds(
   projectId: string,
   projects: Pick<Project, "id" | "parent_id">[]
@@ -131,8 +131,8 @@ export function descendantProjectIds(
   return [projectId, ...projects.filter((p) => p.parent_id === projectId).map((p) => p.id)]
 }
 
-/** Direct per-project counts -> counts including one level of sub-folders.
- *  A doc filed in a sub-folder counts once at the sub-folder and once at its root,
+/** Direct per-project counts -> counts including one level of subprojects.
+ *  A doc filed in a subproject counts once at the subproject and once at its root,
  *  which is what a folder card should show. */
 export function rollUpProjectCounts(
   byProject: Record<string, number>,
@@ -215,9 +215,9 @@ export interface TagCount {
 
 export interface ListSpinsParams {
   projectId?: string | null // a project id, UNFILED, or null/undefined for "all"
-  /** Sub-folder ids to fold into projectId, resolved by the caller from its in-memory
+  /** Subproject ids to fold into projectId, resolved by the caller from its in-memory
    *  project list (descendantProjectIds) — one level means this is a filter, never a
-   *  query. Pass [] to mean "just this folder, not its sub-folders"; the grid decides,
+   *  query. Pass [] to mean "just this folder, not its subprojects"; the grid decides,
    *  the data layer doesn't guess. */
   descendantIds?: string[]
   tag?: string | null

@@ -1,0 +1,16 @@
+-- RECORD ONLY. Applied to the hosted Supabase project (ixdsddfxkrkytiitfici) via the
+-- Supabase MCP on 2026-09-08; this project has no migration runner.
+--
+-- Terminology only: a nested project is a "subproject" everywhere in the UI and in the
+-- MCP tool descriptions, so the guard message users actually see says that too.
+--
+-- NOTE: lib/vault/repo.ts's projectParentError() matches on this text to turn the raise
+-- into an INVALID_REQUEST rather than a DB_ERROR -> 500. Change both together.
+-- Only the final raise's wording changed; the rest is verbatim from
+-- 20260908195003_vault_subfolders_projects_parent_id.sql.
+--
+--     raise exception 'A project with subprojects cannot itself become a subproject'
+--       using errcode = '23514';
+--
+-- Verified on the live DB: demoting a project that has children under another top-level
+-- project raises exactly that message, and repo.ts maps it to INVALID_REQUEST.

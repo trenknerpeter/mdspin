@@ -254,7 +254,7 @@ export function SpinDetailPanel({
             >
               <option value={UNFILED}>Unfiled</option>
               {/* Grouped one level deep. The value stays a scalar project id — a
-                  sub-folder is just another project — so no write path changes. */}
+                  subproject is just another project — so no write path changes. */}
               {projects
                 .filter((p) => !p.parent_id)
                 .map((root) => {

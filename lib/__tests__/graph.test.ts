@@ -66,14 +66,14 @@ describe("buildGraph", () => {
   })
 })
 
-describe("buildGraph with sub-folders", () => {
-  // p1 "Research" is a root with an explicit colour; s1 is a sub-folder of it.
+describe("buildGraph with subprojects", () => {
+  // p1 "Research" is a root with an explicit colour; s1 is a subproject of it.
   const nested: Project[] = [
     { id: "p1", name: "Research", color: "#123456", created_at: "", parent_id: null },
     { id: "s1", name: "Saheed", color: null, created_at: "", parent_id: "p1" },
   ]
 
-  it("colours a document in a sub-folder by its ROOT, so the project stays one community", () => {
+  it("colours a document in a subproject by its ROOT, so the project stays one community", () => {
     const g = buildGraph(
       [node({ id: "a", project_ids: ["p1"] }), node({ id: "b", project_ids: ["s1"] })],
       [],
@@ -89,12 +89,12 @@ describe("buildGraph with sub-folders", () => {
     expect(g.nodes[0].projectId).toBe("s1")
   })
 
-  it("does not let a new sub-folder shift a colourless root's fallback colour", () => {
+  it("does not let a new subproject shift a colourless root's fallback colour", () => {
     const before: Project[] = [
       { id: "p1", name: "Research", color: "#123456", created_at: "", parent_id: null },
       { id: "p2", name: "Marketing", color: null, created_at: "", parent_id: null },
     ]
-    // Same roots, but a sub-folder now sits between them in the array.
+    // Same roots, but a subproject now sits between them in the array.
     const after: Project[] = [
       { id: "p1", name: "Research", color: "#123456", created_at: "", parent_id: null },
       { id: "s1", name: "Saheed", color: null, created_at: "", parent_id: "p1" },

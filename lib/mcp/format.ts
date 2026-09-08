@@ -32,7 +32,7 @@ export function compactDocMeta(doc: VaultDocument) {
 
 export function compactProject(project: VaultProject) {
   // prune drops nulls, so top-level projects emit no parent_id key at all — the extra
-  // token cost falls only on the sub-folders that actually need it.
+  // token cost falls only on the subprojects that actually need it.
   return prune({
     id: project.id,
     name: project.name,

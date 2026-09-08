@@ -20,7 +20,7 @@ describe("rootProjectId", () => {
     expect(rootProjectId("plato", byId)).toBe("plato")
   })
 
-  it("resolves a sub-folder to its parent", () => {
+  it("resolves a subproject to its parent", () => {
     expect(rootProjectId("saheed", byId)).toBe("plato")
   })
 
@@ -34,11 +34,11 @@ describe("rootProjectId", () => {
 })
 
 describe("descendantProjectIds", () => {
-  it("returns a root together with its sub-folders", () => {
+  it("returns a root together with its subprojects", () => {
     expect(descendantProjectIds("plato", TREE).sort()).toEqual(["jon", "plato", "saheed"])
   })
 
-  it("returns just the sub-folder itself — nesting is capped at one level", () => {
+  it("returns just the subproject itself — nesting is capped at one level", () => {
     expect(descendantProjectIds("saheed", TREE)).toEqual(["saheed"])
   })
 
@@ -48,14 +48,14 @@ describe("descendantProjectIds", () => {
 })
 
 describe("rollUpProjectCounts", () => {
-  it("adds sub-folder counts into the parent while keeping the direct count", () => {
+  it("adds subproject counts into the parent while keeping the direct count", () => {
     const out = rollUpProjectCounts({ plato: 4, saheed: 3, jon: 2, strategy: 5 }, TREE)
     expect(out.plato).toBe(9)
     expect(out.saheed).toBe(3)
     expect(out.strategy).toBe(5)
   })
 
-  it("counts sub-folder documents even when the parent holds none directly", () => {
+  it("counts subproject documents even when the parent holds none directly", () => {
     expect(rollUpProjectCounts({ saheed: 3 }, TREE).plato).toBe(3)
   })
 

@@ -39,9 +39,9 @@ export function LibraryRail({
 }: {
   /** Top-level projects, in display order. */
   roots: Project[]
-  /** Sub-folders keyed by parent id. */
+  /** Subprojects keyed by parent id. */
   childrenByParent: Map<string, Project[]>
-  /** Per-project counts including sub-folders — used for root rows only. */
+  /** Per-project counts including subprojects — used for root rows only. */
   statsRollup: Record<string, number>
   tags: TagCount[]
   stats: SpinStats
@@ -112,7 +112,16 @@ export function LibraryRail({
     "group flex w-full items-center gap-2 rounded-lg py-1.5 pr-1.5 text-sm transition-colors"
   const active = "bg-[#FF4800]/12 text-[#FF4800]"
   const idle = "text-[#C9C5BE] hover:bg-[#1E1E1E]"
-  const menuItem = "gap-2 text-sm focus:bg-[#2A2A2A] focus:text-[#F0EDE8]"
+  // The app's signature interaction is the accent at ~12% with accent-coloured text —
+  // the same treatment the active rail row uses — so the menu echoes that instead of a
+  // neutral grey highlight. Destructive keeps a cooler red so it stays distinguishable
+  // from the orange accent at small sizes.
+  const menuItem =
+    "gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-[#C9C5BE] transition-colors " +
+    "focus:bg-[#FF4800]/12 focus:text-[#FF4800] data-[highlighted]:bg-[#FF4800]/12 data-[highlighted]:text-[#FF4800]"
+  const menuItemDanger =
+    "gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-[#FF6B6B] transition-colors " +
+    "focus:bg-[#FF6B6B]/12 focus:text-[#FF6B6B] data-[highlighted]:bg-[#FF6B6B]/12 data-[highlighted]:text-[#FF6B6B]"
 
   const renameInput = (p: Project, isRoot: boolean) => (
     <div className={`flex items-center gap-1 py-1 pr-1.5 ${isRoot ? "pl-2.5" : "pl-[30px]"}`}>
@@ -135,7 +144,7 @@ export function LibraryRail({
     </div>
   )
 
-  // One renderer for both levels. A sub-folder is visually distinguished by the tree
+  // One renderer for both levels. A subproject is visually distinguished by the tree
   // connector its wrapper draws, by its indent, and by having no colour swatch — the
   // parent's colour already identifies the group, so repeating it made every row read
   // as a peer.
@@ -168,7 +177,7 @@ export function LibraryRail({
                 toggle(p.id)
               }}
               className="shrink-0 rounded text-[#4A4A46] hover:text-[#F0EDE8]"
-              title={opts.isCollapsed ? "Show sub-folders" : "Hide sub-folders"}
+              title={opts.isCollapsed ? "Show subprojects" : "Hide subprojects"}
               aria-expanded={!opts.isCollapsed}
             >
               {opts.isCollapsed ? (
@@ -226,10 +235,16 @@ export function LibraryRail({
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="min-w-44 border-[#2A2A2A] bg-[#161616] text-[#F0EDE8]"
+              sideOffset={6}
+              className="min-w-48 rounded-xl border-[#2A2A2A] bg-[#161616] p-1 text-[#F0EDE8] shadow-[0_18px_44px_-12px_rgba(0,0,0,0.85)]"
             >
-            {/* Sub-folders only under a root: nesting is capped at one level by the
-                projects_single_level trigger, so offering it here would just error. */}
+              {/* Echoes the rail's own PROJECTS / TAGS micro-labels, and confirms which
+                  row you opened when several are stacked close together. */}
+              <div className="truncate px-2.5 pb-1.5 pt-1 font-display text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4A4A46]">
+                {p.name}
+              </div>
+            {/* Subprojects only under a top-level project: nesting is capped at one level
+                by the projects_single_level trigger, so offering it here would just error. */}
             {opts.isRoot && (
               <DropdownMenuItem
                 className={menuItem}
@@ -238,7 +253,7 @@ export function LibraryRail({
                   setSubCreatingFor(p.id)
                 }}
               >
-                <FolderPlus className="h-3.5 w-3.5" /> Add subfolder
+                <FolderPlus className="h-3.5 w-3.5" /> Add subproject
               </DropdownMenuItem>
             )}
             <DropdownMenuItem
@@ -250,15 +265,15 @@ export function LibraryRail({
             >
               <Pencil className="h-3.5 w-3.5" /> Rename
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-[#2A2A2A]" />
+            <DropdownMenuSeparator className="mx-1 my-1 bg-[#2A2A2A]" />
             <DropdownMenuItem
-              className="gap-2 text-sm text-red-400 focus:bg-[#2A2A2A] focus:text-red-400"
+              className={menuItemDanger}
               onSelect={() => {
-                // Deleting a root cascades its sub-folders (projects_parent_user_fkey),
+                // Deleting a root cascades its subprojects (projects_parent_user_fkey),
                 // so the confirm names both, not just the documents.
                 const subs =
                   childCount > 0
-                    ? ` and its ${childCount} subfolder${childCount === 1 ? "" : "s"}`
+                    ? ` and its ${childCount} subproject${childCount === 1 ? "" : "s"}`
                     : ""
                 const msg = `Delete "${p.name}"${subs}? ${count} document${
                   count === 1 ? "" : "s"
@@ -340,7 +355,7 @@ export function LibraryRail({
                     {showChildren &&
                       children.map((child, i) => {
                         // Last child only when nothing is being appended below it, so the
-                        // trunk keeps running down to an in-progress "new subfolder" row.
+                        // trunk keeps running down to an in-progress "new subproject" row.
                         const isLast = i === children.length - 1 && !creatingHere
                         return (
                           <div key={child.id} className="relative">
@@ -376,7 +391,7 @@ export function LibraryRail({
                               }
                             }}
                             onBlur={() => submitSub(root.id)}
-                            placeholder="Subfolder name…"
+                            placeholder="Subproject name…"
                             className="w-full rounded-md border border-[#4A4A46] bg-[#0E0E0E] px-2 py-1 text-sm text-[#F0EDE8] placeholder:text-[#4A4A46] focus:outline-none"
                           />
                         </div>

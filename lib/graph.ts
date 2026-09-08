@@ -74,13 +74,13 @@ export function buildGraph(
   projects: Project[]
 ): KnowledgeGraph {
   // Colour and community are keyed by ROOT project, not by the document's own folder:
-  // a project split into six sub-folders should stay one visual community on the map,
+  // a project split into six subprojects should stay one visual community on the map,
   // not fragment into six colours.
   const byId = new Map(projects.map((p) => [p.id, p]))
   const roots = projects.filter((p) => !p.parent_id)
 
   // Fallback colours are assigned over ROOTS only. Indexing over all projects would mean
-  // creating a single sub-folder shifts every later project's palette index, silently
+  // creating a single subproject shifts every later project's palette index, silently
   // re-colouring unrelated nodes for a reason the user never asked for.
   const colorByRoot = new Map<string, string>()
   roots.forEach((p, i) => {
@@ -89,7 +89,7 @@ export function buildGraph(
   const nameByProject = new Map(projects.map((p) => [p.id, p.name]))
 
   const nodes: GraphNode[] = nodeRows.map((r) => {
-    // pickPrimaryProject stays "which folder is this document in" — a sub-folder is the
+    // pickPrimaryProject stays "which folder is this document in" — a subproject is the
     // right answer there, so the root is resolved here at the display site instead.
     const projectId = pickPrimaryProject(r.project_ids)
     const rootId = rootProjectId(projectId, byId)

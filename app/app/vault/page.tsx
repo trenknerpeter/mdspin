@@ -104,7 +104,7 @@ export default function VaultPage() {
                 className="mb-3 inline-flex items-center gap-1 text-xs text-[#888480] transition-colors hover:text-[#F0EDE8]"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
-                All folders
+                All projects
                 <span className="text-[#4A4A46]"> / {currentFolderName}</span>
               </button>
             )}

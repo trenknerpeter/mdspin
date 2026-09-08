@@ -42,13 +42,13 @@ export function FolderGrid({
   const nameById = new Map(projects.map((p) => [p.id, p.name]))
   const summaryById = new Map(summaries.map((s) => [s.projectId, s]))
 
-  // Only roots get a card; their sub-folders ride along as chips. Drop summaries for
-  // projects that vanished between fetches rather than rendering a nameless card.
+  // Only top-level projects get a card; their subprojects ride along as chips. Drop
+  // summaries for projects that vanished between fetches rather than render a nameless card.
   const visible = sortFolders(summaries, nameById).filter(
     (s) => s.projectId === null || projectById.get(s.projectId)?.parent_id == null
   )
 
-  // A root's card counts its own documents plus everything in its sub-folders, and its
+  // A project's card counts its own documents plus everything in its subprojects, and its
   // "last activity" is the newest of any of them — otherwise filing documents one level
   // down would make a busy project look empty and stale.
   const rollUp = (s: FolderSummary): FolderSummary => {
@@ -85,7 +85,7 @@ export function FolderGrid({
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {visible.map((s) => {
         const project = s.projectId ? projectById.get(s.projectId) : null
-        const subFolders = s.projectId
+        const subProjects = s.projectId
           ? projects
               .filter((p) => p.parent_id === s.projectId)
               .map((p) => ({ id: p.id, name: p.name, count: summaryById.get(p.id)?.count ?? 0 }))
@@ -96,9 +96,9 @@ export function FolderGrid({
             summary={rollUp(s)}
             name={project?.name ?? "Unfiled"}
             color={project?.color ?? null}
-            subFolders={subFolders}
+            subProjects={subProjects}
             onOpen={() => onOpenFolder(s.projectId)}
-            onOpenSubFolder={(id) => onOpenFolder(id)}
+            onOpenSubProject={(id) => onOpenFolder(id)}
           />
         )
       })}
@@ -111,7 +111,7 @@ export function FolderGrid({
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onNewKey}
             onBlur={submitNew}
-            placeholder="Folder name…"
+            placeholder="Project name…"
             className="w-full rounded-md border border-[#4A4A46] bg-[#0E0E0E] px-2 py-1 text-sm text-[#F0EDE8] placeholder:text-[#4A4A46] focus:outline-none"
           />
         </div>
@@ -121,7 +121,7 @@ export function FolderGrid({
           className="flex min-h-[92px] items-center justify-center gap-2 rounded-xl border border-dashed border-[#2A2A2A] p-4 text-sm text-[#4A4A46] transition-colors hover:border-[#4A4A46] hover:text-[#888480]"
         >
           <FolderPlus className="h-4 w-4" />
-          New folder
+          New project
         </button>
       )}
     </div>

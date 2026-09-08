@@ -15,7 +15,7 @@ const formatDate = (iso: string) =>
 // Shares DashboardListRow with RecentVault (count then date, in that order)
 // so the two cards read as the same design component side by side.
 //
-// Only top-level projects are listed. Sub-folders would otherwise show up here as
+// Only top-level projects are listed. Subprojects would otherwise show up here as
 // peers of their own parent, with small counts, making the dashboard disagree with
 // the Vault's folder grid — their documents are counted into the parent's row instead.
 export function ProjectsRail({
@@ -29,7 +29,7 @@ export function ProjectsRail({
 }) {
   const roots = projects.filter((p) => !p.parent_id)
   const counts = rollUpProjectCounts(stats.byProject, projects)
-  // Newest activity anywhere in the project, sub-folders included.
+  // Newest activity anywhere in the project, subprojects included.
   const activityOf = (rootId: string) =>
     [rootId, ...projects.filter((p) => p.parent_id === rootId).map((p) => p.id)]
       .map((id) => lastActivity[id])

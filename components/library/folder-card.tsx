@@ -11,24 +11,23 @@ export interface FolderCardProps {
   /** Display name; the Unfiled card passes "Unfiled". */
   name: string
   color: string | null
-  /** Sub-folders inside this one. Empty until sub-projects ship; the card is already
-   *  shaped for them so nesting slots in without touching this component. */
-  subFolders?: { id: string; name: string; count: number }[]
+  /** Subprojects inside this one, shown as chips. */
+  subProjects?: { id: string; name: string; count: number }[]
   /** One-line project summary. Undefined until the summary pipeline covers projects —
    *  the card renders nothing rather than a placeholder. */
   summaryLine?: string | null
   onOpen: () => void
-  onOpenSubFolder?: (id: string) => void
+  onOpenSubProject?: (id: string) => void
 }
 
 export function FolderCard({
   summary,
   name,
   color,
-  subFolders = [],
+  subProjects = [],
   summaryLine,
   onOpen,
-  onOpenSubFolder,
+  onOpenSubProject,
 }: FolderCardProps) {
   const isUnfiled = summary.projectId === null
   const Icon = isUnfiled ? Inbox : Folder
@@ -74,20 +73,20 @@ export function FolderCard({
         <p className="mt-2 line-clamp-2 text-xs text-[#888480]">{summaryLine}</p>
       )}
 
-      {subFolders.length > 0 && (
+      {subProjects.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
-          {subFolders.map((sf) => (
+          {subProjects.map((sp) => (
             <button
-              key={sf.id}
+              key={sp.id}
               onClick={(e) => {
                 e.stopPropagation()
-                onOpenSubFolder?.(sf.id)
+                onOpenSubProject?.(sp.id)
               }}
               className="inline-flex items-center gap-1 rounded-full border border-[#2A2A2A] px-2 py-0.5 text-[10px] text-[#888480] transition-colors hover:border-[#4A4A46] hover:text-[#F0EDE8]"
             >
               <Folder className="h-2.5 w-2.5" />
-              {sf.name}
-              <span className="text-[#4A4A46]">{sf.count}</span>
+              {sp.name}
+              <span className="text-[#4A4A46]">{sp.count}</span>
             </button>
           ))}
         </div>

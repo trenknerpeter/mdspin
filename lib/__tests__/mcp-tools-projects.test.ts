@@ -86,7 +86,7 @@ describe("runGetRelatedDocuments", () => {
   })
 })
 
-describe("project sub-folders", () => {
+describe("project subprojects", () => {
   const roots = [
     { id: "p1", name: "Plato PM", color: null, createdAt: "x", instructions: null, parentId: null },
     { id: "s1", name: "Saheed", color: null, createdAt: "x", instructions: null, parentId: "p1" },
@@ -94,7 +94,7 @@ describe("project sub-folders", () => {
     { id: "p2", name: "Strategy", color: null, createdAt: "x", instructions: null, parentId: null },
   ]
 
-  it("get_project lists a project's sub-folders inline", async () => {
+  it("get_project lists a project's subprojects inline", async () => {
     const repo = {
       getProject: async () => roots[0],
       listProjects: async () => roots,
@@ -114,7 +114,7 @@ describe("project sub-folders", () => {
     expect(await runGetProject(repo, "p2")).not.toHaveProperty("children")
   })
 
-  it("a sub-folder reports no children of its own — nesting is one level", async () => {
+  it("a subproject reports no children of its own — nesting is one level", async () => {
     const repo = {
       getProject: async () => roots[1],
       listProjects: async () => roots,

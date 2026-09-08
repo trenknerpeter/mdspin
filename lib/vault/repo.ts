@@ -26,7 +26,7 @@ function projectParentError(message: string): VaultError {
   if (
     m.includes("nest one level") ||
     m.includes("its own parent") ||
-    m.includes("cannot itself become a sub-folder") ||
+    m.includes("cannot itself become a subproject") ||
     m.includes("must be one of your own projects") ||
     m.includes("projects_parent_user_fkey")
   ) {

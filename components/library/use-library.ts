@@ -60,7 +60,7 @@ export function useLibrary() {
 
   const fetchToken = useRef(0)
 
-  // ---- Derived project tree (one level: root -> sub-folder -> docs) ----
+  // ---- Derived project tree (one level: root -> subproject -> docs) ----
   const roots = useMemo(() => projects.filter((p) => !p.parent_id), [projects])
   const childrenByParent = useMemo(() => {
     const m = new Map<string, Project[]>()
@@ -73,14 +73,14 @@ export function useLibrary() {
     return m
   }, [projects])
 
-  // Selecting a root shows its sub-folders' documents too; selecting a sub-folder (or
-  // Unfiled) shows only its own, since a sub-folder can't have children.
+  // Selecting a root shows its subprojects' documents too; selecting a subproject (or
+  // Unfiled) shows only its own, since a subproject can't have children.
   const descendantIds = useMemo(() => {
     if (!selectedProject || selectedProject === UNFILED) return []
     return descendantProjectIds(selectedProject, projects).filter((id) => id !== selectedProject)
   }, [selectedProject, projects])
 
-  // Folder cards and root rail rows show rolled-up counts; sub-folder rows show direct.
+  // Folder cards and root rail rows show rolled-up counts; subproject rows show direct.
   const statsRollup = useMemo(
     () => rollUpProjectCounts(stats.byProject, projects),
     [stats.byProject, projects]
@@ -196,7 +196,7 @@ export function useLibrary() {
       // column, via projectIdsFromColumn), not the save payload's singular `fields.project_id` —
       // a doc's true membership is what the filter cares about, not what was just requested.
       // Compared against the resolved subtree, not selectedProject alone: moving a doc
-      // from "Plato PM" into its "Saheed" sub-folder still matches the active root
+      // from "Plato PM" into its "Saheed" subproject still matches the active root
       // filter, and dropping it there would make it look like it vanished.
       const visibleProjectIds =
         selectedProject && selectedProject !== UNFILED

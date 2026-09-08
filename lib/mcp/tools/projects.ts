@@ -14,7 +14,7 @@ export async function runListProjects(repo: VaultRepo) {
 export async function runGetProject(repo: VaultRepo, projectId: string) {
   const project = await repo.getProject(projectId)
   if (!project) throw new VaultError("NOT_FOUND", "Project not found.")
-  // Sub-folders are listed inline so an agent knows the structure without a second
+  // Subprojects are listed inline so an agent knows the structure without a second
   // round trip and without having to infer it from list_projects' parent_id fields.
   const children = (await repo.listProjects())
     .filter((p) => p.parentId === projectId)
@@ -34,7 +34,7 @@ export const listProjectsTool = {
   config: {
     title: "List projects",
     description:
-      "Every project in your vault (name and color only — call get_project for a project's instructions). Projects nest one level: a project carrying parent_id is a sub-folder of that project, and has no sub-folders of its own.",
+      "Every project in your vault (name and color only — call get_project for a project's instructions). Projects nest one level: a project carrying parent_id is a subproject of that project, and has no subprojects of its own.",
   },
   handler: async (ctx: McpAuthContext) => {
     try {
@@ -82,7 +82,7 @@ export const createProjectTool = {
   config: {
     title: "Create project",
     description:
-      "Create a new project to organize documents under. instructions, if given, become the project's agent-facing operating notes (read by get_project and the research_project prompt). Pass parent_id to nest it under a top-level project: projects nest exactly ONE level, so a sub-folder cannot itself have sub-folders and passing a sub-folder as parent_id is rejected.",
+      "Create a new project to organize documents under. instructions, if given, become the project's agent-facing operating notes (read by get_project and the research_project prompt). Pass parent_id to nest it under a top-level project: projects nest exactly ONE level, so a subproject cannot itself have subprojects and passing a subproject as parent_id is rejected.",
     inputSchema: z.object({
       name: z.string().min(1).max(200),
       color: z.string().max(50).optional(),
@@ -126,7 +126,7 @@ export const updateProjectTool = {
   config: {
     title: "Update project",
     description:
-      "Rename a project, change its color, or update its instructions (the project's agent-facing operating notes). Provide at least one field to change. parent_id moves the project itself: pass a top-level project's id to nest it as a sub-folder, or null to promote it back to top level (projects nest one level only). To move a DOCUMENT into or out of a project, use update_document instead.",
+      "Rename a project, change its color, or update its instructions (the project's agent-facing operating notes). Provide at least one field to change. parent_id moves the project itself: pass a top-level project's id to nest it as a subproject, or null to promote it back to top level (projects nest one level only). To move a DOCUMENT into or out of a project, use update_document instead.",
     inputSchema: z.object({
       project_id: z.uuid(),
       name: z.string().min(1).max(200).optional(),
@@ -150,7 +150,7 @@ export const getRelatedDocumentsTool = {
   config: {
     title: "Get related documents",
     description:
-      "Documents related to a given document, within the same top-level project — sub-folder boundaries are ignored, so splitting a project into sub-folders does not shrink these results. An empty result is normal — most documents have no related documents.",
+      "Documents related to a given document, within the same top-level project — subproject boundaries are ignored, so splitting a project into subprojects does not shrink these results. An empty result is normal — most documents have no related documents.",
     inputSchema: z.object({ document_id: z.uuid(), limit: z.number().int().positive().optional() }),
   },
   handler: async (args: { document_id: string; limit?: number }, ctx: McpAuthContext) => {
