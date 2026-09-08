@@ -1,11 +1,29 @@
 "use client"
 
 import { useState, type KeyboardEvent } from "react"
-import { Layers, Inbox, Plus, Pencil, Trash2, Check, X, ChevronRight, ChevronDown, FolderPlus } from "lucide-react"
+import {
+  Layers,
+  Inbox,
+  Plus,
+  Pencil,
+  Trash2,
+  Check,
+  X,
+  ChevronRight,
+  ChevronDown,
+  FolderPlus,
+  MoreVertical,
+} from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { UNFILED, type Project, type SpinStats, type TagCount } from "@/lib/library"
 
 export function LibraryRail({
-  projects,
   roots,
   childrenByParent,
   statsRollup,
@@ -19,7 +37,6 @@ export function LibraryRail({
   onRenameProject,
   onDeleteProject,
 }: {
-  projects: Project[]
   /** Top-level projects, in display order. */
   roots: Project[]
   /** Sub-folders keyed by parent id. */
@@ -40,10 +57,13 @@ export function LibraryRail({
   const [draft, setDraft] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState("")
-  // Which root is creating a sub-folder inline, and which roots are expanded.
   const [subCreatingFor, setSubCreatingFor] = useState<string | null>(null)
   const [subDraft, setSubDraft] = useState("")
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  // Controlled so the row can keep the kebab visible (and the count hidden) while its
+  // menu is open — otherwise moving the pointer off the row to reach the menu would
+  // drop group-hover and make the trigger vanish underneath the cursor.
+  const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null)
 
   const submitNew = async () => {
     const name = draft.trim()
@@ -58,6 +78,13 @@ export function LibraryRail({
     setSubCreatingFor(null)
     if (name) await onCreateProject(name, parentId)
   }
+
+  const expand = (id: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
 
   const toggle = (id: string) =>
     setCollapsed((prev) => {
@@ -82,119 +109,167 @@ export function LibraryRail({
   }
 
   const rowBase =
-    "group flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors"
+    "group flex w-full items-center gap-2 rounded-lg py-1.5 pr-1.5 text-sm transition-colors"
   const active = "bg-[#FF4800]/12 text-[#FF4800]"
   const idle = "text-[#C9C5BE] hover:bg-[#1E1E1E]"
+  const menuItem = "gap-2 text-sm focus:bg-[#2A2A2A] focus:text-[#F0EDE8]"
 
-  // One renderer for both levels: a sub-folder row is the same row, indented, with a
-  // direct count instead of a rolled-up one and no "new sub-folder" action (nesting is
-  // capped at one level by the projects_single_level trigger).
+  const renameInput = (p: Project, isRoot: boolean) => (
+    <div className={`flex items-center gap-1 py-1 pr-1.5 ${isRoot ? "pl-2.5" : "pl-[30px]"}`}>
+      <input
+        autoFocus
+        value={editName}
+        onChange={(e) => setEditName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") submitRename(p.id)
+          if (e.key === "Escape") setEditingId(null)
+        }}
+        className="min-w-0 flex-1 rounded-md border border-[#4A4A46] bg-[#0E0E0E] px-2 py-1 text-sm text-[#F0EDE8] focus:outline-none"
+      />
+      <button onClick={() => submitRename(p.id)} className="text-[#888480] hover:text-[#FF4800]">
+        <Check className="h-3.5 w-3.5" />
+      </button>
+      <button onClick={() => setEditingId(null)} className="text-[#888480] hover:text-[#F0EDE8]">
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  )
+
+  // One renderer for both levels. A sub-folder is visually distinguished by the tree
+  // connector its wrapper draws, by its indent, and by having no colour swatch — the
+  // parent's colour already identifies the group, so repeating it made every row read
+  // as a peer.
   const renderRow = (
     p: Project,
     opts: { isRoot: boolean; childCount?: number; isCollapsed?: boolean }
   ) => {
+    if (editingId === p.id) return renameInput(p, opts.isRoot)
+
     const isActive = selectedProject === p.id
-    if (editingId === p.id) {
-      return (
-        <div className={`flex items-center gap-1 py-1 pr-2.5 ${opts.isRoot ? "pl-2.5" : "pl-7"}`}>
-          <input
-            autoFocus
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") submitRename(p.id)
-              if (e.key === "Escape") setEditingId(null)
-            }}
-            className="min-w-0 flex-1 rounded-md border border-[#4A4A46] bg-[#0E0E0E] px-2 py-1 text-sm text-[#F0EDE8] focus:outline-none"
-          />
-          <button onClick={() => submitRename(p.id)} className="text-[#888480] hover:text-[#FF4800]">
-            <Check className="h-3.5 w-3.5" />
-          </button>
-          <button onClick={() => setEditingId(null)} className="text-[#888480] hover:text-[#F0EDE8]">
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      )
-    }
-    const count = opts.isRoot ? statsRollup[p.id] ?? 0 : stats.byProject[p.id] ?? 0
     const childCount = opts.childCount ?? 0
+    const count = opts.isRoot ? statsRollup[p.id] ?? 0 : stats.byProject[p.id] ?? 0
+    const menuOpen = menuOpenFor === p.id
+
     return (
       <div
-        className={`${rowBase} ${isActive ? active : idle} cursor-pointer ${opts.isRoot ? "" : "pl-7"}`}
+        className={`${rowBase} ${isActive ? active : idle} cursor-pointer ${
+          opts.isRoot ? "pl-1" : "pl-[30px]"
+        }`}
         onClick={() => {
           onSelectProject(p.id)
           onSelectTag(null)
         }}
       >
-        {opts.isRoot && childCount > 0 ? (
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              toggle(p.id)
-            }}
-            className="-ml-1 shrink-0 text-[#4A4A46] hover:text-[#F0EDE8]"
-            title={opts.isCollapsed ? "Show sub-folders" : "Hide sub-folders"}
-            aria-expanded={!opts.isCollapsed}
-          >
-            {opts.isCollapsed ? (
-              <ChevronRight className="h-3.5 w-3.5" />
-            ) : (
-              <ChevronDown className="h-3.5 w-3.5" />
-            )}
-          </button>
-        ) : (
-          opts.isRoot && <span className="w-2.5 shrink-0" />
-        )}
-        <span
-          className="h-2.5 w-2.5 shrink-0 rounded-sm"
-          style={{ background: p.color ?? "#4A4A46" }}
-        />
-        <span className="flex-1 truncate text-left">{p.name}</span>
-        <span className="text-xs text-[#4A4A46] group-hover:hidden">{count}</span>
-        <span className="hidden items-center gap-1.5 group-hover:flex">
-          {opts.isRoot && (
+        {opts.isRoot &&
+          (childCount > 0 ? (
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                setCollapsed((prev) => {
-                  const next = new Set(prev)
-                  next.delete(p.id)
-                  return next
-                })
-                setSubCreatingFor(p.id)
+                toggle(p.id)
               }}
-              className="text-[#888480] hover:text-[#F0EDE8]"
-              title="New sub-folder"
+              className="shrink-0 rounded text-[#4A4A46] hover:text-[#F0EDE8]"
+              title={opts.isCollapsed ? "Show sub-folders" : "Hide sub-folders"}
+              aria-expanded={!opts.isCollapsed}
             >
-              <FolderPlus className="h-3.5 w-3.5" />
+              {opts.isCollapsed ? (
+                <ChevronRight className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
             </button>
-          )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              setEditingId(p.id)
-              setEditName(p.name)
-            }}
-            className="text-[#888480] hover:text-[#F0EDE8]"
-            title="Rename"
+          ) : (
+            <span className="w-3.5 shrink-0" aria-hidden />
+          ))}
+
+        {opts.isRoot && (
+          <span
+            className="h-2.5 w-2.5 shrink-0 rounded-sm"
+            style={{ background: p.color ?? "#4A4A46" }}
+            aria-hidden
+          />
+        )}
+
+        <span className={`flex-1 truncate text-left ${opts.isRoot ? "" : "text-[#A8A49E]"}`}>
+          {p.name}
+        </span>
+
+        {/* Count and kebab share one slot, the kebab layered over the count. Toggling
+            opacity rather than display keeps the button keyboard-focusable (display:none
+            can't be tabbed to) and stops the row width jumping on hover. pointer-events
+            are dropped while it's invisible so a click there still selects the project. */}
+        <span className="relative flex min-w-6 shrink-0 items-center justify-end">
+          <span
+            className={`text-xs text-[#4A4A46] transition-opacity ${
+              menuOpen ? "opacity-0" : "group-hover:opacity-0"
+            }`}
           >
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              // Deleting a root cascades its sub-folders (projects_parent_user_fkey),
-              // so the confirm has to name both, not just the documents.
-              const docs = opts.isRoot ? statsRollup[p.id] ?? 0 : stats.byProject[p.id] ?? 0
-              const subs = childCount > 0 ? ` and its ${childCount} sub-folder${childCount === 1 ? "" : "s"}` : ""
-              const msg = `Delete "${p.name}"${subs}? ${docs} document${docs === 1 ? "" : "s"} move to Unfiled.`
-              if (confirm(msg)) onDeleteProject(p.id)
-            }}
-            className="text-[#888480] hover:text-red-400"
-            title="Delete"
+            {count}
+          </span>
+
+          <DropdownMenu
+            open={menuOpen}
+            onOpenChange={(o) => setMenuOpenFor(o ? p.id : null)}
           >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+            <DropdownMenuTrigger asChild>
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className={`absolute right-0 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-[#888480] transition-opacity hover:bg-[#2A2A2A] hover:text-[#F0EDE8] focus-visible:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100 ${
+                  menuOpen
+                    ? "bg-[#2A2A2A] text-[#F0EDE8] opacity-100"
+                    : "pointer-events-none opacity-0"
+                }`}
+                title={`Actions for ${p.name}`}
+                aria-label={`Actions for ${p.name}`}
+              >
+                <MoreVertical className="h-3.5 w-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="min-w-44 border-[#2A2A2A] bg-[#161616] text-[#F0EDE8]"
+            >
+            {/* Sub-folders only under a root: nesting is capped at one level by the
+                projects_single_level trigger, so offering it here would just error. */}
+            {opts.isRoot && (
+              <DropdownMenuItem
+                className={menuItem}
+                onSelect={() => {
+                  expand(p.id)
+                  setSubCreatingFor(p.id)
+                }}
+              >
+                <FolderPlus className="h-3.5 w-3.5" /> Add subfolder
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              className={menuItem}
+              onSelect={() => {
+                setEditingId(p.id)
+                setEditName(p.name)
+              }}
+            >
+              <Pencil className="h-3.5 w-3.5" /> Rename
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="bg-[#2A2A2A]" />
+            <DropdownMenuItem
+              className="gap-2 text-sm text-red-400 focus:bg-[#2A2A2A] focus:text-red-400"
+              onSelect={() => {
+                // Deleting a root cascades its sub-folders (projects_parent_user_fkey),
+                // so the confirm names both, not just the documents.
+                const subs =
+                  childCount > 0
+                    ? ` and its ${childCount} subfolder${childCount === 1 ? "" : "s"}`
+                    : ""
+                const msg = `Delete "${p.name}"${subs}? ${count} document${
+                  count === 1 ? "" : "s"
+                } move to Unfiled.`
+                if (confirm(msg)) onDeleteProject(p.id)
+              }}
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Delete
+            </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </span>
       </div>
     )
@@ -209,7 +284,7 @@ export function LibraryRail({
             onSelectProject(null)
             onSelectTag(null)
           }}
-          className={`${rowBase} ${selectedProject === null && !selectedTag ? active : idle}`}
+          className={`${rowBase} px-2.5 ${selectedProject === null && !selectedTag ? active : idle}`}
         >
           <Layers className="h-4 w-4 shrink-0" />
           <span className="flex-1 text-left">All files</span>
@@ -220,7 +295,7 @@ export function LibraryRail({
             onSelectProject(UNFILED)
             onSelectTag(null)
           }}
-          className={`${rowBase} ${selectedProject === UNFILED ? active : idle}`}
+          className={`${rowBase} px-2.5 ${selectedProject === UNFILED ? active : idle}`}
         >
           <Inbox className="h-4 w-4 shrink-0" />
           <span className="flex-1 text-left">Unfiled</span>
@@ -247,30 +322,66 @@ export function LibraryRail({
           {roots.map((root) => {
             const children = childrenByParent.get(root.id) ?? []
             const isCollapsed = collapsed.has(root.id)
+            const showChildren = !isCollapsed && children.length > 0
+            const creatingHere = subCreatingFor === root.id
             return (
               <div key={root.id}>
-                {renderRow(root, { isRoot: true, childCount: children.length, isCollapsed })}
-                {!isCollapsed &&
-                  children.map((child) => (
-                    <div key={child.id}>{renderRow(child, { isRoot: false })}</div>
-                  ))}
-                {subCreatingFor === root.id && (
-                  <div className="py-1 pl-7 pr-2.5">
-                    <input
-                      autoFocus
-                      value={subDraft}
-                      onChange={(e) => setSubDraft(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") submitSub(root.id)
-                        if (e.key === "Escape") {
-                          setSubDraft("")
-                          setSubCreatingFor(null)
-                        }
-                      }}
-                      onBlur={() => submitSub(root.id)}
-                      placeholder="Sub-folder name…"
-                      className="w-full rounded-md border border-[#4A4A46] bg-[#0E0E0E] px-2 py-1 text-sm text-[#F0EDE8] placeholder:text-[#4A4A46] focus:outline-none"
-                    />
+                {renderRow(root, {
+                  isRoot: true,
+                  childCount: children.length,
+                  isCollapsed,
+                })}
+
+                {(showChildren || creatingHere) && (
+                  // No space-y and a negative top margin on purpose: the connector trunk
+                  // is drawn per row, so any gap between rows would punch visible breaks
+                  // in it, and the -mt bridges the parent row's own gap.
+                  <div className="-mt-0.5">
+                    {showChildren &&
+                      children.map((child, i) => {
+                        // Last child only when nothing is being appended below it, so the
+                        // trunk keeps running down to an in-progress "new subfolder" row.
+                        const isLast = i === children.length - 1 && !creatingHere
+                        return (
+                          <div key={child.id} className="relative">
+                            <span
+                              aria-hidden
+                              className={`absolute left-[15px] top-0 w-px bg-[#3A3A38] ${
+                                isLast ? "h-[18px]" : "bottom-0"
+                              }`}
+                            />
+                            <span
+                              aria-hidden
+                              className="absolute left-[15px] top-[18px] h-px w-[9px] bg-[#3A3A38]"
+                            />
+                            {renderRow(child, { isRoot: false })}
+                          </div>
+                        )
+                      })}
+
+                    {creatingHere && (
+                      <div className="relative">
+                        <span aria-hidden className="absolute left-[15px] top-0 h-[18px] w-px bg-[#3A3A38]" />
+                        <span aria-hidden className="absolute left-[15px] top-[18px] h-px w-[9px] bg-[#3A3A38]" />
+                        <div className="py-1 pl-[30px] pr-1.5">
+                          <input
+                            autoFocus
+                            value={subDraft}
+                            onChange={(e) => setSubDraft(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") submitSub(root.id)
+                              if (e.key === "Escape") {
+                                setSubDraft("")
+                                setSubCreatingFor(null)
+                              }
+                            }}
+                            onBlur={() => submitSub(root.id)}
+                            placeholder="Subfolder name…"
+                            className="w-full rounded-md border border-[#4A4A46] bg-[#0E0E0E] px-2 py-1 text-sm text-[#F0EDE8] placeholder:text-[#4A4A46] focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
