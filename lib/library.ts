@@ -114,6 +114,19 @@ export function primaryProjectId(spin: Pick<Spin, "project_ids">): string | null
  *  One level of nesting means this is a single lookup, never a walk.
  *  Mirrors the `coalesce(p.parent_id, p.id)` idiom in find_related_documents,
  *  vault_search_documents and vault_stats — change them together. */
+/** Display path for a project: its own name, or "Parent / Child" for a subproject.
+ *  One level of nesting means this is a single lookup, never a walk. */
+export function projectPath(
+  projectId: string,
+  byId: Map<string, Pick<Project, "name" | "parent_id">>
+): string {
+  const project = byId.get(projectId)
+  if (!project) return ""
+  if (!project.parent_id) return project.name
+  const parent = byId.get(project.parent_id)
+  return parent ? `${parent.name} / ${project.name}` : project.name
+}
+
 export function rootProjectId(
   projectId: string | null,
   byId: Map<string, Pick<Project, "parent_id">>

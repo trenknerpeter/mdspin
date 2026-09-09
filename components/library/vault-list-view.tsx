@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import type { useLibrary } from "@/components/library/use-library"
-import { getSpinMarkdown, primaryProjectId } from "@/lib/library"
+import { getSpinMarkdown, primaryProjectId, projectPath, rootProjectId } from "@/lib/library"
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
@@ -187,16 +187,27 @@ export function VaultListView({ lib }: { lib: ReturnType<typeof useLibrary> }) {
                       <span>{formatDate(c.converted_at)}</span>
                       {c.word_count != null && <span>{c.word_count.toLocaleString()} words</span>}
                       {(() => {
-                        const project = lib.projects.find((p) => p.id === primaryProjectId(c))
-                        return project ? (
+                        const projectId = primaryProjectId(c)
+                        const project = lib.projects.find((p) => p.id === projectId)
+                        if (!project) return null
+                        // Swatch colour comes from the ROOT, same as the rail and the
+                        // Knowledge Map: subprojects don't carry their own colour, so a
+                        // subproject's own project.color is always null. The label shows
+                        // the full path ("Plato PM / Faiaz") so a doc filed in a
+                        // subproject doesn't read as if it belonged to an unrelated
+                        // project called "Faiaz".
+                        const byId = new Map(lib.projects.map((p) => [p.id, p]))
+                        const rootId = rootProjectId(projectId, byId)
+                        const rootColor = rootId ? byId.get(rootId)?.color : null
+                        return (
                           <span className="inline-flex items-center gap-1.5 text-[#888480]">
                             <span
                               className="h-2 w-2 rounded-sm"
-                              style={{ background: project.color ?? "#888480" }}
+                              style={{ background: rootColor ?? "#888480" }}
                             />
-                            {project.name}
+                            {projectPath(project.id, byId)}
                           </span>
-                        ) : null
+                        )
                       })()}
                       {c.brief_generated_at && (
                         <span className="inline-flex items-center gap-1 text-[#FF4800]">

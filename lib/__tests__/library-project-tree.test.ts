@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import {
   descendantProjectIds,
+  projectPath,
   rollUpProjectCounts,
   rootProjectId,
   type Project,
@@ -68,5 +69,30 @@ describe("rollUpProjectCounts", () => {
   it("leaves a flat vault's counts untouched", () => {
     const flat: Node[] = [{ id: "a", parent_id: null }, { id: "b", parent_id: null }]
     expect(rollUpProjectCounts({ a: 2, b: 3 }, flat)).toEqual({ a: 2, b: 3 })
+  })
+})
+
+describe("projectPath", () => {
+  const byId = new Map([
+    ["plato", { name: "Plato PM", parent_id: null }],
+    ["faiaz", { name: "Faiaz", parent_id: "plato" }],
+    ["strategy", { name: "Strategy", parent_id: null }],
+  ])
+
+  it("returns a root project's own name", () => {
+    expect(projectPath("strategy", byId)).toBe("Strategy")
+  })
+
+  it("returns the full path for a subproject", () => {
+    expect(projectPath("faiaz", byId)).toBe("Plato PM / Faiaz")
+  })
+
+  it("falls back to just the name if the parent is missing", () => {
+    const orphaned = new Map([["kid", { name: "Kid", parent_id: "gone" }]])
+    expect(projectPath("kid", orphaned)).toBe("Kid")
+  })
+
+  it("returns empty for an unknown project id", () => {
+    expect(projectPath("ghost", byId)).toBe("")
   })
 })
