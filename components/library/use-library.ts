@@ -15,6 +15,8 @@ import {
   listSpins,
   listTags,
   descendantProjectIds,
+  idsInRange,
+  moveSpinsToProject,
   renameProject,
   rollUpProjectCounts,
   updateSpin,
@@ -39,6 +41,10 @@ export function useLibrary() {
   const [stats, setStats] = useState<SpinStats>({ total: 0, unfiled: 0, byProject: {} })
   const [spins, setSpins] = useState<Spin[]>([])
   const [folders, setFolders] = useState<FolderSummary[]>([])
+  // Bulk-move selection. Anchor is the last plainly-clicked row, so shift-click knows
+  // which end of the range to extend from.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [selectionAnchor, setSelectionAnchor] = useState<string | null>(null)
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -95,6 +101,13 @@ export function useLibrary() {
   // Reset pagination whenever filters/search change
   useEffect(() => {
     setLimit(PAGE)
+  }, [selectedProject, selectedTag, query])
+
+  // Drop the selection when the visible set changes: acting on rows the user can no
+  // longer see is the one genuinely dangerous failure mode for a bulk action.
+  useEffect(() => {
+    setSelectedIds(new Set())
+    setSelectionAnchor(null)
   }, [selectedProject, selectedTag, query])
 
   const refreshSidebars = useCallback(async () => {
@@ -275,6 +288,53 @@ export function useLibrary() {
     return spins.find((s) => s.id === selectedSpinId) ?? null
   }, [spins, selectedSpinId, selectedSpinExtra])
 
+  // ---- Bulk selection ----
+
+  const toggleSelect = useCallback(
+    (id: string, shiftKey = false) => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        if (shiftKey && selectionAnchor) {
+          // Shift-click extends from the anchor and always ADDS — matching how file
+          // managers behave, and avoiding a range that silently deselects half of itself.
+          for (const rid of idsInRange(spins.map((s) => s.id), selectionAnchor, id)) {
+            next.add(rid)
+          }
+          return next
+        }
+        if (next.has(id)) next.delete(id)
+        else next.add(id)
+        return next
+      })
+      if (!shiftKey) setSelectionAnchor(id)
+    },
+    [spins, selectionAnchor]
+  )
+
+  const selectAllVisible = useCallback(() => {
+    setSelectedIds(new Set(spins.map((s) => s.id)))
+  }, [spins])
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set())
+    setSelectionAnchor(null)
+  }, [])
+
+  /** Move every selected document into a project (null = Unfiled), then reload.
+   *  Reload rather than patch in place: the moved rows may no longer match the active
+   *  filter, and re-deriving that here would duplicate saveSpin's subtree logic. */
+  const moveSelectedTo = useCallback(
+    async (projectId: string | null) => {
+      const ids = Array.from(selectedIds)
+      if (ids.length === 0) return
+      await moveSpinsToProject(ids, projectId)
+      clearSelection()
+      await fetchSpins()
+      await refreshSidebars()
+    },
+    [selectedIds, clearSelection, fetchSpins, refreshSidebars]
+  )
+
   const openSpin = useCallback(async (id: string) => {
     setSelectedSpinId(id)
     setSelectedSpinExtra(null) // clear any previous doc's full record
@@ -315,6 +375,12 @@ export function useLibrary() {
       setSelectedSpinId(null)
       setSelectedSpinExtra(null)
     },
+    // bulk selection
+    selectedIds,
+    toggleSelect,
+    selectAllVisible,
+    clearSelection,
+    moveSelectedTo,
     // mutations
     addNote,
     patchSpinSummary,

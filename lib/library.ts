@@ -457,6 +457,17 @@ export async function createNote(): Promise<Spin> {
   return toSpin(row, projectIdsFromColumn(row))
 }
 
+/** The ids between two rows inclusive, in the list's own order — shift-click range
+ *  selection. Order-agnostic about which end you clicked first. Returns just the target
+ *  when either id isn't in the list (e.g. the anchor scrolled out of a refreshed page),
+ *  which degrades to a plain click rather than selecting nothing. */
+export function idsInRange(orderedIds: string[], anchorId: string, targetId: string): string[] {
+  const a = orderedIds.indexOf(anchorId)
+  const b = orderedIds.indexOf(targetId)
+  if (a === -1 || b === -1) return [targetId]
+  return orderedIds.slice(Math.min(a, b), Math.max(a, b) + 1)
+}
+
 /** Move several documents into a project (or to Unfiled with null) in one update.
  *  Writes conversions.project_id, never document_projects directly: the
  *  conversions_sync_document_projects trigger mirrors the change, and writing the join
