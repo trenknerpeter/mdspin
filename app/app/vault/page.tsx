@@ -91,6 +91,7 @@ export default function VaultPage() {
             onSelectTag={lib.setSelectedTag}
             onCreateProject={lib.addProject}
             onRenameProject={lib.renameProjectById}
+            onSetProjectColor={lib.setProjectColorById}
             onDeleteProject={lib.removeProject}
           />
 

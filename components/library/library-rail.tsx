@@ -19,9 +19,19 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { UNFILED, type Project, type SpinStats, type TagCount } from "@/lib/library"
+import {
+  PROJECT_COLOR_PRESETS,
+  UNFILED,
+  type Project,
+  type SpinStats,
+  type TagCount,
+} from "@/lib/library"
+import { Palette } from "lucide-react"
 
 export function LibraryRail({
   roots,
@@ -35,6 +45,7 @@ export function LibraryRail({
   onSelectTag,
   onCreateProject,
   onRenameProject,
+  onSetProjectColor,
   onDeleteProject,
 }: {
   /** Top-level projects, in display order. */
@@ -51,6 +62,7 @@ export function LibraryRail({
   onSelectTag: (tag: string | null) => void
   onCreateProject: (name: string, parentId?: string | null) => Promise<unknown>
   onRenameProject: (id: string, name: string) => Promise<void>
+  onSetProjectColor: (id: string, color: string | null) => Promise<void>
   onDeleteProject: (id: string) => Promise<void>
 }) {
   const [creating, setCreating] = useState(false)
@@ -265,6 +277,43 @@ export function LibraryRail({
             >
               <Pencil className="h-3.5 w-3.5" /> Rename
             </DropdownMenuItem>
+            {/* Colour lives on the root only: a subproject never renders its own swatch
+                (the rail, the list chip and the Knowledge Map all colour it by its root),
+                so offering a colour picker there would set a value nothing ever shows. */}
+            {opts.isRoot && (
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className={menuItem}>
+                  <Palette className="h-3.5 w-3.5" /> Change color
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent
+                  className="min-w-0 rounded-xl border-[#2A2A2A] bg-[#161616] p-2 text-[#F0EDE8]"
+                  sideOffset={4}
+                >
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {PROJECT_COLOR_PRESETS.map((c) => (
+                      <button
+                        key={c}
+                        onClick={() => onSetProjectColor(p.id, c)}
+                        className="flex h-7 w-7 items-center justify-center rounded-full transition-transform hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F0EDE8]"
+                        style={{ background: c }}
+                        title={c}
+                        aria-label={`Set color ${c}`}
+                      >
+                        {p.color === c && <Check className="h-3.5 w-3.5 text-white/90" />}
+                      </button>
+                    ))}
+                  </div>
+                  {p.color && (
+                    <button
+                      onClick={() => onSetProjectColor(p.id, null)}
+                      className="mt-2 w-full rounded-lg px-2 py-1.5 text-left text-xs text-[#888480] transition-colors hover:bg-[#FF4800]/12 hover:text-[#FF4800]"
+                    >
+                      Clear color
+                    </button>
+                  )}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            )}
             <DropdownMenuSeparator className="mx-1 my-1 bg-[#2A2A2A]" />
             <DropdownMenuItem
               className={menuItemDanger}

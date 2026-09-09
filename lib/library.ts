@@ -277,6 +277,28 @@ export async function renameProject(id: string, name: string) {
   if (error) throw error
 }
 
+/** Preset swatches offered in the rail's "Change color" submenu — the only UI path to
+ *  set a project's colour (MCP's create_project/update_project could always set it; the
+ *  browser never had a picker, so every project made through the app sits at color=null).
+ *  The app's own accent leads the list so a project can explicitly claim it, rather than
+ *  only ever seeing it as the selection highlight. */
+export const PROJECT_COLOR_PRESETS: readonly string[] = [
+  "#FF4800", // accent
+  "#4C8DFF",
+  "#F2C94C",
+  "#27AE60",
+  "#BB6BD9",
+  "#56CCF2",
+  "#EB5757",
+  "#F2994A",
+]
+
+export async function setProjectColor(id: string, color: string | null) {
+  const supabase = createClient()
+  const { error } = await supabase.from("projects").update({ color }).eq("id", id)
+  if (error) throw error
+}
+
 export async function deleteProject(id: string) {
   // FK is ON DELETE SET NULL: spins are unfiled, never deleted.
   const supabase = createClient()

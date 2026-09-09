@@ -18,6 +18,7 @@ import {
   idsInRange,
   moveSpinsToProject,
   renameProject,
+  setProjectColor,
   rollUpProjectCounts,
   updateSpin,
   removeFromVault,
@@ -183,6 +184,11 @@ export function useLibrary() {
   const renameProjectById = useCallback(async (id: string, name: string) => {
     await renameProject(id, name)
     setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)))
+  }, [])
+
+  const setProjectColorById = useCallback(async (id: string, color: string | null) => {
+    await setProjectColor(id, color)
+    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, color } : p)))
   }, [])
 
   const removeProject = useCallback(
@@ -386,6 +392,7 @@ export function useLibrary() {
     patchSpinSummary,
     addProject,
     renameProjectById,
+    setProjectColorById,
     removeProject,
     saveSpin,
     patchSpinBrief,
