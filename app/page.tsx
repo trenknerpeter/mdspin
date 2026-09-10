@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { ArrowRight, FileText, Library, Share2, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { SiteNav } from "@/components/site-nav"
+import { CookieSettingsButton } from "@/components/consent/cookie-settings-button"
 import { Converter } from "@/components/converter/converter"
 import { VaultHeroAnimation } from "@/components/marketing/vault-hero-animation"
 import { GetStartedButton } from "@/components/marketing/get-started-button"
@@ -559,6 +560,7 @@ expansion in EMEA.
             <Link href="/privacy" className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]">
               Privacy
             </Link>
+            <CookieSettingsButton className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]" />
             <Link href="https://github.com/trenknerpeter/mdspin" className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]">
               GitHub
             </Link>

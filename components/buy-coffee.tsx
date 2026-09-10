@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import posthog from "posthog-js"
+import { postHogCapture, postHogCaptureException, postHogDistinctId } from "@/lib/consent/posthog"
 
 export function BuyCoffee({ fullWidth }: { fullWidth?: boolean }) {
   const [loading, setLoading] = useState(false)
@@ -11,11 +11,13 @@ export function BuyCoffee({ fullWidth }: { fullWidth?: boolean }) {
     if (loading) return
     setLoading(true)
     setError(null)
-    posthog.capture("buy_coffee_clicked")
+    postHogCapture("buy_coffee_clicked")
     try {
+      // Absent without analytics consent; the checkout route falls back to "anonymous".
+      const distinctId = postHogDistinctId()
       const res = await fetch("/api/checkout", {
         method: "POST",
-        headers: { "X-POSTHOG-DISTINCT-ID": posthog.get_distinct_id() },
+        headers: distinctId ? { "X-POSTHOG-DISTINCT-ID": distinctId } : {},
       })
       const data = await res.json() as { url?: string; error?: string }
       if (data.url) {
@@ -25,7 +27,7 @@ export function BuyCoffee({ fullWidth }: { fullWidth?: boolean }) {
         setLoading(false)
       }
     } catch (err) {
-      posthog.captureException(err)
+      postHogCaptureException(err)
       setError("Something went wrong — please try again.")
       setLoading(false)
     }
