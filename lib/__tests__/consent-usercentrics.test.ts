@@ -28,6 +28,11 @@ describe("findService", () => {
     expect(found?.name).toBe("VERCEL WEB ANALYTICS")
   })
 
+  it("matches the bare 'Vercel' name used in the live Usercentrics config", () => {
+    const found = findService(details({ "I1OcL3FNP": { name: "Vercel", consent: { given: true } } }), "vercelAnalytics")
+    expect(found?.name).toBe("Vercel")
+  })
+
   it("matches on the service ID when the name is absent", () => {
     const found = findService(details({ posthog: { consent: { given: true } } }), "posthog")
     expect(found).toBeDefined()

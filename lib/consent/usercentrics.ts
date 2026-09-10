@@ -23,10 +23,16 @@ export type GatedService = "posthog" | "vercelAnalytics"
 
 export const GATED_SERVICES: GatedService[] = ["posthog", "vercelAnalytics"]
 
-/** Lower-cased substrings matched against the Usercentrics service ID and name. */
+/**
+ * Lower-cased substrings matched against the Usercentrics service ID and name.
+ * "vercel" alone is deliberately broad — the account's DPS entry is just named
+ * "Vercel" rather than "Vercel Analytics" — so if a second, unrelated Vercel
+ * service (e.g. Vercel Postgres) is ever added to this CMP config, tighten this
+ * back up to avoid conflating the two.
+ */
 const SERVICE_MATCHERS: Record<GatedService, string[]> = {
   posthog: ["posthog", "post hog"],
-  vercelAnalytics: ["vercel analytics", "vercel web analytics"],
+  vercelAnalytics: ["vercel"],
 }
 
 export type ConsentState = Record<GatedService, boolean>
