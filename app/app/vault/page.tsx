@@ -61,7 +61,17 @@ export default function VaultPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <VaultViewToggle active={view === "list" ? "list" : "folders"} />
+          <VaultViewToggle
+            active={view === "list" ? "list" : "folders"}
+            onSelectFolders={() => {
+              setView("folders")
+              window.history.replaceState(null, "", "/app/vault")
+            }}
+            onSelectList={() => {
+              setView("list")
+              window.history.replaceState(null, "", "/app/vault?view=list")
+            }}
+          />
           <AddToVaultMenu onNewNote={() => lib.addNote()} />
         </div>
       </div>
