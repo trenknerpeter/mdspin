@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client"
 import { countWords } from "@/lib/vault/text"
+import { normalizeTag } from "@/lib/vault/tags"
 import type { IngestSourceType } from "@/lib/vault/ingest"
 import type { SummaryStatus } from "@/lib/vault/summary"
 
@@ -516,6 +517,33 @@ export async function moveSpinsToProject(ids: string[], projectId: string | null
     .update({ project_id: projectId })
     .in("id", ids)
   if (error) throw error
+}
+
+// Which documents need updating to gain `tag`, and their full new tags array — pure so
+// it's unit-testable. Docs that already have the (normalized) tag are omitted, since
+// Postgres/PostgREST can't append-and-dedupe an array across several rows in a single
+// query-builder call, so addTagToSpins issues one update per row that actually changes.
+export function planTagAdditions(
+  targets: { id: string; tags: string[] }[],
+  tag: string
+): { id: string; tags: string[] }[] {
+  const t = normalizeTag(tag)
+  if (!t) return []
+  return targets.filter((s) => !s.tags.includes(t)).map((s) => ({ id: s.id, tags: [...s.tags, t] }))
+}
+
+/** Add one tag to several documents at once, preserving each document's existing tags.
+ *  Callers pass each target's current tags (already in memory from the list view) rather
+ *  than this function re-fetching them, since the list view already has them loaded. */
+export async function addTagToSpins(targets: { id: string; tags: string[] }[], tag: string): Promise<void> {
+  const updates = planTagAdditions(targets, tag)
+  if (updates.length === 0) return
+  const supabase = createClient()
+  const results = await Promise.all(
+    updates.map((u) => supabase.from("conversions").update({ tags: u.tags }).eq("id", u.id))
+  )
+  const failed = results.find((r) => r.error)
+  if (failed?.error) throw failed.error
 }
 
 export async function deleteSpin(id: string) {
