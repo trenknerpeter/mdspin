@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Search, FileText, Copy, Check, Sparkles, FolderInput, Inbox } from "lucide-react"
+import { Search, FileText, Copy, Check, Sparkles, FolderInput, Inbox, Tag } from "lucide-react"
 import { useRef, useState } from "react"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import type { useLibrary } from "@/components/library/use-library"
 import { getSpinMarkdown, primaryProjectId, projectPath, rootProjectId } from "@/lib/library"
 
@@ -28,6 +29,16 @@ export function VaultListView({ lib }: { lib: ReturnType<typeof useLibrary> }) {
   // recorded on the way in. onCheckedChange stays the SINGLE toggle handler — pairing it
   // with an onClick fires both and the row silently toggles twice back to where it was.
   const shiftHeld = useRef(false)
+
+  const [tagMenuOpen, setTagMenuOpen] = useState(false)
+  const [tagDraft, setTagDraft] = useState("")
+
+  const submitBulkTag = async (tag: string) => {
+    setTagDraft("")
+    setTagMenuOpen(false)
+    if (!tag.trim()) return
+    await lib.addTagToSelected(tag)
+  }
 
   // List rows no longer carry markdown_text (SPIN_LIST_FIELDS omits it — a
   // single doc can be 2.4MB), so the row-level copy button fetches on demand.
@@ -341,6 +352,50 @@ export function VaultListView({ lib }: { lib: ReturnType<typeof useLibrary> }) {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+
+                <Popover open={tagMenuOpen} onOpenChange={setTagMenuOpen}>
+                  <PopoverTrigger asChild>
+                    <button className="inline-flex items-center gap-1.5 rounded-full border border-[#2A2A2A] px-4 py-1.5 text-sm text-[#F0EDE8] transition-colors hover:border-[#4A4A46]">
+                      <Tag className="h-3.5 w-3.5" /> Add tag…
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="end"
+                    side="top"
+                    sideOffset={6}
+                    className="w-64 rounded-xl border-[#2A2A2A] bg-[#161616] p-3 text-[#F0EDE8] shadow-[0_18px_44px_-12px_rgba(0,0,0,0.85)]"
+                  >
+                    <div className="mb-2 truncate font-display text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4A4A46]">
+                      Tag {lib.selectedIds.size} document{lib.selectedIds.size === 1 ? "" : "s"}
+                    </div>
+                    <input
+                      autoFocus
+                      value={tagDraft}
+                      onChange={(e) => setTagDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault()
+                          submitBulkTag(tagDraft)
+                        }
+                      }}
+                      placeholder="Tag name…"
+                      className="w-full rounded-md border border-[#4A4A46] bg-[#0E0E0E] px-2 py-1 text-sm text-[#F0EDE8] placeholder:text-[#4A4A46] focus:outline-none"
+                    />
+                    {lib.tags.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {lib.tags.map((t) => (
+                          <button
+                            key={t.tag}
+                            onClick={() => submitBulkTag(t.tag)}
+                            className="rounded-full bg-[#FF4800]/10 px-2.5 py-0.5 text-xs text-[#FF4800] transition-colors hover:bg-[#FF4800]/20"
+                          >
+                            #{t.tag}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
 
                 <button
                   onClick={lib.clearSelection}
