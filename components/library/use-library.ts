@@ -14,6 +14,7 @@ import {
   listSpinStats,
   listSpins,
   listTags,
+  addTagToSpins,
   descendantProjectIds,
   idsInRange,
   moveSpinsToProject,
@@ -30,6 +31,7 @@ import {
   type TagCount,
   type UpdateSpinFields,
 } from "@/lib/library"
+import { normalizeTag } from "@/lib/vault/tags"
 import type { SummaryStatus } from "@/lib/vault/summary"
 
 const PAGE = 100
@@ -358,6 +360,26 @@ export function useLibrary() {
     [selectedIds, clearSelection, fetchSpins, refreshSidebars, refreshTags]
   )
 
+  /** Add a tag to every selected document, patch it into the already-loaded rows (no
+   *  refetch needed — tag-add is additive, so it can't remove a doc from whatever filter
+   *  currently has it visible), then refresh the tag sidebar and clear the selection. */
+  const addTagToSelected = useCallback(
+    async (tag: string) => {
+      const targets = spins
+        .filter((s) => selectedIds.has(s.id))
+        .map((s) => ({ id: s.id, tags: s.tags }))
+      if (targets.length === 0) return
+      await addTagToSpins(targets, tag)
+      const t = normalizeTag(tag)
+      setSpins((prev) =>
+        prev.map((s) => (selectedIds.has(s.id) && !s.tags.includes(t) ? { ...s, tags: [...s.tags, t] } : s))
+      )
+      clearSelection()
+      await refreshTags()
+    },
+    [spins, selectedIds, clearSelection, refreshTags]
+  )
+
   const openSpin = useCallback(async (id: string) => {
     setSelectedSpinId(id)
     setSelectedSpinExtra(null) // clear any previous doc's full record
@@ -404,6 +426,7 @@ export function useLibrary() {
     selectAllVisible,
     clearSelection,
     moveSelectedTo,
+    addTagToSelected,
     // mutations
     addNote,
     patchSpinSummary,
