@@ -369,8 +369,9 @@ export function useLibrary() {
         .filter((s) => selectedIds.has(s.id))
         .map((s) => ({ id: s.id, tags: s.tags }))
       if (targets.length === 0) return
-      await addTagToSpins(targets, tag)
       const t = normalizeTag(tag)
+      if (!t) return
+      await addTagToSpins(targets, tag)
       setSpins((prev) =>
         prev.map((s) => (selectedIds.has(s.id) && !s.tags.includes(t) ? { ...s, tags: [...s.tags, t] } : s))
       )
