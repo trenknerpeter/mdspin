@@ -211,7 +211,11 @@ export function useLibrary() {
       if (selectedProject === id) setSelectedProject(null)
       await fetchSpins()
       await refreshSidebars()
-      await refreshTags()
+      // If the deleted project was the one selected, the selectedProject-change effect
+      // above already refetches tags correctly (scoped to the new null selection) — calling
+      // refreshTags() here too would use this closure's stale `selectedProject` (still the
+      // just-deleted id) and can race that effect's fresh result, wiping the sidebar's tags.
+      if (selectedProject !== id) await refreshTags()
     },
     [selectedProject, fetchSpins, refreshSidebars, refreshTags]
   )
