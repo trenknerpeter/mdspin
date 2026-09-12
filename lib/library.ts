@@ -679,16 +679,18 @@ export function countTags(rows: { tags: string[] | null }[]): TagCount[] {
 
 // Distinct tags with counts, computed client-side from the user's vault rows.
 // Cheap at current scale; revisit with an RPC if libraries grow very large.
-// Scoped like listSpins: UNFILED for unfiled documents, a project id for that project's
-// own documents (exact match — not its subprojects, and not documents linked to it only
-// via document_projects), or omitted/null for every project ("All files").
-export async function listTags(projectId?: string | null): Promise<TagCount[]> {
+// Scoped like listSpins: UNFILED for unfiled documents, a project id (plus its
+// descendantIds, so a root project's tag list includes its subprojects' tags — matching
+// the file list, which shows a root's subprojects' documents too) for that project's
+// subtree, or omitted/null for every project ("All files").
+export async function listTags(projectId?: string | null, descendantIds?: string[]): Promise<TagCount[]> {
   const supabase = createClient()
   let q = supabase.from("conversions").select("tags").eq("in_vault", true)
   if (projectId === UNFILED) {
     q = q.is("project_id", null)
   } else if (projectId) {
-    q = q.eq("project_id", projectId)
+    const ids = [projectId, ...(descendantIds ?? [])]
+    q = ids.length === 1 ? q.eq("project_id", ids[0]) : q.in("project_id", ids)
   }
   const { data, error } = await q
   if (error) throw error

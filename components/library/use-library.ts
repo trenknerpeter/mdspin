@@ -129,9 +129,9 @@ export function useLibrary() {
   }, [])
 
   const refreshTags = useCallback(async () => {
-    const t = await listTags(selectedProject)
+    const t = await listTags(selectedProject, descendantIds)
     setTags(t)
-  }, [selectedProject])
+  }, [selectedProject, descendantIds])
 
   const fetchSpins = useCallback(async () => {
     const token = ++fetchToken.current
