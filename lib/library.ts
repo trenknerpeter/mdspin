@@ -635,14 +635,11 @@ export async function listFolderRows(): Promise<FolderSummaryRow[]> {
   }))
 }
 
-// Distinct tags with counts, computed client-side from the user's vault rows.
-// Cheap at current scale; revisit with an RPC if libraries grow very large.
-export async function listTags(): Promise<TagCount[]> {
-  const supabase = createClient()
-  const { data, error } = await supabase.from("conversions").select("tags").eq("in_vault", true)
-  if (error) throw error
+// Pure counting/sorting step of listTags, split out so it's unit-testable without
+// mocking Supabase — same split as buildSpinUpdatePayload/updateSpin.
+export function countTags(rows: { tags: string[] | null }[]): TagCount[] {
   const counts = new Map<string, number>()
-  for (const row of (data ?? []) as { tags: string[] | null }[]) {
+  for (const row of rows) {
     for (const t of row.tags ?? []) {
       counts.set(t, (counts.get(t) ?? 0) + 1)
     }
@@ -650,6 +647,24 @@ export async function listTags(): Promise<TagCount[]> {
   return Array.from(counts.entries())
     .map(([tag, count]) => ({ tag, count }))
     .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag))
+}
+
+// Distinct tags with counts, computed client-side from the user's vault rows.
+// Cheap at current scale; revisit with an RPC if libraries grow very large.
+// Scoped like listSpins: UNFILED for unfiled documents, a project id for that project's
+// own documents (exact match — not its subprojects, and not documents linked to it only
+// via document_projects), or omitted/null for every project ("All files").
+export async function listTags(projectId?: string | null): Promise<TagCount[]> {
+  const supabase = createClient()
+  let q = supabase.from("conversions").select("tags").eq("in_vault", true)
+  if (projectId === UNFILED) {
+    q = q.is("project_id", null)
+  } else if (projectId) {
+    q = q.eq("project_id", projectId)
+  }
+  const { data, error } = await q
+  if (error) throw error
+  return countTags((data ?? []) as { tags: string[] | null }[])
 }
 
 // Promote already-saved (auto-saved) conversions into the Vault.
