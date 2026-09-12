@@ -61,10 +61,10 @@ export function VaultListView({ lib }: { lib: ReturnType<typeof useLibrary> }) {
     "gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-[#C9C5BE] transition-colors " +
     "focus:bg-[#FF4800]/12 focus:text-[#FF4800] data-[highlighted]:bg-[#FF4800]/12 data-[highlighted]:text-[#FF4800]"
 
-  const filtersActive = lib.selectedProject !== null || !!lib.selectedTag || lib.search.trim() !== ""
+  const filtersActive = lib.selectedProject !== null || lib.selectedTags.length > 0 || lib.search.trim() !== ""
   const clearFilters = () => {
     lib.setSelectedProject(null)
-    lib.setSelectedTag(null)
+    lib.setSelectedTags([])
     lib.setSearch("")
   }
 

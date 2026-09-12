@@ -41,7 +41,7 @@ export default function VaultPage() {
 
   const openFolder = (projectId: string | null) => {
     lib.setSelectedProject(projectId ?? UNFILED)
-    lib.setSelectedTag(null)
+    lib.setSelectedTags([])
   }
 
   const currentFolderName =
@@ -96,9 +96,10 @@ export default function VaultPage() {
             tags={lib.tags}
             stats={lib.stats}
             selectedProject={lib.selectedProject}
-            selectedTag={lib.selectedTag}
+            selectedTags={lib.selectedTags}
             onSelectProject={lib.setSelectedProject}
-            onSelectTag={lib.setSelectedTag}
+            onToggleTag={lib.toggleTag}
+            onClearTags={() => lib.setSelectedTags([])}
             onCreateProject={lib.addProject}
             onRenameProject={lib.renameProjectById}
             onSetProjectColor={lib.setProjectColorById}

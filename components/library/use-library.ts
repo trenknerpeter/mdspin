@@ -54,7 +54,8 @@ export function useLibrary() {
 
   // Filters
   const [selectedProject, setSelectedProject] = useState<string | null>(null) // null = All
-  const [selectedTag, setSelectedTag] = useState<string | null>(null)
+  // Every tag here must be present on a doc (AND) — [] means no tag filter.
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [search, setSearch] = useState("")
   const [query, setQuery] = useState("") // debounced
 
@@ -104,14 +105,14 @@ export function useLibrary() {
   // Reset pagination whenever filters/search change
   useEffect(() => {
     setLimit(PAGE)
-  }, [selectedProject, selectedTag, query])
+  }, [selectedProject, selectedTags, query])
 
   // Drop the selection when the visible set changes: acting on rows the user can no
   // longer see is the one genuinely dangerous failure mode for a bulk action.
   useEffect(() => {
     setSelectedIds(new Set())
     setSelectionAnchor(null)
-  }, [selectedProject, selectedTag, query])
+  }, [selectedProject, selectedTags, query])
 
   // Tags are scoped to the active project, so they're refreshed on their own
   // (refreshTags, below) rather than here — keeping this list's own dependency on []
@@ -141,7 +142,7 @@ export function useLibrary() {
       const rows = await listSpins({
         projectId: selectedProject,
         descendantIds,
-        tag: selectedTag,
+        tags: selectedTags,
         query,
         from: 0,
         to: limit - 1,
@@ -156,7 +157,12 @@ export function useLibrary() {
     } finally {
       if (token === fetchToken.current) setLoading(false)
     }
-  }, [selectedProject, descendantIds, selectedTag, query, limit])
+  }, [selectedProject, descendantIds, selectedTags, query, limit])
+
+  // Add/remove one tag from the active multi-select filter.
+  const toggleTag = useCallback((tag: string) => {
+    setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
+  }, [])
 
   // Initial load + reloads on filter/pagination changes
   useEffect(() => {
@@ -411,8 +417,9 @@ export function useLibrary() {
     // filters
     selectedProject,
     setSelectedProject,
-    selectedTag,
-    setSelectedTag,
+    selectedTags,
+    setSelectedTags,
+    toggleTag,
     search,
     setSearch,
     // pagination

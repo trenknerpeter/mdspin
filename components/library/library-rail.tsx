@@ -40,9 +40,10 @@ export function LibraryRail({
   tags,
   stats,
   selectedProject,
-  selectedTag,
+  selectedTags,
   onSelectProject,
-  onSelectTag,
+  onToggleTag,
+  onClearTags,
   onCreateProject,
   onRenameProject,
   onSetProjectColor,
@@ -57,9 +58,11 @@ export function LibraryRail({
   tags: TagCount[]
   stats: SpinStats
   selectedProject: string | null
-  selectedTag: string | null
+  /** Every tag here must be present on a doc (AND) — [] means no tag filter. */
+  selectedTags: string[]
   onSelectProject: (id: string | null) => void
-  onSelectTag: (tag: string | null) => void
+  onToggleTag: (tag: string) => void
+  onClearTags: () => void
   onCreateProject: (name: string, parentId?: string | null) => Promise<unknown>
   onRenameProject: (id: string, name: string) => Promise<void>
   onSetProjectColor: (id: string, color: string | null) => Promise<void>
@@ -178,7 +181,7 @@ export function LibraryRail({
         }`}
         onClick={() => {
           onSelectProject(p.id)
-          onSelectTag(null)
+          onClearTags()
         }}
       >
         {opts.isRoot &&
@@ -346,9 +349,9 @@ export function LibraryRail({
         <button
           onClick={() => {
             onSelectProject(null)
-            onSelectTag(null)
+            onClearTags()
           }}
-          className={`${rowBase} px-2.5 ${selectedProject === null && !selectedTag ? active : idle}`}
+          className={`${rowBase} px-2.5 ${selectedProject === null && selectedTags.length === 0 ? active : idle}`}
         >
           <Layers className="h-4 w-4 shrink-0" />
           <span className="flex-1 text-left">All files</span>
@@ -357,7 +360,7 @@ export function LibraryRail({
         <button
           onClick={() => {
             onSelectProject(UNFILED)
-            onSelectTag(null)
+            onClearTags()
           }}
           className={`${rowBase} px-2.5 ${selectedProject === UNFILED ? active : idle}`}
         >
@@ -480,11 +483,11 @@ export function LibraryRail({
           </span>
           <div className="flex flex-wrap gap-1.5 px-2.5">
             {tags.map((t) => {
-              const isActive = selectedTag === t.tag
+              const isActive = selectedTags.includes(t.tag)
               return (
                 <button
                   key={t.tag}
-                  onClick={() => onSelectTag(isActive ? null : t.tag)}
+                  onClick={() => onToggleTag(t.tag)}
                   className={`rounded-full px-2.5 py-0.5 text-xs transition-colors ${
                     isActive
                       ? "bg-[#FF4800] text-white"

@@ -234,7 +234,9 @@ export interface ListSpinsParams {
    *  query. Pass [] to mean "just this folder, not its subprojects"; the grid decides,
    *  the data layer doesn't guess. */
   descendantIds?: string[]
-  tag?: string | null
+  /** All of these must be present on a doc (Postgres array-contains-all, `tags @> tags`) —
+   *  each additional tag narrows the result, never widens it. Omit/empty for no filter. */
+  tags?: string[]
   query?: string | null
   from: number
   to: number
@@ -369,8 +371,8 @@ export async function listSpins(params: ListSpinsParams): Promise<Spin[]> {
     q = ids.length === 1 ? q.eq("project_id", ids[0]) : q.in("project_id", ids)
   }
 
-  if (params.tag) {
-    q = q.contains("tags", [params.tag])
+  if (params.tags && params.tags.length > 0) {
+    q = q.contains("tags", params.tags)
   }
 
   const term = params.query ? escapeIlike(params.query) : ""
