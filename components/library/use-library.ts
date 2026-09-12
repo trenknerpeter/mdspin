@@ -111,21 +111,25 @@ export function useLibrary() {
     setSelectionAnchor(null)
   }, [selectedProject, selectedTag, query])
 
+  // Tags are scoped to the active project, so they're refreshed on their own
+  // (refreshTags, below) rather than here — keeping this list's own dependency on []
+  // means it still only reloads once per session (see the "Sidebars load once" effect),
+  // instead of re-fetching the whole project tree on every project click.
   const refreshSidebars = useCallback(async () => {
-    // Folder rows are fetched alongside the rest rather than after listProjects, then
-    // folded locally — computeFolderSummaries only needs the project ids, so there's no
-    // reason to serialise the two requests.
-    const [p, t, s, folderRows] = await Promise.all([
+    const [p, s, folderRows] = await Promise.all([
       listProjects(),
-      listTags(),
       listSpinStats(),
       listFolderRows(),
     ])
     setProjects(p)
-    setTags(t)
     setStats(s)
     setFolders(computeFolderSummaries(folderRows, p))
   }, [])
+
+  const refreshTags = useCallback(async () => {
+    const t = await listTags(selectedProject)
+    setTags(t)
+  }, [selectedProject])
 
   const fetchSpins = useCallback(async () => {
     const token = ++fetchToken.current
@@ -168,6 +172,13 @@ export function useLibrary() {
     refreshSidebars().catch(() => {})
   }, [user, authLoading, refreshSidebars])
 
+  // Tags are scoped to the active project (global when none is selected, i.e. "All
+  // files"), so unlike the rest of the sidebar they also reload on project switches.
+  useEffect(() => {
+    if (authLoading || !user) return
+    refreshTags().catch(() => {})
+  }, [user, authLoading, selectedProject, refreshTags])
+
   const loadMore = useCallback(() => setLimit((n) => n + PAGE), [])
 
   // ---- Mutations ----
@@ -198,8 +209,9 @@ export function useLibrary() {
       if (selectedProject === id) setSelectedProject(null)
       await fetchSpins()
       await refreshSidebars()
+      await refreshTags()
     },
-    [selectedProject, fetchSpins, refreshSidebars]
+    [selectedProject, fetchSpins, refreshSidebars, refreshTags]
   )
 
   const saveSpin = useCallback(
@@ -210,6 +222,7 @@ export function useLibrary() {
       setSpins((prev) => prev.map((s) => (s.id === id ? { ...s, ...updated } : s)))
       setSelectedSpinExtra((prev) => (prev && prev.id === id ? { ...prev, ...updated } : prev))
       await refreshSidebars()
+      await refreshTags()
       // If the spin no longer matches the active project filter, drop it from the view.
       // Checked against `updated.project_ids` (derived from the just-saved conversions.project_id
       // column, via projectIdsFromColumn), not the save payload's singular `fields.project_id` —
@@ -230,7 +243,7 @@ export function useLibrary() {
         setSpins((prev) => prev.filter((s) => s.id !== id))
       }
     },
-    [selectedProject, descendantIds, refreshSidebars]
+    [selectedProject, descendantIds, refreshSidebars, refreshTags]
   )
 
   // New note: a note IS a vault doc the instant it's created, so it's prepended
@@ -241,8 +254,9 @@ export function useLibrary() {
     setSelectedSpinId(note.id)
     setSelectedSpinExtra(note) // already full content; no fetch needed
     await refreshSidebars()
+    await refreshTags()
     return note
-  }, [refreshSidebars])
+  }, [refreshSidebars, refreshTags])
 
   const patchSpinSummary = useCallback(
     (id: string, fields: { summary: string; summary_status: SummaryStatus; summary_generated_at: string }) => {
@@ -268,8 +282,9 @@ export function useLibrary() {
         setSelectedSpinExtra(null)
       }
       await refreshSidebars()
+      await refreshTags()
     },
-    [selectedSpinId, refreshSidebars]
+    [selectedSpinId, refreshSidebars, refreshTags]
   )
 
   const removeSpinFromVault = useCallback(
@@ -281,8 +296,9 @@ export function useLibrary() {
         setSelectedSpinExtra(null)
       }
       await refreshSidebars()
+      await refreshTags()
     },
-    [selectedSpinId, refreshSidebars]
+    [selectedSpinId, refreshSidebars, refreshTags]
   )
 
   // Prefer the fully-fetched record (has markdown_text) over the list row, which
@@ -337,8 +353,9 @@ export function useLibrary() {
       clearSelection()
       await fetchSpins()
       await refreshSidebars()
+      await refreshTags()
     },
-    [selectedIds, clearSelection, fetchSpins, refreshSidebars]
+    [selectedIds, clearSelection, fetchSpins, refreshSidebars, refreshTags]
   )
 
   const openSpin = useCallback(async (id: string) => {
