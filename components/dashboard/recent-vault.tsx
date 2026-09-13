@@ -18,7 +18,7 @@ const formatDate = (iso: string) =>
 // the same design component side by side.
 export function RecentVault({ docs, projects }: { docs: Spin[]; projects: Project[] }) {
   return (
-    <div className="rounded-xl border border-[#2A2A2A] bg-[#161616]">
+    <div className="flex h-full flex-col rounded-xl border border-[#2A2A2A] bg-[#161616]">
       <div className="flex items-center justify-between border-b border-[#2A2A2A] px-5 py-3">
         <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4A4A46]">
           Recently added to Vault

@@ -13,7 +13,10 @@ const formatDate = (iso: string) =>
 // never a guess.
 //
 // Shares DashboardListRow with RecentVault (count then date, in that order)
-// so the two cards read as the same design component side by side.
+// so the two cards read as the same design component side by side. The header
+// is a flex row for the same reason: as a block it would inherit the parent's
+// line strut and sit ~9px taller than RecentVault's flex header. Both cards are
+// h-full so the shorter list stretches to the taller one instead of ending mid-row.
 //
 // Only top-level projects are listed. Subprojects would otherwise show up here as
 // peers of their own parent, with small counts, making the dashboard disagree with
@@ -38,8 +41,8 @@ export function ProjectsRail({
       .pop()
 
   return (
-    <div className="rounded-xl border border-[#2A2A2A] bg-[#161616]">
-      <div className="border-b border-[#2A2A2A] px-5 py-3">
+    <div className="flex h-full flex-col rounded-xl border border-[#2A2A2A] bg-[#161616]">
+      <div className="flex items-center border-b border-[#2A2A2A] px-5 py-3">
         <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4A4A46]">
           Projects
         </span>
