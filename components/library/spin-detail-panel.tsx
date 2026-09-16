@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Copy, Download, Trash2, Check } from "lucide-react"
+import { Copy, Download, Trash2, Check, GitBranch, Unlock } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { TagInput } from "@/components/library/tag-input"
 import { MarkdownEditor, type EditorMode } from "@/components/library/markdown-editor"
@@ -28,6 +28,7 @@ export function SpinDetailPanel({
   onSave,
   onDelete,
   onRemoveFromVault,
+  onDetach,
   onOpen,
   onBriefGenerated,
   onSummaryGenerated,
@@ -38,6 +39,10 @@ export function SpinDetailPanel({
   onSave: (id: string, fields: UpdateSpinFields) => Promise<void>
   onDelete: (id: string) => Promise<void>
   onRemoveFromVault?: (id: string) => Promise<void>
+  /** Permanently unlink a synced document so its body/title become editable again.
+   *  Absent from callers (e.g. the Knowledge Map's own panel) that haven't wired it
+   *  up yet — those just don't offer the button. */
+  onDetach?: (id: string) => Promise<void>
   onOpen?: (id: string) => void
   onBriefGenerated?: (id: string, brief: string, generatedAt: string) => void
   onSummaryGenerated?: (
@@ -52,6 +57,7 @@ export function SpinDetailPanel({
   const [editorMode, setEditorMode] = useState<EditorMode>("preview")
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [detaching, setDetaching] = useState(false)
   const [copied, setCopied] = useState(false)
   const [relatedCount, setRelatedCount] = useState(0)
   const [relatedLoading, setRelatedLoading] = useState(true)
@@ -128,11 +134,17 @@ export function SpinDetailPanel({
     !sameTags(tags, spin.tags ?? []) ||
     content !== (spin.markdown_text ?? "")
 
+  // A linked sync doc is read-only at the database (conversions_source_link_guard
+  // rejects the write outright) — this just keeps the UI from offering an edit that
+  // would fail, rather than being the thing that actually enforces it.
+  const isLinkedSync = spin.source_type === "sync" && spin.source_link_state === "linked"
+
   // Rewriting an imported document is allowed here (people fix bad OCR), but the
   // source_type check exists elsewhere (MCP write tools, Stage 4) where an agent
   // — not a human who can see what they're doing — is the one making the edit.
-  const editHint =
-    spin.source_type === "conversion"
+  const editHint = isLinkedSync
+    ? "Synced from GitHub — detach to edit"
+    : spin.source_type === "conversion"
       ? "Editing converted markdown"
       : spin.source_type === "upload"
         ? "Editing an uploaded file"
@@ -141,16 +153,33 @@ export function SpinDetailPanel({
   const handleSave = async () => {
     setSaving(true)
     try {
-      await onSave(spin.id, {
+      const fields: UpdateSpinFields = {
         title: title.trim() === "" ? null : title.trim(),
         project_id: projectId === UNFILED ? null : projectId,
         tags,
-        markdown_text: content,
-      })
+      }
+      // Only include markdown_text when it actually changed. Sending it unconditionally
+      // (as this used to) burns a summary regeneration on every tag-only edit, and would
+      // trip the source-link guard on a linked sync doc even though the UI never let the
+      // content field change.
+      if (content !== (spin.markdown_text ?? "")) {
+        fields.markdown_text = content
+      }
+      await onSave(spin.id, fields)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDetach = async () => {
+    if (!onDetach) return
+    setDetaching(true)
+    try {
+      await onDetach(spin.id)
+    } finally {
+      setDetaching(false)
     }
   }
 
@@ -232,6 +261,25 @@ export function SpinDetailPanel({
             Source: <span className="uppercase">{spin.file_type}</span>
             {spin.word_count != null && <> · {spin.word_count.toLocaleString()} words</>}
           </p>
+          {spin.source_type === "sync" && (
+            <div className="flex items-center gap-1.5 pt-1 text-xs text-[#888480]">
+              <GitBranch className="h-3 w-3 shrink-0" />
+              {spin.source_link_state === "missing" ? (
+                <span>No longer found at the source</span>
+              ) : spin.external_url ? (
+                <a
+                  href={spin.external_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="truncate underline decoration-dotted hover:text-[#F0EDE8]"
+                >
+                  Synced from GitHub
+                </a>
+              ) : (
+                <span>Synced from GitHub</span>
+              )}
+            </div>
+          )}
         </SheetHeader>
 
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
@@ -241,7 +289,8 @@ export function SpinDetailPanel({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={spin.filename}
-              className={inputBase}
+              disabled={isLinkedSync}
+              className={inputBase + " disabled:opacity-50"}
             />
           </div>
 
@@ -312,8 +361,20 @@ export function SpinDetailPanel({
             onModeChange={setEditorMode}
             onSaveShortcut={handleSave}
             hint={editHint}
-            disabled={saving}
+            disabled={saving || isLinkedSync}
           />
+
+          {isLinkedSync && onDetach && (
+            <button
+              onClick={handleDetach}
+              disabled={detaching}
+              className="flex items-center justify-center gap-1.5 self-start rounded-full border border-[#2A2A2A] px-3 py-1.5 text-xs font-medium text-[#888480] transition-colors hover:border-[#4A4A46] hover:text-[#F0EDE8] disabled:cursor-not-allowed disabled:opacity-40"
+              title="Permanently unlink this document from its source connection so you can edit it"
+            >
+              <Unlock className="h-3.5 w-3.5" />
+              {detaching ? "Detaching…" : "Detach to edit"}
+            </button>
+          )}
 
           <RelatedSpins
             sourceIds={[spin.id]}

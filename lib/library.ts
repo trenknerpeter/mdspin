@@ -7,8 +7,17 @@ import type { SummaryStatus } from "@/lib/vault/summary"
 export const UNFILED = "__unfiled__"
 
 // 'conversion' covers every existing row (the DB default); the rest are the
-// provenance values Stage 1 ingest introduces.
-export type SourceType = "conversion" | IngestSourceType
+// provenance values Stage 1 ingest introduces. 'sync' is added directly here rather
+// than to IngestSourceType — that union is closed to the values browser ingest itself
+// writes (lib/vault/ingest.ts buildIngestDoc), and a synced row is never created there.
+export type SourceType = "conversion" | IngestSourceType | "sync"
+
+/** conversions.source_link_state — only meaningful when source_connection_id is set.
+ *  'linked' means the body/title are a read-only mirror (enforced by the
+ *  conversions_source_link_guard trigger, not just in the UI); 'detached' means the
+ *  user took ownership and future syncs skip this row; 'missing' means the file no
+ *  longer exists at the source but the document is kept, not deleted. */
+export type SourceLinkState = "linked" | "detached" | "missing"
 
 export interface Project {
   id: string
@@ -44,6 +53,11 @@ export interface Spin {
   summary_status: SummaryStatus | null
   summary_generated_at: string | null
   source_bytes: number | null
+  /** Set only when source_type === "sync". Deep link back to the source (e.g. the
+   *  GitHub blob URL) and the mirror state — see SourceLinkState. */
+  external_url: string | null
+  source_link_state: SourceLinkState | null
+  source_connection_id: string | null
 }
 
 /** Raw `conversions` row shape as selected by this file's queries — still carries the
@@ -70,6 +84,9 @@ interface ConversionRow {
   summary_status: SummaryStatus | null
   summary_generated_at: string | null
   source_bytes: number | null
+  external_url?: string | null
+  source_link_state?: SourceLinkState | null
+  source_connection_id?: string | null
 }
 
 export function toSpin(row: ConversionRow, projectIds: string[]): Spin {
@@ -93,6 +110,9 @@ export function toSpin(row: ConversionRow, projectIds: string[]): Spin {
     summary_status: row.summary_status,
     summary_generated_at: row.summary_generated_at,
     source_bytes: row.source_bytes,
+    external_url: row.external_url ?? null,
+    source_link_state: row.source_link_state ?? null,
+    source_connection_id: row.source_connection_id ?? null,
   }
 }
 
@@ -313,7 +333,7 @@ export async function deleteProject(id: string) {
 
 // Shared by both field lists below; markdown_text is the one column that differs.
 const SPIN_COMMON_FIELDS =
-  "id, filename, title, file_type, word_count, project_id, tags, in_vault, source_type, converted_at, updated_at, version, brief, brief_generated_at, summary, summary_status, summary_generated_at, source_bytes"
+  "id, filename, title, file_type, word_count, project_id, tags, in_vault, source_type, converted_at, updated_at, version, brief, brief_generated_at, summary, summary_status, summary_generated_at, source_bytes, external_url, source_link_state, source_connection_id"
 
 // Used by listSpins/listHistory. Omits markdown_text: a single document can be
 // 2.4MB, and list pages fetch up to 100 rows on every filter change. PostgREST
@@ -459,6 +479,27 @@ export async function updateSpin(id: string, fields: UpdateSpinFields): Promise<
   const { data, error } = await supabase
     .from("conversions")
     .update(payload)
+    .eq("id", id)
+    .select(SPIN_DETAIL_FIELDS)
+    .single()
+  if (error) throw error
+  const row = data as ConversionRow
+  return toSpin(row, projectIdsFromColumn(row))
+}
+
+// Permanently unlink a synced document from its source connection's mirror rule.
+// The row keeps source_connection_id and external_id (so the unique index still
+// prevents the next sync from re-creating a duplicate at the same path) but
+// source_link_state flips to 'detached', which is the ONE thing the
+// conversions_source_link_guard trigger checks before allowing a body/title edit —
+// and the ONE thing vault_upsert_synced_document checks before it will touch this
+// row again. There is no way back from this via the UI; it's a one-way "this is
+// mine now."
+export async function detachSpin(id: string): Promise<Spin> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from("conversions")
+    .update({ source_link_state: "detached", source_type: "upload" })
     .eq("id", id)
     .select(SPIN_DETAIL_FIELDS)
     .single()

@@ -60,6 +60,17 @@ export const EMBED_REQUEST_BATCH = 1
  *  processing needs a long budget anymore. */
 export const EMBED_BACKFILL_TIMEOUT_MS = 45_000
 
+/** Markdown files per source connection. A repo over this is refused with a clear
+ *  message at connect time — matching MAX_IMPORT_FILES's stated policy of "refused,
+ *  never silently truncated" — rather than importing the first N files and calling
+ *  it done while GitHub's own `truncated` flag says otherwise. */
+export const MAX_SYNC_FILES = 300
+/** Files fetched (blob + upsert) per backfill invocation. Sized to stay well under
+ *  Vercel's 60s serverless limit even at a pessimistic ~1s/file (network + upsert), with
+ *  headroom for the tree listing itself; a repo over this budget resumes from a cursor
+ *  on the next "Continue backfill" call rather than one long request racing the timeout. */
+export const GITHUB_BACKFILL_BATCH_SIZE = 25
+
 export function isIngestExt(filename: string): boolean {
   const ext = filename.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1]
   return !!ext && (INGEST_EXTS as readonly string[]).includes(ext)

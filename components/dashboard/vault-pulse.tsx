@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import { Plug, Upload, PenLine, FileText, Code, Library } from "lucide-react"
+import { Plug, Upload, PenLine, FileText, Code, Library, GitBranch } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, type TooltipProps } from "recharts"
 import {
@@ -19,6 +19,7 @@ const SOURCE_ICONS: Record<string, LucideIcon> = {
   note: PenLine,
   conversion: FileText,
   api: Code,
+  sync: GitBranch,
 }
 
 const WINDOW_OPTIONS = [

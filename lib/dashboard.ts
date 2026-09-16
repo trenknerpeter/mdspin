@@ -220,6 +220,7 @@ const SOURCE_LABELS: Record<string, string> = {
   note: "Written here",
   conversion: "Converted",
   api: "Via API",
+  sync: "Synced from GitHub",
 }
 
 // Passthrough fallback is deliberate: it absorbs any future source_type

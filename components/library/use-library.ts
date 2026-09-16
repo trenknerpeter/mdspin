@@ -8,6 +8,7 @@ import {
   createProject,
   deleteProject,
   deleteSpin,
+  detachSpin,
   getSpin,
   listFolderRows,
   listProjects,
@@ -299,6 +300,12 @@ export function useLibrary() {
     [selectedSpinId, refreshSidebars, refreshTags]
   )
 
+  const detachSpinById = useCallback(async (id: string) => {
+    const updated = await detachSpin(id)
+    setSpins((prev) => prev.map((s) => (s.id === id ? { ...s, ...updated } : s)))
+    setSelectedSpinExtra((prev) => (prev && prev.id === id ? { ...prev, ...updated } : prev))
+  }, [])
+
   const removeSpinFromVault = useCallback(
     async (id: string) => {
       await removeFromVault(id)
@@ -450,6 +457,7 @@ export function useLibrary() {
     patchSpinBrief,
     removeSpin,
     removeSpinFromVault,
+    detachSpin: detachSpinById,
     reload: fetchSpins,
   }
 }

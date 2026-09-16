@@ -11,6 +11,8 @@ import type {
   VaultRelatedDocument,
   VaultSearchResult,
   VaultStats,
+  UpsertSyncedDocumentResult,
+  SourceConnection,
 } from "./types"
 
 export function documentToJson(doc: VaultDocument) {
@@ -80,6 +82,31 @@ function pageInfoToJson(info: PageInfo) {
     total: info.total,
     has_more: info.hasMore,
     next_offset: info.nextOffset,
+  }
+}
+
+export function upsertSyncedDocumentToJson(result: UpsertSyncedDocumentResult) {
+  return {
+    action: result.action,
+    document: {
+      ...documentToJson(result.document),
+      external_id: result.document.externalId,
+      external_url: result.document.externalUrl,
+      source_link_state: result.document.sourceLinkState,
+    },
+  }
+}
+
+export function sourceConnectionToJson(c: SourceConnection) {
+  return {
+    id: c.id,
+    provider: c.provider,
+    display_name: c.displayName,
+    config: c.config,
+    status: c.status,
+    last_synced_at: c.lastSyncedAt,
+    last_error: c.lastError,
+    created_at: c.createdAt,
   }
 }
 

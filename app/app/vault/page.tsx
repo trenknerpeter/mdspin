@@ -133,6 +133,7 @@ export default function VaultPage() {
         onSave={lib.saveSpin}
         onDelete={lib.removeSpin}
         onRemoveFromVault={lib.removeSpinFromVault}
+        onDetach={lib.detachSpin}
         onOpen={lib.openSpin}
         onBriefGenerated={lib.patchSpinBrief}
         onSummaryGenerated={lib.patchSpinSummary}

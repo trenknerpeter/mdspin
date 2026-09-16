@@ -1,7 +1,7 @@
 // Pure row -> domain mapping. Isolated from repo.ts so the DB's column-naming
 // conventions (snake_case, singular `project_id`) never leak past this one seam.
 
-import type { ProjectPatch, VaultDocument, VaultDocumentPatch, VaultProject, VaultRelatedDocument, VaultSearchResult, VaultStats } from "./types"
+import type { ProjectPatch, VaultDocument, VaultDocumentPatch, VaultProject, VaultRelatedDocument, VaultSearchResult, VaultStats, SourceConnection, SourceConnectionPatch, SourceLinkState, UpsertSyncedDocumentAction, UpsertSyncedDocumentResult } from "./types"
 
 /** Shape of a `conversions` row as selected by repo.ts. `markdown_text` is absent from
  *  the row entirely on list queries (repo.ts omits the column — one doc is 2.4MB) and
@@ -138,4 +138,66 @@ export function buildProjectPatchPayload(patch: ProjectPatch): Record<string, un
   if ("instructions" in patch) payload.instructions = patch.instructions
   if ("parentId" in patch) payload.parent_id = patch.parentId
   return payload
+}
+
+export interface SourceConnectionRow {
+  id: string
+  provider: string
+  display_name: string
+  config: Record<string, unknown> | null
+  external_account_id: string
+  status: string
+  last_synced_at: string | null
+  last_error: string | null
+  created_at: string
+}
+
+export function toSourceConnection(row: SourceConnectionRow): SourceConnection {
+  return {
+    id: row.id,
+    provider: row.provider as SourceConnection["provider"],
+    displayName: row.display_name,
+    config: row.config ?? {},
+    externalAccountId: row.external_account_id,
+    status: row.status as SourceConnection["status"],
+    lastSyncedAt: row.last_synced_at,
+    lastError: row.last_error,
+    createdAt: row.created_at,
+  }
+}
+
+export function buildSourceConnectionPatchPayload(patch: SourceConnectionPatch): Record<string, unknown> {
+  const payload: Record<string, unknown> = {}
+  if ("displayName" in patch) payload.display_name = patch.displayName
+  if ("config" in patch) payload.config = patch.config
+  if ("status" in patch) payload.status = patch.status
+  if ("lastSyncedSha" in patch) payload.last_synced_sha = patch.lastSyncedSha
+  if ("lastSyncedAt" in patch) payload.last_synced_at = patch.lastSyncedAt
+  if ("lastError" in patch) payload.last_error = patch.lastError
+  return payload
+}
+
+/** Row shape returned by vault_upsert_synced_document — a superset of ConversionRow's
+ *  columns plus the sync-specific ones and the `action` the RPC took. */
+export interface UpsertSyncedDocumentRow extends ConversionRow {
+  action: string
+  external_id: string | null
+  external_url: string | null
+  source_content_hash: string | null
+  source_link_state: string
+}
+
+export function toUpsertSyncedDocumentResult(
+  row: UpsertSyncedDocumentRow,
+  projectIds: string[]
+): UpsertSyncedDocumentResult {
+  return {
+    action: row.action as UpsertSyncedDocumentAction,
+    document: {
+      ...toVaultDocument(row, projectIds),
+      externalId: row.external_id,
+      externalUrl: row.external_url,
+      sourceLinkState: row.source_link_state as SourceLinkState,
+    },
+  }
 }

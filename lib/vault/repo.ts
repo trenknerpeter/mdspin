@@ -10,13 +10,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
 import type { CursorPage, DocumentCursor, DocumentFilter, GetDocumentOptions, Page, SearchOptions, UpdateDocumentOptions, VaultDocument, VaultDocumentPatch, VaultProject, VaultRelatedDocument, VaultScope, VaultSearchResult, VaultStats } from "./types"
-import type { AppendToDocumentOptions, CreateDocumentInput, CreateProjectInput, OrganizeDocumentOptions, ProjectPatch } from "./types"
-import { buildDocumentPatchPayload, buildProjectPatchPayload, projectIdsFromColumn, toVaultDocument, toVaultProject, toVaultRelatedDocument, toVaultSearchResult, toVaultStats, type ConversionRow, type ProjectRow, type RelatedDocumentRow, type SearchRow, type StatsRow } from "./mappers"
+import type { AppendToDocumentOptions, CreateDocumentInput, CreateProjectInput, OrganizeDocumentOptions, ProjectPatch, SourceConnection, CreateSourceConnectionInput, SourceConnectionPatch, UpsertSyncedDocumentInput, UpsertSyncedDocumentResult } from "./types"
+import { buildDocumentPatchPayload, buildProjectPatchPayload, projectIdsFromColumn, toVaultDocument, toVaultProject, toVaultRelatedDocument, toVaultSearchResult, toVaultStats, toSourceConnection, buildSourceConnectionPatchPayload, toUpsertSyncedDocumentResult, type ConversionRow, type ProjectRow, type RelatedDocumentRow, type SearchRow, type StatsRow, type SourceConnectionRow, type UpsertSyncedDocumentRow } from "./mappers"
 import { clampLimit, clampOffset, buildPage, escapeIlikeTerm, isValidUuid, isValidTimestamp } from "./query"
 import { VaultError } from "./errors"
 import { embedQueryOrNull } from "./embeddings"
 import { deriveFilenameFromTitle, deriveTitle } from "./title"
 import { countWords } from "./text"
+import { normalizeForHash, sha256Hex } from "./hash"
+
+const SOURCE_CONNECTION_COLUMNS =
+  "id, provider, display_name, config, external_account_id, status, last_synced_at, last_error, created_at"
 
 /** The projects_single_level trigger and the composite parent FK both reject bad nesting
  *  at the database. Surface those as INVALID_REQUEST rather than letting a raw 23514 /
@@ -116,6 +120,22 @@ export interface VaultRepo {
     limit?: number
     cursor?: DocumentCursor
   }): Promise<CursorPage<VaultDocument>>
+  upsertSyncedDocument(input: UpsertSyncedDocumentInput): Promise<UpsertSyncedDocumentResult>
+  /** Mark documents 'missing' by (connectionId, externalId) — the file no longer exists
+   *  at the source, but the document is KEPT, never deleted (see the design's "never
+   *  delete" rule). A plain scoped update, not an RPC: this touches neither
+   *  markdown_text nor title, so the source-link guard trigger never fires on it. */
+  markDocumentsMissing(connectionId: string, externalIds: string[]): Promise<void>
+  listExternalIdsForConnection(connectionId: string): Promise<string[]>
+  /** Flip every 'manual'-status document under this connection to 'pending' — the
+   *  accelerator for a fresh backfill (see the Stage 1 throughput decision for why
+   *  backfill itself doesn't enqueue automatically). Returns the count enqueued. */
+  enqueueManualSummaries(connectionId: string): Promise<number>
+  listSourceConnections(): Promise<SourceConnection[]>
+  getSourceConnection(id: string): Promise<SourceConnection | null>
+  createSourceConnection(input: CreateSourceConnectionInput): Promise<SourceConnection>
+  updateSourceConnection(id: string, patch: SourceConnectionPatch): Promise<SourceConnection>
+  deleteSourceConnection(id: string): Promise<void>
 }
 
 /**
@@ -486,6 +506,165 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
         rows.length === limit && last ? { updatedAt: last.updated_at, id: last.id } : null
 
       return { data: docs, nextCursor }
+    },
+
+    async upsertSyncedDocument(input: UpsertSyncedDocumentInput): Promise<UpsertSyncedDocumentResult> {
+      const normalized = normalizeForHash(input.markdown)
+      // Frontmatter-only stub pages are common in docs repos and normalize to "" —
+      // matching buildIngestDoc's browser-side "skip: empty" guard rather than syncing
+      // a document with no content.
+      if (!normalized) {
+        throw new VaultError("INVALID_REQUEST", "Document body is empty after normalization.")
+      }
+      const hash = await sha256Hex(normalized)
+      // Unlike the browser ingest path (where null means "insecure context, let the
+      // server compute it"), THIS is the server — there is no further fallback. A null
+      // hash here must be a hard error, never "skip dedup", or change detection would
+      // silently no-op forever.
+      if (!hash) {
+        throw new VaultError("DB_ERROR", "Could not compute a content hash for this document.")
+      }
+
+      const title = input.title?.trim() || deriveTitle({ body: input.markdown, filename: null })
+      const filename = deriveFilenameFromTitle(title)
+
+      const { data, error } = await client.rpc("vault_upsert_synced_document", {
+        p_user_id: scope.userId,
+        p_connection_id: input.connectionId,
+        p_external_id: input.externalId,
+        p_external_url: input.externalUrl ?? null,
+        p_title: title,
+        p_filename: filename,
+        p_markdown: input.markdown,
+        p_word_count: countWords(input.markdown),
+        p_source_content_hash: hash,
+        p_project_id: input.projectId ?? null,
+        p_tags: input.tags ?? [],
+        p_summary_status: input.summaryStatus ?? "pending",
+      })
+      if (error) {
+        if (error.code === "28000") throw new VaultError("AUTH_REQUIRED", "Not authorized.")
+        if (error.code === "22023") throw new VaultError("INVALID_REQUEST", error.message || error.details)
+        throw new VaultError("DB_ERROR", error.message)
+      }
+      const rows = (data ?? []) as UpsertSyncedDocumentRow[]
+      if (!rows[0]) throw new VaultError("DB_ERROR", "Upsert returned no row.")
+      const projectIdsByDoc = await fetchProjectIdsByDocument(client, scope, [rows[0].id])
+      return toUpsertSyncedDocumentResult(rows[0], projectIdsByDoc.get(rows[0].id) ?? projectIdsFromColumn(rows[0]))
+    },
+
+    async markDocumentsMissing(connectionId: string, externalIds: string[]): Promise<void> {
+      if (externalIds.length === 0) return
+      const { error } = await scoped(
+        client.from("conversions").update({ source_link_state: "missing" }),
+        scope
+      )
+        .eq("source_connection_id", connectionId)
+        .eq("source_link_state", "linked") // never overwrite a 'detached' row
+        .in("external_id", externalIds)
+      if (error) throw new VaultError("DB_ERROR", error.message)
+    },
+
+    async listExternalIdsForConnection(connectionId: string): Promise<string[]> {
+      const { data, error } = await scoped(
+        client.from("conversions").select("external_id"),
+        scope
+      )
+        .eq("source_connection_id", connectionId)
+        .eq("source_link_state", "linked")
+        .not("external_id", "is", null)
+      if (error) throw new VaultError("DB_ERROR", error.message)
+      return ((data ?? []) as { external_id: string }[]).map((r) => r.external_id)
+    },
+
+    async enqueueManualSummaries(connectionId: string): Promise<number> {
+      const { data, error } = await scoped(
+        client.from("conversions").update({ summary_status: "pending", summary_attempts: 0 }),
+        scope
+      )
+        .eq("source_connection_id", connectionId)
+        .eq("summary_status", "manual")
+        .select("id")
+      if (error) throw new VaultError("DB_ERROR", error.message)
+      return (data ?? []).length
+    },
+
+    async listSourceConnections(): Promise<SourceConnection[]> {
+      const { data, error } = await scoped(
+        client.from("source_connections").select(SOURCE_CONNECTION_COLUMNS),
+        scope
+      ).order("created_at", { ascending: true })
+      if (error) throw new VaultError("DB_ERROR", error.message)
+      return ((data ?? []) as SourceConnectionRow[]).map(toSourceConnection)
+    },
+
+    async getSourceConnection(id: string): Promise<SourceConnection | null> {
+      const { data, error } = await scoped(
+        client.from("source_connections").select(SOURCE_CONNECTION_COLUMNS),
+        scope
+      )
+        .eq("id", id)
+        .maybeSingle()
+      if (error) throw new VaultError("DB_ERROR", error.message)
+      return data ? toSourceConnection(data as SourceConnectionRow) : null
+    },
+
+    async createSourceConnection(input: CreateSourceConnectionInput): Promise<SourceConnection> {
+      const { data, error } = await client
+        .from("source_connections")
+        .insert({
+          user_id: scope.userId,
+          provider: input.provider,
+          display_name: input.displayName,
+          config: input.config,
+          external_account_id: input.externalAccountId,
+        })
+        .select(SOURCE_CONNECTION_COLUMNS)
+        .single()
+      if (error) {
+        // (provider, external_account_id) unique — the ownership-verification step in
+        // the callback route should have caught this first, but the constraint is the
+        // actual security boundary; surface it as a client error, not a 500.
+        if (error.code === "23505") {
+          throw new VaultError("INVALID_REQUEST", "This installation is already connected.")
+        }
+        throw new VaultError("DB_ERROR", error.message)
+      }
+      return toSourceConnection(data as SourceConnectionRow)
+    },
+
+    async updateSourceConnection(id: string, patch: SourceConnectionPatch): Promise<SourceConnection> {
+      const payload = buildSourceConnectionPatchPayload(patch)
+      if (Object.keys(payload).length === 0) {
+        throw new VaultError("INVALID_REQUEST", "Patch must include at least one field to update.")
+      }
+      const { data, error } = await scoped(
+        client.from("source_connections").update(payload),
+        scope
+      )
+        .eq("id", id)
+        .select(SOURCE_CONNECTION_COLUMNS)
+        .maybeSingle()
+      if (error) throw new VaultError("DB_ERROR", error.message)
+      if (!data) throw new VaultError("NOT_FOUND", "Connection not found.")
+      return toSourceConnection(data as SourceConnectionRow)
+    },
+
+    async deleteSourceConnection(id: string): Promise<void> {
+      // Delegates to the RPC rather than a plain .delete(): the FK from conversions is
+      // ON DELETE RESTRICT specifically so this can't happen without first detaching
+      // every member document in the SAME transaction (see disconnect_source_connection).
+      // p_user_id is passed explicitly (not left to auth.uid()) because this must be
+      // just as safe under the service-role/API-key path as under a cookie session —
+      // see that migration's comment for the bug this fixes.
+      const { error } = await client.rpc("disconnect_source_connection", {
+        p_user_id: scope.userId,
+        p_connection_id: id,
+      })
+      if (error) {
+        if (error.code === "P0002") throw new VaultError("NOT_FOUND", "Connection not found.")
+        throw new VaultError("DB_ERROR", error.message)
+      }
     },
   }
 }

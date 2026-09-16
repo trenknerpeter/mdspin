@@ -34,7 +34,7 @@ function fakeRepo(overrides: Partial<VaultRepo> = {}): VaultRepo {
       throw new Error("not used in this test")
     },
     ...overrides,
-  }
+  } as VaultRepo
 }
 
 describe("runSearch", () => {

@@ -844,3 +844,85 @@ describe("updateProject", () => {
     await expect(repo.updateProject("nope", { name: "x" })).rejects.toMatchObject({ code: "NOT_FOUND" })
   })
 })
+
+describe("upsertSyncedDocument", () => {
+  const UPSERT_ROW = {
+    id: "doc-1", action: "inserted", filename: "test.md", title: "Test Doc", file_type: "md",
+    word_count: 3, project_id: null, tags: [], source_type: "sync",
+    converted_at: "2026-09-16T00:00:00Z", updated_at: "2026-09-16T00:00:00Z", version: 1,
+    external_id: "docs/test.md", external_url: "https://github.com/x/y/blob/main/docs/test.md",
+    source_content_hash: "hash1", source_link_state: "linked", summary: null, summary_status: "pending",
+  }
+
+  it("computes the content hash server-side and calls the RPC with explicit p_user_id", async () => {
+    const client = new FakeClient(
+      { document_projects: { data: [], error: null } },
+      { vault_upsert_synced_document: { data: [UPSERT_ROW], error: null } }
+    )
+    const repo = createVaultRepo(client as never, SCOPE)
+    const result = await repo.upsertSyncedDocument({
+      connectionId: "conn-1",
+      externalId: "docs/test.md",
+      markdown: "# Test Doc\nbody",
+    })
+
+    expect(result.action).toBe("inserted")
+    expect(result.document.id).toBe("doc-1")
+    expect(result.document.externalId).toBe("docs/test.md")
+    expect(result.document.sourceLinkState).toBe("linked")
+
+    const call = client.rpcCalls.find((c) => c.name === "vault_upsert_synced_document")
+    expect(call?.args).toMatchObject({
+      p_user_id: "user-123",
+      p_connection_id: "conn-1",
+      p_external_id: "docs/test.md",
+      p_markdown: "# Test Doc\nbody",
+    })
+    // A hash was computed and forwarded — the exact value doesn't matter here (that's
+    // hash.ts's own test surface), only that it's a non-empty string, never undefined.
+    expect(typeof (call?.args as Record<string, unknown>).p_source_content_hash).toBe("string")
+  })
+
+  it("rejects a body that normalizes to empty WITHOUT calling the RPC", async () => {
+    const client = new FakeClient({}, { vault_upsert_synced_document: { data: [UPSERT_ROW], error: null } })
+    const repo = createVaultRepo(client as never, SCOPE)
+    // Frontmatter-only: normalizeForHash strips it, leaving "".
+    await expect(
+      repo.upsertSyncedDocument({ connectionId: "conn-1", externalId: "docs/empty.md", markdown: "---\ntitle: x\n---\n" })
+    ).rejects.toMatchObject({ code: "INVALID_REQUEST" })
+    expect(client.rpcCalls).toHaveLength(0)
+  })
+
+  it("maps a 22023 RPC error to INVALID_REQUEST — connection or project not owned by this user", async () => {
+    const client = new FakeClient({}, {
+      vault_upsert_synced_document: { data: null, error: { code: "22023", message: "INVALID_REQUEST" } },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(
+      repo.upsertSyncedDocument({ connectionId: "not-mine", externalId: "a.md", markdown: "# A" })
+    ).rejects.toMatchObject({ code: "INVALID_REQUEST" })
+  })
+
+  it("maps a 28000 RPC error to AUTH_REQUIRED", async () => {
+    const client = new FakeClient({}, {
+      vault_upsert_synced_document: { data: null, error: { code: "28000", message: "AUTH_REQUIRED" } },
+    })
+    const repo = createVaultRepo(client as never, SCOPE)
+    await expect(
+      repo.upsertSyncedDocument({ connectionId: "conn-1", externalId: "a.md", markdown: "# A" })
+    ).rejects.toMatchObject({ code: "AUTH_REQUIRED" })
+  })
+
+  it("passes summaryStatus through when given (backfill's 'manual' status)", async () => {
+    const client = new FakeClient(
+      { document_projects: { data: [], error: null } },
+      { vault_upsert_synced_document: { data: [{ ...UPSERT_ROW, summary_status: "manual" }], error: null } }
+    )
+    const repo = createVaultRepo(client as never, SCOPE)
+    await repo.upsertSyncedDocument({
+      connectionId: "conn-1", externalId: "a.md", markdown: "# A body", summaryStatus: "manual",
+    })
+    const call = client.rpcCalls.find((c) => c.name === "vault_upsert_synced_document")
+    expect(call?.args).toMatchObject({ p_summary_status: "manual" })
+  })
+})

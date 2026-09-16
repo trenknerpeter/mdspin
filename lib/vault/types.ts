@@ -158,6 +158,81 @@ export interface OrganizeDocumentOptions {
   reason?: string
 }
 
+export type SourceConnectionProvider = "github"
+export type SourceConnectionStatus = "active" | "paused" | "error" | "revoked"
+
+/** A live link to an external source (Stage 1: GitHub only). One row per connected
+ *  repo+branch; documents point back at it via conversions.source_connection_id. */
+export interface SourceConnection {
+  id: string
+  provider: SourceConnectionProvider
+  displayName: string
+  config: Record<string, unknown>
+  /** GitHub App installation id. Non-secret (GitHub-controlled, visible to anyone who
+   *  can see the installation itself) but not part of `config` and deliberately left
+   *  out of sourceConnectionToJson's wire format — nothing about it is useful to the
+   *  browser, only to server-side code minting installation tokens. */
+  externalAccountId: string
+  status: SourceConnectionStatus
+  lastSyncedAt: string | null
+  lastError: string | null
+  createdAt: string
+}
+
+export interface CreateSourceConnectionInput {
+  provider: SourceConnectionProvider
+  displayName: string
+  config: Record<string, unknown>
+  externalAccountId: string
+}
+
+/** Only keys present are changed, same convention as VaultDocumentPatch. */
+export type SourceConnectionPatch = Partial<{
+  displayName: string
+  config: Record<string, unknown>
+  status: SourceConnectionStatus
+  lastSyncedSha: string | null
+  lastSyncedAt: string | null
+  lastError: string | null
+}>
+
+/** conversions.source_link_state. See lib/library.ts's SourceLinkState for the
+ *  browser-layer twin of this type — deliberately duplicated, not shared, matching
+ *  this file's existing independence from lib/library.ts. */
+export type SourceLinkState = "linked" | "detached" | "missing"
+
+/** Input to upsertSyncedDocument. project_id/tags are ONLY applied on a brand-new
+ *  insert (or when adopting a hand-uploaded row that has neither yet) — an existing
+ *  synced document's filing is the user's, never overwritten by a later sync. */
+export interface UpsertSyncedDocumentInput {
+  connectionId: string
+  /** Stable id within the connection's namespace — e.g. a repo-relative file path.
+   *  This plus connectionId is the idempotency key: same pair in twice is a no-op or
+   *  an update, never a duplicate. */
+  externalId: string
+  externalUrl?: string | null
+  title?: string | null
+  markdown: string
+  projectId?: string | null
+  tags?: string[]
+  /** 'pending' queues it for the next summary drain; 'manual' (the default for a
+   *  first-time backfill — see the Stage 1 throughput decision) leaves it for a
+   *  human or a per-connection "Summarize these" action to enqueue explicitly. */
+  summaryStatus?: "pending" | "manual"
+}
+
+export type UpsertSyncedDocumentAction =
+  | "inserted"
+  | "adopted"
+  | "updated"
+  | "unchanged"
+  | "skipped_detached"
+
+export interface UpsertSyncedDocumentResult {
+  action: UpsertSyncedDocumentAction
+  document: VaultDocument & { externalId: string | null; externalUrl: string | null; sourceLinkState: SourceLinkState }
+}
+
 export interface CreateProjectInput {
   name: string
   color?: string | null
