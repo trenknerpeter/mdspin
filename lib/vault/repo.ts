@@ -18,6 +18,7 @@ import { embedQueryOrNull } from "./embeddings"
 import { deriveFilenameFromTitle, deriveTitle } from "./title"
 import { countWords } from "./text"
 import { normalizeForHash, sha256Hex } from "./hash"
+import { splitFrontmatter } from "./frontmatter"
 
 const SOURCE_CONNECTION_COLUMNS =
   "id, provider, display_name, config, external_account_id, status, last_synced_at, last_error, created_at"
@@ -525,7 +526,18 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
         throw new VaultError("DB_ERROR", "Could not compute a content hash for this document.")
       }
 
-      const title = input.title?.trim() || deriveTitle({ body: input.markdown, filename: null })
+      // Strip frontmatter before deriving the title or storing the body — matching
+      // buildIngestDoc's (lib/vault/ingest.ts) established convention. Without this, a
+      // file whose title lives only in YAML (the common case for a blog/docs repo, where
+      // the body has no H1 at all) fell through deriveTitle's H1 search and the disabled
+      // filename fallback below straight to "Untitled note" — confirmed live against
+      // content/blog/*.md, which carry `title:` in frontmatter and no H1 in the body.
+      // Storing the raw body (frontmatter included) also meant the YAML block rendered
+      // as visible document content and polluted search_vector, same as an ingested file
+      // would if buildIngestDoc didn't strip it.
+      const { data: frontmatter, body } = splitFrontmatter(input.markdown)
+      const basename = input.externalId.split("/").pop() || null
+      const title = input.title?.trim() || deriveTitle({ frontmatterTitle: frontmatter.title, body, filename: basename })
       const filename = deriveFilenameFromTitle(title)
 
       const { data, error } = await client.rpc("vault_upsert_synced_document", {
@@ -535,8 +547,8 @@ export function createVaultRepo(client: SupabaseClient, scope: VaultScope): Vaul
         p_external_url: input.externalUrl ?? null,
         p_title: title,
         p_filename: filename,
-        p_markdown: input.markdown,
-        p_word_count: countWords(input.markdown),
+        p_markdown: body,
+        p_word_count: countWords(body),
         p_source_content_hash: hash,
         p_project_id: input.projectId ?? null,
         p_tags: input.tags ?? [],

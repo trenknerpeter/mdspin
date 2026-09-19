@@ -925,4 +925,53 @@ describe("upsertSyncedDocument", () => {
     const call = client.rpcCalls.find((c) => c.name === "vault_upsert_synced_document")
     expect(call?.args).toMatchObject({ p_summary_status: "manual" })
   })
+
+  it("derives the title from YAML frontmatter and strips it from the stored body — the common blog/docs shape with no H1", async () => {
+    const client = new FakeClient(
+      { document_projects: { data: [], error: null } },
+      { vault_upsert_synced_document: { data: [UPSERT_ROW], error: null } }
+    )
+    const repo = createVaultRepo(client as never, SCOPE)
+    const markdown = [
+      "---",
+      'title: "Best Document Format for LLMs: A Benchmark"',
+      'date: "2026-03-28"',
+      "---",
+      "",
+      "Everyone optimizes prompts. Nobody optimizes document format.",
+    ].join("\n")
+
+    await repo.upsertSyncedDocument({
+      connectionId: "conn-1",
+      externalId: "content/blog/best-document-format-for-llms.md",
+      markdown,
+    })
+
+    const call = client.rpcCalls.find((c) => c.name === "vault_upsert_synced_document")
+    const args = call?.args as Record<string, unknown>
+    expect(args.p_title).toBe("Best Document Format for LLMs: A Benchmark")
+    // The stored body must not carry the YAML fence — it would otherwise render as
+    // visible document content and pollute search_vector.
+    expect(args.p_markdown).not.toContain("---")
+    expect(args.p_markdown).not.toContain("title:")
+    expect(args.p_markdown).toContain("Everyone optimizes prompts.")
+  })
+
+  it("falls back to the file's own name (not 'Untitled note') when there's no frontmatter title or H1", async () => {
+    const client = new FakeClient(
+      { document_projects: { data: [], error: null } },
+      { vault_upsert_synced_document: { data: [UPSERT_ROW], error: null } }
+    )
+    const repo = createVaultRepo(client as never, SCOPE)
+    await repo.upsertSyncedDocument({
+      connectionId: "conn-1",
+      externalId: "notes/meeting-recap-2026-09-01.md",
+      markdown: "Just some plain notes with no heading and no frontmatter at all.",
+    })
+    const call = client.rpcCalls.find((c) => c.name === "vault_upsert_synced_document")
+    // titleFromFilename replaces every '-'/'_' with a space, dates included — this just
+    // pins that documented behavior for the sync path, not a claim it's the prettiest
+    // possible title.
+    expect((call?.args as Record<string, unknown>).p_title).toBe("meeting recap 2026 09 01")
+  })
 })
