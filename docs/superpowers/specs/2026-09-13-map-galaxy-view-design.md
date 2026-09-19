@@ -121,3 +121,4 @@ collects `lib/**/*.test.ts`).
 
 Delete `public/mockups/galaxy-v1.html` (the comparison mockup used to settle the layout question)
 before or during implementation — it's a throwaway artifact, not part of the shipped app.
+

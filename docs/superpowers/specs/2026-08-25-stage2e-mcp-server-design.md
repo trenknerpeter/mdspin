@@ -224,3 +224,4 @@ Exact-pinned (no `^`) on the two new packages, per the strategy doc's reasoning:
 ## Out of scope (YAGNI, deferred)
 
 `capture_note` prompt, all write tools (`create_document`, `append_to_document`, `update_document`, `organize_document`), `MCP_WRITE_ENABLED`, `mcp_usage`/rate limiting on reads (fail-open is fine for reads per the strategy doc), MCP *resources* (strategy doc already rejected these for Stage 2 — client support is uneven and one resource would just duplicate `vault_overview`), per-project document counts in `vault_overview`, structured `outputSchema` validation on tool results, OAuth (the `AuthInfo.resource`/`expiresAt` fields exist in the type but nothing here sets them — Bearer-API-key-only for now).
+
