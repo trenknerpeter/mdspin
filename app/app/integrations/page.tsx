@@ -24,12 +24,42 @@ const ERROR_MESSAGES: Record<string, string> = {
   not_your_installation: "That GitHub installation doesn't belong to your account.",
   github_list_repos_failed: "Couldn't read which repos GitHub granted access to.",
   no_repos_selected: "No repositories were selected during install.",
-  select_one_repo:
-    "MDSpin currently syncs one repo per connection. Reinstall the GitHub App and select exactly one repository.",
   already_connected: "This repository is already connected.",
   create_connection_failed: "Couldn't create the connection. Try again.",
   not_configured: "GitHub sync isn't configured on this server yet.",
   installation_pending_approval: "Installation needs approval from an organization owner first.",
+}
+
+interface BannerAction {
+  label: string
+  href: string
+}
+
+interface Banner {
+  kind: "error" | "success"
+  text: string
+  action?: BannerAction
+}
+
+/** select_one_repo gets its own builder rather than a static ERROR_MESSAGES string: the
+ *  useful fix here isn't more explanation, it's a link to the exact GitHub screen most
+ *  people have never seen — Configure Repository Access for THIS installation — which a
+ *  generic message can't provide. installation_id is non-secret (GitHub-controlled,
+ *  visible to anyone who can see the installation) — see
+ *  lib/integrations/github/auth.ts's header comment. */
+function selectOneRepoBanner(searchParams: URLSearchParams): Banner {
+  const count = searchParams.get("repo_count")
+  const installationId = searchParams.get("installation_id")
+  const text = count
+    ? `GitHub gave MDSpin access to ${count} repositories; it needs exactly 1. Pick just one on GitHub, then come back and connect again.`
+    : "MDSpin needs access to exactly one repository. Pick just one on GitHub, then come back and connect again."
+  return {
+    kind: "error",
+    text,
+    action: installationId
+      ? { label: "Choose which repo on GitHub", href: `https://github.com/settings/installations/${installationId}` }
+      : undefined,
+  }
 }
 
 function githubAppInstallUrl(): string | null {
@@ -41,7 +71,7 @@ export default function IntegrationsPage() {
   const [connections, setConnections] = useState<SourceConnectionJson[]>([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
-  const [banner, setBanner] = useState<{ kind: "error" | "success"; text: string } | null>(null)
+  const [banner, setBanner] = useState<Banner | null>(null)
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -63,7 +93,10 @@ export default function IntegrationsPage() {
   useEffect(() => {
     const error = searchParams.get("error")
     const connected = searchParams.get("connected")
-    if (error) {
+    if (error === "select_one_repo") {
+      setBanner(selectOneRepoBanner(searchParams))
+      router.replace("/app/integrations")
+    } else if (error) {
       setBanner({ kind: "error", text: ERROR_MESSAGES[error] ?? `Something went wrong (${error}).` })
       router.replace("/app/integrations")
     } else if (connected) {
@@ -106,7 +139,17 @@ export default function IntegrationsPage() {
               : "border-[#FF4800]/20 bg-[#FF4800]/10 text-[#FF4800]"
           }`}
         >
-          {banner.text}
+          <p>{banner.text}</p>
+          {banner.action && (
+            <a
+              href={banner.action.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold underline decoration-dotted hover:no-underline"
+            >
+              {banner.action.label} →
+            </a>
+          )}
         </div>
       )}
 

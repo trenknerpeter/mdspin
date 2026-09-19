@@ -85,7 +85,17 @@ export async function GET(req: NextRequest) {
     return redirectToIntegrations(req, { error: "no_repos_selected" })
   }
   if (repos.length > 1) {
-    return redirectToIntegrations(req, { error: "select_one_repo" })
+    // Carry enough back for the page to render an actionable fix, not just a banner:
+    // the count (so the message states the actual problem instead of a generic
+    // "select one repo"), and the installation_id (non-secret, GitHub-controlled — see
+    // lib/integrations/github/auth.ts's header comment) so it can deep-link straight to
+    // GitHub's own "which repos" screen for THIS installation, which is otherwise a page
+    // most people have never seen and wouldn't know to look for.
+    return redirectToIntegrations(req, {
+      error: "select_one_repo",
+      repo_count: String(repos.length),
+      installation_id: installationId,
+    })
   }
   const repo = repos[0]
 
