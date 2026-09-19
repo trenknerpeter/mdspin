@@ -14,7 +14,12 @@ node_modules/
 .env*.local
 .DS_Store
 .vercel
-docs/
+# docs/ is ignored by default (research notes, working plans) EXCEPT design specs, which
+# are the durable record of what shipped and why — those get committed and pushed.
+docs/*
+!docs/superpowers
+docs/superpowers/*
+!docs/superpowers/specs
 .worktrees/
 .env.local
 tsconfig.tsbuildinfo

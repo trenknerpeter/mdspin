@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { GitBranch, Pause, Play, Unlink, RefreshCw, Sparkles } from "lucide-react"
+import { GitBranch, Pause, Play, Unlink, RefreshCw, Sparkles, Github } from "lucide-react"
 
 interface SourceConnectionJson {
   id: string
@@ -264,7 +264,10 @@ export default function IntegrationsPage() {
       </div>
 
       <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-5">
-        <h2 className="mb-2 text-sm font-semibold text-[#F0EDE8] font-display">Connect GitHub</h2>
+        <div className="mb-2 flex items-center gap-2">
+          <Github className="h-5 w-5 shrink-0 text-[#F0EDE8]" />
+          <h2 className="text-sm font-semibold text-[#F0EDE8] font-display">Connect GitHub</h2>
+        </div>
         <p className="mb-4 text-xs text-[#888480] font-sans">
           Markdown files in a repo sync into the vault automatically on every push. One repo per
           connection — select exactly one repository when installing.
@@ -274,7 +277,7 @@ export default function IntegrationsPage() {
             href={installUrl}
             className="inline-flex items-center gap-2 rounded-full bg-[#FF4800] px-5 py-2 text-sm font-semibold text-white hover:bg-[#e04200] transition-colors"
           >
-            <GitBranch className="h-3.5 w-3.5" />
+            <Github className="h-3.5 w-3.5" />
             Connect a repo
           </a>
         ) : (
