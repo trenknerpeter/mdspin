@@ -187,4 +187,3 @@ mirror guard rejecting a raw `UPDATE` and allowing one with the bypass set, and 
 ownership fix rejecting a cross-user call. End-to-end: a real connection to this repo
 (`trenknerpeter/mdspin`) backfilled all 12 tracked markdown files correctly on the first run
 after the frontmatter fix.
-
