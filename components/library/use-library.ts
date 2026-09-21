@@ -1,6 +1,8 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { track } from "@/lib/analytics/client"
+import { EVENTS } from "@/lib/analytics/events"
 import { useAuth } from "@/components/auth-provider"
 import {
   computeFolderSummaries,
@@ -152,6 +154,17 @@ export function useLibrary() {
       if (token !== fetchToken.current) return
       setSpins(rows)
       setHasMore(rows.length === limit)
+      // Searching leaves no row behind, so this is the only record that anyone
+      // searches at all — and whether they find anything. Fires on the settled
+      // (debounced) query only, and `limit === PAGE` keeps "Load more" from
+      // counting as a second search.
+      if (query && limit === PAGE) {
+        track(EVENTS.vaultSearchPerformed, {
+          length: query.length,
+          result_count: rows.length,
+          scoped_to_project: selectedProject !== null,
+        })
+      }
     } catch (e) {
       if (token !== fetchToken.current) return
       setError(e instanceof Error ? e.message : "Failed to load your spins")
@@ -162,7 +175,14 @@ export function useLibrary() {
 
   // Add/remove one tag from the active multi-select filter.
   const toggleTag = useCallback((tag: string) => {
-    setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
+    setSelectedTags((prev) => {
+      const next = prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+      // Only applying a filter is interesting; clearing one is just undo.
+      if (next.length > prev.length) {
+        track(EVENTS.vaultTagFilterApplied, { active_tags: next.length })
+      }
+      return next
+    })
   }, [])
 
   // Initial load + reloads on filter/pagination changes

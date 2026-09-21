@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Key, Plus, Copy, Check, Trash2, X, AlertCircle } from "lucide-react"
-import posthog from "posthog-js"
+import { track, trackException } from "@/lib/analytics/client"
+import { EVENTS } from "@/lib/analytics/events"
 import { useAuth } from "@/components/auth-provider"
 import { createClient } from "@/lib/supabase/client"
 import {
@@ -106,7 +107,7 @@ export default function ApiKeysPage() {
       })
       const data = await res.json()
       if (res.ok) {
-        posthog.capture("api_key_generated", { key_name: nameInput.trim() || null })
+        track(EVENTS.apiKeyGenerated, { key_name: nameInput.trim() || null })
         setNewKeyModal({ key: data.key, copied: false })
         setNameInput("")
         await fetchKeys()
@@ -118,7 +119,7 @@ export default function ApiKeysPage() {
         setGenerateError(data?.message ?? "Failed to generate key.")
       }
     } catch (err) {
-      posthog.captureException(err)
+      trackException(err)
       setGenerateError("Network error — could not generate key.")
     } finally {
       setGenerating(false)
@@ -150,7 +151,7 @@ export default function ApiKeysPage() {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok) {
-        posthog.capture("api_key_revoked")
+        track(EVENTS.apiKeyRevoked)
         setKeys((prev) => prev.map((k) => k.id === id ? { ...k, revoked: true } : k))
         removeKeyData(id)
         setKeyHints((prev) => { const next = { ...prev }; delete next[id]; return next })

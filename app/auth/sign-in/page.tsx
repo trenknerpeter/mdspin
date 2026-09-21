@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { safeNext } from "@/lib/safe-redirect"
-import posthog from "posthog-js"
+import { track, trackException } from "@/lib/analytics/client"
+import { EVENTS } from "@/lib/analytics/events"
 
 function SignInForm() {
   const searchParams = useSearchParams()
@@ -22,25 +23,22 @@ function SignInForm() {
     setError(null)
     setLoading(true)
 
-    posthog.capture("sign_in_submitted", { method: "email" })
+    track(EVENTS.signInSubmitted, { method: "email" })
 
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
-      posthog.captureException(error)
+      trackException(error)
       setError(error.message)
       setLoading(false)
     } else {
-      if (data.user) {
-        posthog.identify(data.user.id, { email: data.user.email })
-      }
       router.push(next)
       router.refresh()
     }
   }
 
   const handleGoogleSignIn = async () => {
-    posthog.capture("sign_in_submitted", { method: "google" })
+    track(EVENTS.signInSubmitted, { method: "google" })
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {

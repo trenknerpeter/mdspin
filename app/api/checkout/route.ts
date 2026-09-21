@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { stripe } from "@/lib/stripe"
-import { getPostHogClient } from "@/lib/posthog-server"
+import { trackServer } from "@/lib/posthog-server"
+import { EVENTS } from "@/lib/analytics/events"
 
 export async function POST(req: NextRequest) {
   const session = await stripe.checkout.sessions.create({
@@ -16,13 +17,10 @@ export async function POST(req: NextRequest) {
   })
 
   const distinctId = req.headers.get("X-POSTHOG-DISTINCT-ID") ?? "anonymous"
-  const posthog = getPostHogClient()
-  posthog.capture({
+  trackServer(EVENTS.checkoutInitiated, {
     distinctId,
-    event: "checkout_initiated",
     properties: { stripe_session_id: session.id, amount: 299 },
   })
-  await posthog.shutdown()
 
   return NextResponse.json({ url: session.url })
 }

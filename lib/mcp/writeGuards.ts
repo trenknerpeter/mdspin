@@ -8,8 +8,20 @@ import { incrementMcpRead, tryIncrementMcpWrite } from "@/lib/vault/mcp-usage"
 import { VaultError } from "@/lib/vault/errors"
 import { toolError } from "./errors"
 import { resolveKeyId, type McpAuthContext } from "./context"
+import { trackServer } from "@/lib/posthog-server"
+import { EVENTS } from "@/lib/analytics/events"
 
 const DEFAULT_WRITE_DAILY_LIMIT = 200
+
+/** Analytics for the MCP surface. mcp_usage gives per-key read/write counts but not
+ *  WHICH tools get used; this does. Reads the user id defensively rather than via
+ *  resolveUserId, which throws — metering must never be able to fail a tool call. */
+function trackMcpTool(ctx: McpAuthContext, tool: string, kind: "read" | "write", ok: boolean): void {
+  trackServer(EVENTS.mcpToolCalled, {
+    distinctId: ctx?.http?.authInfo?.clientId,
+    properties: { tool, kind, ok },
+  })
+}
 
 function writeDailyLimit(): number {
   const raw = Number(process.env.MCP_WRITE_DAILY_LIMIT)
@@ -56,6 +68,7 @@ export function withReadUsageTracking<A, C>(
     const ctx = (hasArgs ? callArgs[1] : callArgs[0]) as McpAuthContext
     const args = (hasArgs ? callArgs[0] : undefined) as A
     const result = await (tool.handler as unknown as (...a: unknown[]) => Promise<McpToolResult>)(...callArgs)
+    trackMcpTool(ctx, tool.name, "read", !result.isError)
     const keyId = resolveKeyId(ctx)
     if (keyId && !result.isError) {
       try {
@@ -104,7 +117,9 @@ export function withWriteQuota<A, C>(tool: McpTool<A, C>): McpTool<A, C> {
       } catch (err) {
         return toolError(new VaultError("DB_ERROR", err instanceof Error ? err.message : "Write quota check failed."))
       }
-      return tool.handler(args, ctx)
+      const result = await tool.handler(args, ctx)
+      trackMcpTool(ctx, tool.name, "write", !result.isError)
+      return result
     },
   }
 }

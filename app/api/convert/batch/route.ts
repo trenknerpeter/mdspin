@@ -18,6 +18,8 @@ import { checkRateLimit, incrementUsage } from '@/lib/rate-limit';
 import { requiresSignIn } from '@/lib/gating';
 import { isSupportedExt, isImageExt, MAX_IMAGES_PER_BATCH } from '@/lib/formats';
 import { isIngestExt } from '@/lib/vault/limits';
+import { trackServer } from '@/lib/posthog-server';
+import { EVENTS } from '@/lib/analytics/events';
 
 export const runtime     = 'nodejs'; // Buffer is required — cannot run on Edge
 export const maxDuration = 120;      // seconds — batch conversions can be slow
@@ -76,6 +78,19 @@ export async function POST(req: NextRequest) {
     const message = user
       ? `Daily limit of ${rateCheck.limit} conversions reached. Resets at midnight UTC.`
       : `You've used all your free conversions. Sign in for more.`;
+
+    // This is the route the browser actually calls, so this is where the free
+    // ceiling is really hit. The equivalent events on /api/convert and
+    // /api/convert/url fire for API and URL traffic only.
+    trackServer(EVENTS.conversionRateLimited, {
+      distinctId: user?.id,
+      properties: {
+        identifier_type: identifierType,
+        limit: rateCheck.limit,
+        source: 'batch',
+        reason: 'exhausted',
+      },
+    });
 
     return NextResponse.json(
       {
@@ -205,6 +220,18 @@ export async function POST(req: NextRequest) {
     // resetsAt) beyond what the spec minimum requires. This matches the pattern in
     // app/api/convert/route.ts and gives the frontend everything it needs to render
     // a meaningful error (e.g. countdown until reset, remaining quota).
+    trackServer(EVENTS.conversionRateLimited, {
+      distinctId: user?.id,
+      properties: {
+        identifier_type: identifierType,
+        limit: rateCheck.limit,
+        remaining: rateCheck.remaining,
+        requested: files.length,
+        source: 'batch',
+        reason: 'batch_exceeds_remaining',
+      },
+    });
+
     return NextResponse.json(
       {
         error:     'RATE_LIMITED',
@@ -290,6 +317,29 @@ export async function POST(req: NextRequest) {
         console.error('[/api/convert/batch] Usage increment failed:', err)
       );
     }
+  }
+
+  const failureCount = Array.isArray(data.results)
+    ? data.results.filter((r) => r.success !== true).length
+    : 0;
+
+  const outcome = {
+    distinctId: user?.id,
+    properties: {
+      source: 'batch',
+      authenticated: !!user,
+      file_count: files.length,
+      succeeded: successCount,
+      failed: failureCount,
+      file_types: [...new Set(files.map((f) => f.name.split('.').pop()?.toLowerCase() ?? 'unknown'))],
+    },
+  };
+  if (successCount > 0) trackServer(EVENTS.conversionSucceeded, outcome);
+  if (failureCount > 0 || !backendRes.ok) {
+    trackServer(EVENTS.conversionFailed, {
+      ...outcome,
+      properties: { ...outcome.properties, status: backendRes.status },
+    });
   }
 
   const remaining = Math.max(0, rateCheck.remaining - successCount);

@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { postHogCapture, postHogCaptureException, postHogDistinctId } from "@/lib/consent/posthog"
+import { distinctId as postHogDistinctId, track, trackException } from "@/lib/analytics/client"
+import { EVENTS } from "@/lib/analytics/events"
 
 export function BuyCoffee({ fullWidth }: { fullWidth?: boolean }) {
   const [loading, setLoading] = useState(false)
@@ -11,9 +12,10 @@ export function BuyCoffee({ fullWidth }: { fullWidth?: boolean }) {
     if (loading) return
     setLoading(true)
     setError(null)
-    postHogCapture("buy_coffee_clicked")
+    track(EVENTS.buyCoffeeClicked)
     try {
-      // Absent without analytics consent; the checkout route falls back to "anonymous".
+      // Stitches this click to the server-side checkout_initiated event. The
+      // checkout route falls back to "anonymous" if PostHog failed to load.
       const distinctId = postHogDistinctId()
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -27,7 +29,7 @@ export function BuyCoffee({ fullWidth }: { fullWidth?: boolean }) {
         setLoading(false)
       }
     } catch (err) {
-      postHogCaptureException(err)
+      trackException(err)
       setError("Something went wrong — please try again.")
       setLoading(false)
     }

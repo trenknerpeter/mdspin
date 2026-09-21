@@ -1,6 +1,5 @@
 import Link from "next/link"
 import { CONVERT_PAGES } from "@/lib/convert-pages"
-import { CookieSettingsButton } from "@/components/consent/cookie-settings-button"
 
 const productLinks = [
   { href: "/overview", label: "Overview" },
@@ -84,7 +83,6 @@ export function SiteFooter() {
               <Link href="/privacy" className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]">
                 Privacy
               </Link>
-              <CookieSettingsButton className="text-left text-xs text-[#4A4A46] transition-colors hover:text-[#888480]" />
               <Link href="https://github.com/trenknerpeter/mdspin" target="_blank" rel="noopener noreferrer" className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]">
                 GitHub
               </Link>

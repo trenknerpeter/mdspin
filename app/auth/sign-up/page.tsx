@@ -5,7 +5,8 @@ import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { safeNext } from "@/lib/safe-redirect"
-import posthog from "posthog-js"
+import { track, trackException } from "@/lib/analytics/client"
+import { EVENTS } from "@/lib/analytics/events"
 
 function SignUpForm() {
   const [email, setEmail] = useState("")
@@ -23,7 +24,7 @@ function SignUpForm() {
     setError(null)
     setLoading(true)
 
-    posthog.capture("sign_up_submitted", { method: "email" })
+    track(EVENTS.signUpSubmitted, { method: "email" })
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -34,7 +35,7 @@ function SignUpForm() {
     })
 
     if (error) {
-      posthog.captureException(error)
+      trackException(error)
       setError(error.message)
       setLoading(false)
     } else {
@@ -45,16 +46,13 @@ function SignUpForm() {
         setLoading(false)
         return
       }
-      if (data.user) {
-        posthog.identify(data.user.id, { email: data.user.email })
-      }
       setSuccess(true)
       setLoading(false)
     }
   }
 
   const handleGoogleSignIn = async () => {
-    posthog.capture("sign_up_submitted", { method: "google" })
+    track(EVENTS.signUpSubmitted, { method: "google" })
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {

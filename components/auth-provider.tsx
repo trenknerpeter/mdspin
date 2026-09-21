@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { identify, resetIdentity } from "@/lib/analytics/client"
 import type { User } from "@supabase/supabase-js"
 
 type AuthContext = {
@@ -41,9 +42,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
+  // Analytics identity is re-asserted here rather than only at sign-in.
+  // PostHog runs cookieless (see instrumentation-client.ts), so its distinct id
+  // resets on every full page load; without this a single person would show up
+  // as a new anonymous user on each navigation. It also covers the two cases
+  // sign-in-page identification always missed: Google OAuth, which returns via
+  // a redirect, and users arriving with a session already in place.
+  useEffect(() => {
+    if (user) identify(user.id, user.email)
+  }, [user?.id, user?.email])
+
   const signOut = async () => {
     await supabase.auth.signOut()
     setUser(null)
+    // Without this the next visitor on this browser inherits the distinct id
+    // and is merged into the person who just left.
+    resetIdentity()
   }
 
   return (

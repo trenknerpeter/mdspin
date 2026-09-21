@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import { FileText } from "lucide-react"
 import { findRelatedSpins, mergeRelatedSpins, type RelatedSpin } from "@/lib/library"
+import { track } from "@/lib/analytics/client"
+import { EVENTS } from "@/lib/analytics/events"
 
 /** Affinity beacon. Project membership already says "these belong together"; the beacon
  *  says how tightly, so a loose member of a tight project reads as loose instead of equal. */
@@ -95,12 +97,14 @@ export function RelatedSpins({
           )
           const cls =
             "flex w-full items-center gap-2 rounded-lg border border-[#2A2A2A] bg-[#0E0E0E] px-3 py-2 text-left text-sm transition-colors hover:border-[#4A4A46]"
+          // Whether relatedness actually gets clicked is the only real test of it.
+          const announce = () => track(EVENTS.relatedDocumentOpened, { strength: s.strength })
           return onOpen ? (
-            <button key={s.id} type="button" title={`Open ${s.title || s.filename}`} onClick={() => onOpen(s.id)} className={cls}>
+            <button key={s.id} type="button" title={`Open ${s.title || s.filename}`} onClick={() => { announce(); onOpen(s.id) }} className={cls}>
               {content}
             </button>
           ) : (
-            <a key={s.id} title={`Open ${s.title || s.filename}`} href={`/app/vault?spin=${s.id}`} className={cls}>
+            <a key={s.id} onClick={announce} title={`Open ${s.title || s.filename}`} href={`/app/vault?spin=${s.id}`} className={cls}>
               {content}
             </a>
           )

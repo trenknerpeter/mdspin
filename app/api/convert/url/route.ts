@@ -7,7 +7,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, incrementUsage } from '@/lib/rate-limit';
 import { requiresSignIn } from '@/lib/gating';
-import { getPostHogClient } from '@/lib/posthog-server';
+import { trackServer } from '@/lib/posthog-server';
+import { EVENTS } from '@/lib/analytics/events';
 
 export const runtime     = 'nodejs';
 export const maxDuration = 60; // seconds — remote fetch + conversion
@@ -55,13 +56,10 @@ export async function POST(req: NextRequest) {
       ? `Daily limit of ${rateCheck.limit} conversions reached. Resets at midnight UTC.`
       : `You've used all your free conversions. Sign in for more.`;
 
-    const posthog = getPostHogClient();
-    posthog.capture({
-      distinctId: identifier,
-      event: 'conversion_rate_limited',
+    trackServer(EVENTS.conversionRateLimited, {
+      distinctId: user?.id,
       properties: { identifier_type: identifierType, limit: rateCheck.limit, source: 'url' },
     });
-    await posthog.shutdown();
 
     return NextResponse.json(
       { error: 'RATE_LIMITED', message, limit: rateCheck.limit, remaining: 0, resetsAt: rateCheck.resetsAt },

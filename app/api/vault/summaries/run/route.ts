@@ -13,6 +13,8 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { trackServer } from "@/lib/posthog-server"
+import { EVENTS } from "@/lib/analytics/events"
 import { summarizeAndStoreDocument, type SummarizableDoc } from "@/lib/vault/summarize-document"
 
 export const runtime = "nodejs"
@@ -84,9 +86,25 @@ export async function POST(req: NextRequest) {
     .filter((r) => r.ok && r.summary)
     .map((r) => ({ id: r.id, summary: r.summary as string }))
 
+  const processed = results.filter((r) => r.ok).length
+  const failed = results.filter((r) => !r.ok).length
+
+  // These cost money per call, so volume matters as much as adoption.
+  if (results.length > 0) {
+    trackServer(EVENTS.summaryGenerated, {
+      distinctId: user.id,
+      properties: {
+        processed,
+        failed,
+        requested: results.length,
+        reasons: [...new Set(results.filter((r) => !r.ok).map((r) => r.reason ?? "unknown"))],
+      },
+    })
+  }
+
   return NextResponse.json({
-    processed: results.filter((r) => r.ok).length,
-    failed: results.filter((r) => !r.ok).length,
+    processed,
+    failed,
     remaining: remaining ?? 0,
     summaries,
     // Per-doc outcomes with a typed failure reason: powers the drain checklist and lets the

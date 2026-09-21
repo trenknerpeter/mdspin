@@ -6,6 +6,8 @@ import { verifyWebhookSignature } from "@/lib/integrations/github/webhook-signat
 import { runIncrementalSync, type SyncConfig } from "@/lib/integrations/github/sync"
 import type { GitHubPushPayload } from "@/lib/integrations/github/changes"
 import { embedAndStoreDocument, type EmbeddableDoc } from "@/lib/vault/embed-document"
+import { trackServer } from "@/lib/posthog-server"
+import { EVENTS } from "@/lib/analytics/events"
 
 export const runtime = "nodejs" // node:crypto (HMAC verification) — see lib/integrations/github/auth.ts
 export const maxDuration = 60
@@ -62,6 +64,9 @@ export async function POST(req: NextRequest) {
       await handleEvent(event, payload)
     } catch (err) {
       console.error("[webhooks/github] handler failed:", err)
+      trackServer(EVENTS.githubSyncFailed, {
+        properties: { trigger: "push", event, error: err instanceof Error ? err.message : "unknown" },
+      })
     }
   })
 
@@ -113,6 +118,16 @@ async function handlePush(payload: GitHubPushPayload & { repository: { id: numbe
   )
 
   if (resolution.kind === "ignored_branch") return
+
+  trackServer(EVENTS.githubSyncRan, {
+    distinctId: connection.user_id,
+    properties: {
+      trigger: "push",
+      touched: result?.touchedIds.length ?? 0,
+      gone: goneIds.length,
+      resolution: resolution.kind,
+    },
+  })
 
   if (goneIds.length > 0) await repo.markDocumentsMissing(connection.id, goneIds)
 

@@ -3,7 +3,6 @@ import { ArrowLeft, ArrowRight } from "lucide-react"
 import type { Metadata } from "next"
 import { SITE_URL, SITE_NAME } from "@/lib/seo"
 import { SiteNav } from "@/components/site-nav"
-import { CookieSettingsButton } from "@/components/consent/cookie-settings-button"
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -559,7 +558,6 @@ export default function PrivacyPolicyPage() {
             <Link href="/privacy" className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]">
               Privacy
             </Link>
-            <CookieSettingsButton className="text-xs text-[#4A4A46] transition-colors hover:text-[#888480]" />
             <p className="text-xs text-[#4A4A46]">
               Drop, spin, done. &copy; {new Date().getFullYear()}
             </p>

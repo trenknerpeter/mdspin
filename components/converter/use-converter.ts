@@ -3,7 +3,8 @@
 import { useState, useRef, useMemo, useCallback, useEffect } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { createClient } from "@/lib/supabase/client"
-import posthog from "posthog-js"
+import { track } from "@/lib/analytics/client"
+import { EVENTS } from "@/lib/analytics/events"
 import { partitionIncomingFiles, groupRejections, type RejectionReason } from "@/lib/converter-intake"
 import type { FileItem, ConverterContext, ConversionOptions } from "./types"
 
@@ -124,13 +125,13 @@ export function useConverter(opts: {
 
   const handleCopyFile = async (id: string, markdown: string) => {
     await navigator.clipboard.writeText(markdown)
-    posthog.capture("markdown_copied", { source: "converter" })
+    track(EVENTS.markdownCopied, { source: "converter" })
     setCopiedId(id)
     setTimeout(() => setCopiedId(null), 2000)
   }
 
   const handleDownloadFile = (filename: string, markdown: string) => {
-    posthog.capture("markdown_downloaded", { source: "converter", filename })
+    track(EVENTS.markdownDownloaded, { source: "converter", filename })
     const blob = new Blob([markdown], { type: 'text/markdown' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -157,7 +158,7 @@ export function useConverter(opts: {
       size: fi.file?.size ?? null, // original byte size — powers exact ROI on the Dashboard
     }))
 
-    posthog.capture("file_conversion_started", {
+    track(EVENTS.fileConversionStarted, {
       source: 'upload',
       file_count: files.length,
       file_types: files.map(fi => fi.name.split('.').pop()?.toLowerCase()),
@@ -246,9 +247,9 @@ export function useConverter(opts: {
         const ext = fi?.name.split('.').pop()?.toLowerCase()
         if (result.success && result.markdown_text) {
           const wordCount = result.markdown_text.split(/\s+/).filter(Boolean).length
-          posthog.capture("file_conversion_completed", { source: 'upload', file_type: ext, word_count: wordCount })
+          track(EVENTS.fileConversionCompleted, { source: 'upload', file_type: ext, word_count: wordCount })
         } else {
-          posthog.capture("file_conversion_failed", { source: 'upload', file_type: ext, error: result.error ?? 'Conversion failed' })
+          track(EVENTS.fileConversionFailed, { source: 'upload', file_type: ext, error: result.error ?? 'Conversion failed' })
         }
       })
       setBatchStatus('done')
@@ -321,7 +322,7 @@ export function useConverter(opts: {
       return
     }
 
-    posthog.capture('file_conversion_started', { file_count: 1, source: 'url' })
+    track(EVENTS.fileConversionStarted, { file_count: 1, source: 'url' })
     setError(null)
     setRateLimited(false)
     setShowMerged(false)
@@ -364,7 +365,7 @@ export function useConverter(opts: {
       if (!res.ok || !data.markdown_text) {
         setError(data.message ?? 'Conversion failed. Please try again.')
         setBatchStatus('idle')
-        posthog.capture('file_conversion_failed', { source: 'url', error: data.message ?? 'Conversion failed' })
+        track(EVENTS.fileConversionFailed, { source: 'url', error: data.message ?? 'Conversion failed' })
         return
       }
 
@@ -382,7 +383,7 @@ export function useConverter(opts: {
         fileType,
       }])
       setBatchStatus('done')
-      posthog.capture('file_conversion_completed', { source: 'url', file_type: fileType, word_count: wordCount })
+      track(EVENTS.fileConversionCompleted, { source: 'url', file_type: fileType, word_count: wordCount })
 
       if (user) {
         pendingInserts.current += 1

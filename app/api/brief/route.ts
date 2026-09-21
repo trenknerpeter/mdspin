@@ -4,6 +4,8 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { trackServer } from "@/lib/posthog-server"
+import { EVENTS } from "@/lib/analytics/events"
 import {
   assembleClusterPayload,
   parseBriefResponse,
@@ -136,6 +138,11 @@ export async function POST(req: NextRequest) {
     // Generation worked; persistence didn't — still return the brief so it isn't lost.
     return NextResponse.json({ brief, brief_generated_at: generatedAt, saved: false })
   }
+
+  trackServer(EVENTS.briefGenerated, {
+    distinctId: user?.id,
+    properties: { chars: brief.length },
+  })
 
   return NextResponse.json({ brief, brief_generated_at: generatedAt, saved: true })
 }

@@ -32,6 +32,10 @@ export interface AuthResult {
  *  against a NextRequest without importing next/server here. */
 export interface AuthenticatableRequest {
   headers: { get(name: string): string | null }
+  /** Optional, and only used for analytics in lib/vault/server.ts. Kept optional so
+   *  auth stays HTTP-agnostic and unit-testable with a bare `{ headers }` stub. */
+  method?: string
+  url?: string
 }
 
 async function authenticateApiKey(token: string): Promise<AuthResult> {

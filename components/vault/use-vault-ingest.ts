@@ -1,7 +1,8 @@
 "use client"
 
 import { useCallback, useMemo, useRef, useState } from "react"
-import posthog from "posthog-js"
+import { track } from "@/lib/analytics/client"
+import { EVENTS } from "@/lib/analytics/events"
 import { listProjects, type Project } from "@/lib/library"
 import { createClient } from "@/lib/supabase/client"
 import { type IngestDoc, type IngestOutcome } from "@/lib/vault/ingest"
@@ -177,7 +178,7 @@ export function useVaultIngest() {
       // conversion backend, and that event feeds the dashboard's "words
       // converted" metric via lib/dashboard.ts's source_type segmentation.
       if (okCount > 0) {
-        posthog.capture("vault_document_ingested", { source_type: docs[0]?.row.source_type, count: okCount, via: source.current })
+        track(EVENTS.vaultDocumentIngested, { source_type: docs[0]?.row.source_type, count: okCount, via: source.current })
       }
       return okCount
     },
