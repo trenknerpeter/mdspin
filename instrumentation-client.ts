@@ -13,7 +13,21 @@ import posthog from "posthog-js"
 
 const token = process.env.NEXT_PUBLIC_POSTHOG_TOKEN
 
-if (token) {
+/**
+ * Local development does not report to production analytics.
+ *
+ * The `defaults: "2026-01-30"` bundle sets `internal_or_test_user_hostname`,
+ * but that only tags the person with $internal_or_test_user — the events are
+ * still ingested and still counted in visitor and conversion totals. Before
+ * this guard, localhost was the second-largest "host" in the project with
+ * ~1,400 events. Set NEXT_PUBLIC_POSTHOG_LOCAL=1 to opt a local run back in
+ * when you need to verify new instrumentation end to end.
+ */
+const host = typeof window === "undefined" ? "" : window.location.hostname
+const isLocal = host === "localhost" || host === "127.0.0.1" || host.endsWith(".localhost")
+const allowLocal = process.env.NEXT_PUBLIC_POSTHOG_LOCAL === "1"
+
+if (token && (!isLocal || allowLocal)) {
   posthog.init(token, {
     api_host: "/ingest", // first-party proxy, see rewrites in next.config.mjs
     ui_host: "https://eu.posthog.com",
