@@ -1,4 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
+// Static imports are safe despite the mocks below: vitest hoists vi.mock above
+// them. The token is read lazily inside trackServer, not at module load, so
+// setting it after the import still takes effect.
+import { trackServer } from "../posthog-server"
+import { EVENTS } from "../analytics/events"
 
 const capture = vi.fn()
 const flush = vi.fn().mockResolvedValue(undefined)
@@ -21,9 +26,6 @@ const after = vi.fn((fn: () => unknown) => { void fn() })
 vi.mock("next/server", () => ({ after: (fn: () => unknown) => after(fn) }))
 
 process.env.NEXT_PUBLIC_POSTHOG_TOKEN = "phc_test"
-
-const { trackServer } = await import("../posthog-server")
-const { EVENTS } = await import("../analytics/events")
 
 beforeEach(() => {
   capture.mockClear(); flush.mockClear(); shutdown.mockClear()
