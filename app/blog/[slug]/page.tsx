@@ -6,6 +6,7 @@ import { getAllSlugs, getPostBySlug, markdownToHtml } from "@/lib/blog"
 import { SITE_URL, SITE_NAME } from "@/lib/seo"
 import { SiteNav } from "@/components/site-nav"
 import { SiteFooter } from "@/components/site-footer"
+import { ArticleConverter } from "@/components/marketing/article-converter"
 import { GrainOverlay } from "@/components/grain-overlay"
 
 type Props = { params: Promise<{ slug: string }> }
@@ -135,6 +136,8 @@ export default async function BlogPostPage({ params }: Props) {
             className="prose-blog"
             dangerouslySetInnerHTML={{ __html: html }}
           />
+
+          <ArticleConverter />
 
           {/* Back link */}
           <div className="mt-16 border-t border-[#1E1E1E] pt-8">
