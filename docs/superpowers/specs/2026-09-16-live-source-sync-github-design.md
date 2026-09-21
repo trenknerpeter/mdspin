@@ -18,6 +18,8 @@ Three decisions were made up front:
 1. **Build the spine once, expose it twice.** One shared foundation (external identity,
    upsert, mirror policy), then *one* native connector to prove it end to end, plus a Make
    bridge later so all other sources are reachable without building four more OAuth clients.
+   **Superseded 2026-09-21** — see "Stage 2 direction" below. The spine itself (this section's
+   first half) still holds; the "expose it via Make" half of the plan was reversed.
 2. **GitHub goes first.** Its content is already markdown (zero conversion), its webhooks say
    exactly which files changed, and there is no app-verification gate. It is the cheapest way
    to prove the spine is correct. Google Drive — the better persona fit for MDSpin's actual
@@ -31,12 +33,40 @@ Three decisions were made up front:
 
 ### Explicitly out of scope for Stage 1
 
-- **Airtable.** Records are rows, not documents; "sync my base" is a different feature.
-- **Notion / Drive / Confluence native connectors.** These arrive via the Make bridge (Stage 2).
+- **Airtable.** Records are rows, not documents; "sync my base" is a different feature. Ruled
+  out entirely, not deferred — this holds regardless of the Stage 2 direction below.
+- **Notion / Google Docs / Confluence connectors.** Deferred to Stage 2 — see below for how.
 - **Make app changes.** `mdspin-makeapp.json` lives outside this repo and publishes separately.
 - **Writing back to the source.** Sync is strictly one-directional, inbound.
 - **A repo-picker UI.** An installation must grant access to exactly one repository; more than
   one is rejected with a message pointing at GitHub's own repo-access screen.
+
+### Stage 2 direction (decided 2026-09-21, not yet started)
+
+The original plan routed every other source through a Make.com bridge: MDSpin exposes the
+upsert endpoint as a Make module, users wire up Notion/Drive/Confluence inside Make using its
+own native connectors for those apps. Reversed after weighing it against what a user actually
+experiences: connecting a source would mean leaving MDSpin, connecting two separate apps
+inside Make, and installing a scenario template — versus one OAuth "Sign in with Notion" click
+inside MDSpin itself. The bridge would have been cheaper to build; the direct route is what a
+non-technical user will actually use.
+
+**Decision: native in-app OAuth connectors, same "ship one, then repeat" pattern as Stage 1.
+Notion goes first.** Not the easiest of the three (it has no webhooks at all — change detection
+means polling `last_edited_time` on a schedule) but the best fit for who actually keeps a
+working wiki that looks like a Knowledge Vault. Google Docs and Confluence follow once the
+native-OAuth pattern is proven; Google's broader Drive scopes still carry an external
+verification gate no decision here can shorten.
+
+What's reusable from Stage 1 without changes: `source_connections`, `vault_upsert_synced_document`,
+the `conversions_enforce_source_link` trigger, detach semantics, the whole mirror-then-detach
+policy. What's new per provider and does NOT generalize from GitHub: token storage (Notion has
+no "mint on demand from a private key" equivalent — refresh tokens must be persisted,
+encrypted, somewhere GitHub's design never needed), the fetch-and-convert step (Notion blocks
+aren't markdown; GitHub's content already was), and change detection (no shared webhook story
+across providers — Confluence has real webhooks, Notion has none, Drive's push notifications
+expire and need renewal). This is genuinely a new design, not an extension of the GitHub one;
+it gets its own spec when work resumes.
 
 ### Correction to the throughput decision
 
@@ -187,3 +217,12 @@ mirror guard rejecting a raw `UPDATE` and allowing one with the bypass set, and 
 ownership fix rejecting a cross-user call. End-to-end: a real connection to this repo
 (`trenknerpeter/mdspin`) backfilled all 12 tracked markdown files correctly on the first run
 after the frontmatter fix.
+
+**Dogfooding, 2026-09-19–21:** this repo's own design docs (`docs/superpowers/specs/`) were
+un-gitignored and pushed — 12 markdown files landing in one commit — specifically to exercise
+the push webhook with a real multi-file batch, including this document itself. All 12 synced
+correctly in one run, within about 7 seconds, no errors. (A "4 files silently dropped" reading
+of the first check turned out to be a false alarm — the vault was queried before the
+webhook's async job finished, then a second, `LIMIT`-bounded query cut off exactly the
+most-recently-synced rows. Worth recording since it looked exactly like the kind of partial-batch
+failure this design was built to avoid, and wasn't one.)
