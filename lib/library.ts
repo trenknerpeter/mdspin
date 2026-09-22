@@ -146,8 +146,8 @@ export function projectPath(
 
 /** The top-level project a project belongs to — itself when it has no parent.
  *  One level of nesting means this is a single lookup, never a walk.
- *  Mirrors the `coalesce(p.parent_id, p.id)` idiom in find_related_documents and
- *  vault_stats — change them together. */
+ *  Mirrors public.root_project_id(parent_id, id) — the shared SQL function
+ *  find_related_documents and vault_stats both call — change both together. */
 export function rootProjectId(
   projectId: string | null,
   byId: Map<string, Pick<Project, "parent_id">>
