@@ -34,7 +34,7 @@ That missing piece is what forces teams into workarounds. Custom Python scripts.
 
 ## The Make.com App: MDSpin inside your scenarios
 
-The MDSpin Make.com App will be the first native integration on any automation platform that converts documents to AI-ready Markdown directly inside a scenario. No Python. No external scripts. No leaving the platform.
+The [MDSpin Make.com App](/integrations) is the first native integration on any automation platform that converts documents to AI-ready Markdown directly inside a scenario. No Python. No external scripts. No leaving the platform.
 
 Here's what that looks like in practice:
 
@@ -76,13 +76,13 @@ With a native conversion module, the path is shorter: file in, Markdown out, AI 
 
 More importantly, it means teams don't have to leave the platform. The whole point of no-code automation is that you shouldn't need to write Python to get work done. A staffing agency, an operations team, a consulting firm — they chose Make.com because they want to build workflows visually, not debug API integrations. MDSpin keeps them in that world.
 
-## The Chrome Extension: conversion at the point of interaction
+## The Chrome Extension: conversion without leaving your browser
 
-The other place where document conversion needs to happen invisibly is inside AI chat interfaces themselves.
+The other place document conversion needs to happen without friction is wherever you're already reading — not just inside Make.com scenarios.
 
-Today, when you attach a PDF to a conversation in ChatGPT, Claude, or Gemini, the model receives the raw file. It does its best to interpret the content, but it's working with formatting noise, layout artifacts, and token-heavy encoding that dilutes the quality of its response.
+Today, a PDF or DOCX you find online is a dead end for AI: download it, find a converter, paste the result somewhere useful. Three extra steps for something that should take one.
 
-The MDSpin Chrome Extension will intercept file attachments before they reach the model and swap in clean Markdown. Your AI gets signal instead of noise — and you don't change anything about how you work. Same chat interface, same drag-and-drop, same experience. The only difference is better output.
+The [MDSpin Chrome Extension](https://chromewebstore.google.com/detail/mdspin-%E2%80%94-file-to-markdown/jmiinicnfjhndcmmiominecphddngjae?hl=en-GB) collapses that. Click the extension icon on any page, or use it directly on a PDF or DOCX link, and get clean Markdown back without leaving the tab — ready to paste into ChatGPT, Claude, or wherever it needs to go.
 
 This is a lighter lift than the Make.com integration in terms of scope, but it addresses the same principle: conversion should happen where you already are, not in a separate tool.
 
@@ -94,13 +94,13 @@ The MDSpin web converter at [mdspin.app](https://mdspin.app) is where the techno
 
 The web converter answers the question *"Can I convert this file to Markdown?"* The platform integrations answer the question *"Can my workflow convert every file to Markdown, without me being there?"*
 
-That's where MDSpin is headed.
+That's what MDSpin's platform integrations do today.
 
-## What's happening right now
+## Live now
 
-The Make.com App is actively being built. The backend conversion API is live, the OAuth integration is in place, and the Make.com module spec is in development. The goal is to open early access soon — first to waitlist members, then to the broader Make.com community.
+The Make.com App is live — the conversion modules are published, OAuth is wired up, and scenarios are already running document conversion as a native step instead of a workaround.
 
-If you're building AI workflows that hit a wall at document conversion — whether it's resume parsing, contract analysis, meeting note processing, or knowledge base ingestion — [join the waitlist](https://mdspin.app#products) to get access as soon as the Make.com App is ready.
+If you're building AI workflows that hit a wall at document conversion — whether it's resume parsing, contract analysis, meeting note processing, or knowledge base ingestion — [set up the Make.com App](/integrations) and drop the conversion step directly into your scenario.
 
 ---
 

@@ -84,19 +84,19 @@ MDSpin is useful anywhere documents need to reach an AI:
 
 **Document intelligence at scale** — For operations teams processing contracts, reports, or compliance documents, MDSpin provides the conversion layer between "documents exist in various formats" and "AI can reason about their contents."
 
-## What's coming
+## Beyond the web converter
 
-The web converter is the starting point. MDSpin is expanding to the tools where AI workflows actually live:
+The web converter is the starting point. MDSpin is also in the tools where AI workflows actually live:
 
-**Make.com App** — Plug MDSpin directly into any Make.com automation scenario. Trigger on new file uploads, incoming email attachments, or any document event — and pipe clean Markdown directly to Claude, GPT, or any AI node in your workflow. Zero-friction document intelligence at scale, with zero manual steps.
+**[Make.com App](/integrations)** — Plug MDSpin directly into any Make.com automation scenario. Trigger on new file uploads, incoming email attachments, or any document event — and pipe clean Markdown directly to Claude, GPT, or any AI node in your workflow. Zero-friction document intelligence at scale, with zero manual steps.
 
-**Chrome Extension** — Convert documents without leaving ChatGPT, Claude, or Gemini. When you attach a file to an AI chat, MDSpin intercepts it and swaps in clean Markdown. Your AI gets signal, not noise — without changing your workflow at all.
+**[Chrome Extension](https://chromewebstore.google.com/detail/mdspin-%E2%80%94-file-to-markdown/jmiinicnfjhndcmmiominecphddngjae?hl=en-GB)** — Convert without leaving your browser. Click the extension icon on any page, or use it directly on PDF and DOCX links you find online, and get clean Markdown without switching tabs.
 
 ## Try it now
 
 MDSpin is free during Beta. Head to [mdspin.app](https://mdspin.app) to convert your first document. Drop a file, hit Spin, and see for yourself what your AI has been missing.
 
-If you want early access to the Make.com App or Chrome Extension when they launch, [join the waitlist](https://mdspin.app#products).
+Want MDSpin inside your automation scenarios? [Set up the Make.com App](/integrations). Want it in your browser? [Install the Chrome extension](https://chromewebstore.google.com/detail/mdspin-%E2%80%94-file-to-markdown/jmiinicnfjhndcmmiominecphddngjae?hl=en-GB).
 
 ---
 
