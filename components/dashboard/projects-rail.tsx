@@ -1,7 +1,7 @@
 "use client"
 
 import { DashboardListRow } from "@/components/dashboard/dashboard-list-row"
-import { rollUpProjectCounts, type Project, type SpinStats } from "@/lib/library"
+import { descendantProjectIds, rollUpProjectCounts, rootProjects, type Project, type SpinStats } from "@/lib/library"
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
@@ -30,11 +30,11 @@ export function ProjectsRail({
   stats: SpinStats
   lastActivity: Record<string, string>
 }) {
-  const roots = projects.filter((p) => !p.parent_id)
+  const roots = rootProjects(projects)
   const counts = rollUpProjectCounts(stats.byProject, projects)
   // Newest activity anywhere in the project, subprojects included.
   const activityOf = (rootId: string) =>
-    [rootId, ...projects.filter((p) => p.parent_id === rootId).map((p) => p.id)]
+    descendantProjectIds(rootId, projects)
       .map((id) => lastActivity[id])
       .filter(Boolean)
       .sort()

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import type { useLibrary } from "@/components/library/use-library"
-import { getSpinMarkdown, primaryProjectId, projectPath, rootProjectId } from "@/lib/library"
+import { childrenOf, getSpinMarkdown, primaryProjectId, projectPath, rootProjectId, rootProjects } from "@/lib/library"
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
@@ -56,7 +56,7 @@ export function VaultListView({ lib }: { lib: ReturnType<typeof useLibrary> }) {
   }
 
   const selectionActive = lib.selectedIds.size > 0
-  const roots = lib.projects.filter((p) => !p.parent_id)
+  const roots = rootProjects(lib.projects)
   const menuItem =
     "gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-[#C9C5BE] transition-colors " +
     "focus:bg-[#FF4800]/12 focus:text-[#FF4800] data-[highlighted]:bg-[#FF4800]/12 data-[highlighted]:text-[#FF4800]"
@@ -320,7 +320,7 @@ export function VaultListView({ lib }: { lib: ReturnType<typeof useLibrary> }) {
                       Move {lib.selectedIds.size} document{lib.selectedIds.size === 1 ? "" : "s"}
                     </div>
                     {roots.map((root) => {
-                      const kids = lib.projects.filter((c) => c.parent_id === root.id)
+                      const kids = childrenOf(root.id, lib.projects)
                       return (
                         <div key={root.id}>
                           <DropdownMenuItem

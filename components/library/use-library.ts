@@ -20,6 +20,7 @@ import {
   listTags,
   addTagToSpins,
   descendantProjectIds,
+  rootProjects,
   idsInRange,
   moveSpinsToProject,
   renameProject,
@@ -80,7 +81,7 @@ export function useLibrary() {
   const [invalidation, dispatchInvalidation] = useReducer(invalidationReducer, initialInvalidationState)
 
   // ---- Derived project tree (one level: root -> subproject -> docs) ----
-  const roots = useMemo(() => projects.filter((p) => !p.parent_id), [projects])
+  const roots = useMemo(() => rootProjects(projects), [projects])
   const childrenByParent = useMemo(() => {
     const m = new Map<string, Project[]>()
     for (const p of projects) {

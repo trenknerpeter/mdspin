@@ -131,10 +131,6 @@ export function primaryProjectId(spin: Pick<Spin, "project_ids">): string | null
   return spin.project_ids[0] ?? null
 }
 
-/** The top-level project a project belongs to — itself when it has no parent.
- *  One level of nesting means this is a single lookup, never a walk.
- *  Mirrors the `coalesce(p.parent_id, p.id)` idiom in find_related_documents,
- *  vault_search_documents and vault_stats — change them together. */
 /** Display path for a project: its own name, or "Parent / Child" for a subproject.
  *  One level of nesting means this is a single lookup, never a walk. */
 export function projectPath(
@@ -148,6 +144,10 @@ export function projectPath(
   return parent ? `${parent.name} / ${project.name}` : project.name
 }
 
+/** The top-level project a project belongs to — itself when it has no parent.
+ *  One level of nesting means this is a single lookup, never a walk.
+ *  Mirrors the `coalesce(p.parent_id, p.id)` idiom in find_related_documents and
+ *  vault_stats — change them together. */
 export function rootProjectId(
   projectId: string | null,
   byId: Map<string, Pick<Project, "parent_id">>
@@ -156,13 +156,32 @@ export function rootProjectId(
   return byId.get(projectId)?.parent_id ?? projectId
 }
 
+/** Whether a project is top-level (a "root") rather than a subproject. */
+export function isRootProject(p: Pick<Project, "parent_id">): boolean {
+  return !p.parent_id
+}
+
+/** The top-level projects in a list — what a folder grid or a "move to…" menu roots on. */
+export function rootProjects<T extends Pick<Project, "parent_id">>(projects: T[]): T[] {
+  return projects.filter(isRootProject)
+}
+
+/** A project's direct subprojects. One level of nesting means these have no children
+ *  of their own. */
+export function childrenOf<T extends Pick<Project, "parent_id">>(
+  projectId: string,
+  projects: T[]
+): T[] {
+  return projects.filter((p) => p.parent_id === projectId)
+}
+
 /** A project plus its subprojects — the set of project ids whose documents belong
  *  "inside" it. Returns [projectId] for a subproject (it can't have children). */
 export function descendantProjectIds(
   projectId: string,
   projects: Pick<Project, "id" | "parent_id">[]
 ): string[] {
-  return [projectId, ...projects.filter((p) => p.parent_id === projectId).map((p) => p.id)]
+  return [projectId, ...childrenOf(projectId, projects).map((p) => p.id)]
 }
 
 /** Direct per-project counts -> counts including one level of subprojects.

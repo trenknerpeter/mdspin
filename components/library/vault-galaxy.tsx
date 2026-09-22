@@ -20,6 +20,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ChevronRight, FileText, Maximize2, Minus, Plus, Search, X } from "lucide-react"
 import { SpinDetailPanel } from "@/components/library/spin-detail-panel"
 import {
+  childrenOf,
   deleteSpin,
   getSpin,
   listProjects,
@@ -27,6 +28,7 @@ import {
   listSpinStats,
   removeFromVault,
   rollUpProjectCounts,
+  rootProjects,
   updateSpin,
   UNFILED,
   type Project,
@@ -166,7 +168,7 @@ export function VaultGalaxy() {
   }, [reloadStats])
 
   const byId = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects])
-  const roots = useMemo(() => projects.filter((p) => !p.parent_id), [projects])
+  const roots = useMemo(() => rootProjects(projects), [projects])
   const rolled = useMemo(
     () => (stats ? rollUpProjectCounts(stats.byProject, projects) : {}),
     [stats, projects]
@@ -364,7 +366,7 @@ export function VaultGalaxy() {
 
   const moons = useMemo(() => {
     if (!rootId || subId || rootId === UNFILED) return []
-    const kids = projects.filter((p) => p.parent_id === rootId)
+    const kids = childrenOf(rootId, projects)
     return layoutRing(
       kids.map((k) => ({ id: k.id, count: stats?.byProject[k.id] ?? 0 })),
       { cx: CX, cy: CY, radius: MOON_ORBIT, scaleX: SCENE_SCALE_X }

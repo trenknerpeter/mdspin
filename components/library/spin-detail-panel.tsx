@@ -6,7 +6,15 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { TagInput } from "@/components/library/tag-input"
 import { MarkdownEditor, type EditorMode } from "@/components/library/markdown-editor"
 import { SummarySection } from "@/components/library/summary-section"
-import { primaryProjectId, UNFILED, type Project, type Spin, type UpdateSpinFields } from "@/lib/library"
+import {
+  childrenOf,
+  primaryProjectId,
+  rootProjects,
+  UNFILED,
+  type Project,
+  type Spin,
+  type UpdateSpinFields,
+} from "@/lib/library"
 import { RelatedSpins } from "@/components/library/related-spins"
 import { ClusterBriefSection } from "@/components/library/cluster-brief-section"
 import type { SummaryStatus } from "@/lib/vault/summary"
@@ -304,10 +312,9 @@ export function SpinDetailPanel({
               <option value={UNFILED}>Unfiled</option>
               {/* Grouped one level deep. The value stays a scalar project id — a
                   subproject is just another project — so no write path changes. */}
-              {projects
-                .filter((p) => !p.parent_id)
+              {rootProjects(projects)
                 .map((root) => {
-                  const children = projects.filter((c) => c.parent_id === root.id)
+                  const children = childrenOf(root.id, projects)
                   if (children.length === 0) {
                     return (
                       <option key={root.id} value={root.id}>

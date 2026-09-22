@@ -3,7 +3,7 @@
 import { FolderPlus } from "lucide-react"
 import { useState, type KeyboardEvent } from "react"
 import { FolderCard } from "@/components/library/folder-card"
-import type { FolderSummary, Project } from "@/lib/library"
+import { childrenOf, isRootProject, type FolderSummary, type Project } from "@/lib/library"
 
 // Folders whose contents changed most recently come first, so the grid reflects what
 // you're actually working on. Empty folders sink to the bottom (no lastActivity) rather
@@ -44,16 +44,18 @@ export function FolderGrid({
 
   // Only top-level projects get a card; their subprojects ride along as chips. Drop
   // summaries for projects that vanished between fetches rather than render a nameless card.
-  const visible = sortFolders(summaries, nameById).filter(
-    (s) => s.projectId === null || projectById.get(s.projectId)?.parent_id == null
-  )
+  const visible = sortFolders(summaries, nameById).filter((s) => {
+    if (s.projectId === null) return true
+    const project = projectById.get(s.projectId)
+    return !project || isRootProject(project)
+  })
 
   // A project's card counts its own documents plus everything in its subprojects, and its
   // "last activity" is the newest of any of them — otherwise filing documents one level
   // down would make a busy project look empty and stale.
   const rollUp = (s: FolderSummary): FolderSummary => {
     if (s.projectId === null) return s
-    const children = projects.filter((p) => p.parent_id === s.projectId)
+    const children = childrenOf(s.projectId, projects)
     if (children.length === 0) return s
     const kids = children.map((c) => summaryById.get(c.id)).filter(Boolean) as FolderSummary[]
     return {
@@ -86,9 +88,11 @@ export function FolderGrid({
       {visible.map((s) => {
         const project = s.projectId ? projectById.get(s.projectId) : null
         const subProjects = s.projectId
-          ? projects
-              .filter((p) => p.parent_id === s.projectId)
-              .map((p) => ({ id: p.id, name: p.name, count: summaryById.get(p.id)?.count ?? 0 }))
+          ? childrenOf(s.projectId, projects).map((p) => ({
+              id: p.id,
+              name: p.name,
+              count: summaryById.get(p.id)?.count ?? 0,
+            }))
           : []
         return (
           <FolderCard

@@ -1,9 +1,12 @@
 import { describe, it, expect } from "vitest"
 import {
+  childrenOf,
   descendantProjectIds,
+  isRootProject,
   projectPath,
   rollUpProjectCounts,
   rootProjectId,
+  rootProjects,
   type Project,
 } from "@/lib/library"
 
@@ -31,6 +34,46 @@ describe("rootProjectId", () => {
 
   it("returns an unknown id unchanged rather than throwing", () => {
     expect(rootProjectId("ghost", byId)).toBe("ghost")
+  })
+})
+
+describe("isRootProject", () => {
+  it("is true for a project with no parent", () => {
+    expect(isRootProject({ parent_id: null })).toBe(true)
+  })
+
+  it("is false for a subproject", () => {
+    expect(isRootProject({ parent_id: "plato" })).toBe(false)
+  })
+})
+
+describe("rootProjects", () => {
+  it("returns only the top-level projects, preserving the full objects", () => {
+    expect(rootProjects(TREE)).toEqual([
+      { id: "plato", parent_id: null },
+      { id: "strategy", parent_id: null },
+    ])
+  })
+
+  it("returns an empty array when every project is a subproject", () => {
+    expect(rootProjects([{ id: "kid", parent_id: "plato" }])).toEqual([])
+  })
+})
+
+describe("childrenOf", () => {
+  it("returns a root's direct subprojects", () => {
+    expect(childrenOf("plato", TREE)).toEqual([
+      { id: "saheed", parent_id: "plato" },
+      { id: "jon", parent_id: "plato" },
+    ])
+  })
+
+  it("returns nothing for a subproject — one level of nesting means it has no children", () => {
+    expect(childrenOf("saheed", TREE)).toEqual([])
+  })
+
+  it("returns nothing for a childless root", () => {
+    expect(childrenOf("strategy", TREE)).toEqual([])
   })
 })
 

@@ -9,8 +9,10 @@ import { TagInput } from "@/components/library/tag-input"
 import {
   addToVault,
   insertVaultConversions,
+  childrenOf,
   createProject,
   listProjects,
+  rootProjects,
   UNFILED,
   type Project,
   type ConversionFileInput,
@@ -202,10 +204,9 @@ export function AddToVaultPanel({
             >
               <option value={UNFILED}>Unfiled</option>
               {/* Grouped one level deep, same as the vault detail panel. */}
-              {projects
-                .filter((p) => !p.parent_id)
+              {rootProjects(projects)
                 .map((root) => {
-                  const children = projects.filter((c) => c.parent_id === root.id)
+                  const children = childrenOf(root.id, projects)
                   if (children.length === 0) {
                     return (
                       <option key={root.id} value={root.id}>
