@@ -183,6 +183,13 @@ export default function KnowledgeVaultPage() {
             <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">
               Your knowledge compounds
             </h2>
+            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#888480]">
+              Most knowledge bases wait for you to come back and organize them. Read why{" "}
+              <Link href="/blog/knowledge-vault-active-not-passive" className="text-[#FF4800] hover:underline">
+                the Vault works the other way around
+              </Link>
+              .
+            </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
             {[

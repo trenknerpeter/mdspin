@@ -105,6 +105,7 @@ If you're building AI workflows that hit a wall at document conversion — wheth
 ---
 
 **Keep reading:**
+- [Most Knowledge Bases Are Passive. MDSpin's Vault Isn't.](/blog/knowledge-vault-active-not-passive)
 - [Document Preprocessing for AI: The Complete Guide](/guides/document-preprocessing-for-ai)
 - [Why Markdown is the Best Format for RAG Pipelines](/guides/markdown-for-rag)
 - [All supported formats and how each conversion works](/formats)

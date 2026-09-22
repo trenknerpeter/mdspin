@@ -235,7 +235,7 @@ Document summarization quality depends on the AI's ability to understand documen
 
 ### For Individuals
 
-Use [MDSpin](https://mdspin.app) to convert documents on demand. The web converter handles conversion in seconds with zero setup.
+Use [MDSpin](https://mdspin.app) to convert documents on demand. The web converter handles conversion in seconds with zero setup, and every conversion is saved automatically to your [Knowledge Vault](/knowledge-vault) — so preprocessing and organizing happen in the same step.
 
 ### For Teams
 
@@ -267,4 +267,5 @@ The fix is straightforward: convert to Markdown before processing. The improveme
 - [How to Convert PDFs for ChatGPT, Claude & Gemini](/guides/convert-pdf-for-chatgpt)
 - [How to Cut AI Token Costs by 40%](/guides/reduce-ai-token-costs)
 - [Why Markdown is the Best Format for RAG Pipelines](/guides/markdown-for-rag)
+- [Most Knowledge Bases Are Passive. MDSpin's Vault Isn't.](/blog/knowledge-vault-active-not-passive)
 - [MDSpin vs. the Competition](/blog/mdspin-vs-competitors)
