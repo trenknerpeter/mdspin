@@ -248,17 +248,20 @@ export function useLibrary() {
 
   const removeProject = useCallback(
     async (id: string) => {
+      // Deleting the subproject you're currently viewing lands you on its parent folder
+      // rather than bouncing all the way out to the top-level grid.
+      const parentId = projects.find((p) => p.id === id)?.parent_id ?? null
       await deleteProject(id)
       setProjects((prev) => prev.filter((p) => p.id !== id))
       const wasSelected = selectedProject === id
-      if (wasSelected) setSelectedProject(null)
+      if (wasSelected) setSelectedProject(parentId)
       await fetchSpins()
       await refreshSidebars()
       // invalidationReducer defers the refresh when wasSelected: true, since the
       // selectedProject-change effect above will request one itself, off fresh state.
       dispatchInvalidation({ type: "projectDeleted", wasSelected })
     },
-    [selectedProject, fetchSpins, refreshSidebars]
+    [selectedProject, projects, fetchSpins, refreshSidebars]
   )
 
   const saveSpin = useCallback(
