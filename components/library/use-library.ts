@@ -1,6 +1,7 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react"
+import { invalidationReducer, initialInvalidationState } from "@/lib/library-invalidation"
 import { track } from "@/lib/analytics/client"
 import { EVENTS } from "@/lib/analytics/events"
 import { useAuth } from "@/components/auth-provider"
@@ -72,6 +73,11 @@ export function useLibrary() {
   const [selectedSpinExtra, setSelectedSpinExtra] = useState<Spin | null>(null)
 
   const fetchToken = useRef(0)
+
+  // Tag-sidebar staleness, decided by invalidationReducer — see 65914ed for the race this
+  // replaces (a mutation deciding for itself whether to refetch tags, racing the effect
+  // below over the same closure).
+  const [invalidation, dispatchInvalidation] = useReducer(invalidationReducer, initialInvalidationState)
 
   // ---- Derived project tree (one level: root -> subproject -> docs) ----
   const roots = useMemo(() => projects.filter((p) => !p.parent_id), [projects])
@@ -205,8 +211,17 @@ export function useLibrary() {
   // files"), so unlike the rest of the sidebar they also reload on project switches.
   useEffect(() => {
     if (authLoading || !user) return
-    refreshTags().catch(() => {})
+    dispatchInvalidation({ type: "refreshRequested" })
   }, [user, authLoading, selectedProject, refreshTags])
+
+  // The one place that actually performs the tags fetch, whenever invalidationReducer says
+  // it's due — decoupled from *why* it's due (project switch vs. a mutation elsewhere).
+  useEffect(() => {
+    if (!invalidation.tagsStale) return
+    refreshTags()
+      .catch(() => {})
+      .finally(() => dispatchInvalidation({ type: "flushed" }))
+  }, [invalidation.tagsStale, refreshTags])
 
   const loadMore = useCallback(() => setLimit((n) => n + PAGE), [])
 
@@ -235,16 +250,15 @@ export function useLibrary() {
     async (id: string) => {
       await deleteProject(id)
       setProjects((prev) => prev.filter((p) => p.id !== id))
-      if (selectedProject === id) setSelectedProject(null)
+      const wasSelected = selectedProject === id
+      if (wasSelected) setSelectedProject(null)
       await fetchSpins()
       await refreshSidebars()
-      // If the deleted project was the one selected, the selectedProject-change effect
-      // above already refetches tags correctly (scoped to the new null selection) — calling
-      // refreshTags() here too would use this closure's stale `selectedProject` (still the
-      // just-deleted id) and can race that effect's fresh result, wiping the sidebar's tags.
-      if (selectedProject !== id) await refreshTags()
+      // invalidationReducer defers the refresh when wasSelected: true, since the
+      // selectedProject-change effect above will request one itself, off fresh state.
+      dispatchInvalidation({ type: "projectDeleted", wasSelected })
     },
-    [selectedProject, fetchSpins, refreshSidebars, refreshTags]
+    [selectedProject, fetchSpins, refreshSidebars]
   )
 
   const saveSpin = useCallback(
@@ -255,7 +269,7 @@ export function useLibrary() {
       setSpins((prev) => prev.map((s) => (s.id === id ? { ...s, ...updated } : s)))
       setSelectedSpinExtra((prev) => (prev && prev.id === id ? { ...prev, ...updated } : prev))
       await refreshSidebars()
-      await refreshTags()
+      dispatchInvalidation({ type: "refreshRequested" })
       // If the spin no longer matches the active project filter, drop it from the view.
       // Checked against `updated.project_ids` (derived from the just-saved conversions.project_id
       // column, via projectIdsFromColumn), not the save payload's singular `fields.project_id` —
@@ -276,7 +290,7 @@ export function useLibrary() {
         setSpins((prev) => prev.filter((s) => s.id !== id))
       }
     },
-    [selectedProject, descendantIds, refreshSidebars, refreshTags]
+    [selectedProject, descendantIds, refreshSidebars]
   )
 
   // New note: a note IS a vault doc the instant it's created, so it's prepended
@@ -287,9 +301,9 @@ export function useLibrary() {
     setSelectedSpinId(note.id)
     setSelectedSpinExtra(note) // already full content; no fetch needed
     await refreshSidebars()
-    await refreshTags()
+    dispatchInvalidation({ type: "refreshRequested" })
     return note
-  }, [refreshSidebars, refreshTags])
+  }, [refreshSidebars])
 
   const patchSpinSummary = useCallback(
     (id: string, fields: { summary: string; summary_status: SummaryStatus; summary_generated_at: string }) => {
@@ -315,9 +329,9 @@ export function useLibrary() {
         setSelectedSpinExtra(null)
       }
       await refreshSidebars()
-      await refreshTags()
+      dispatchInvalidation({ type: "refreshRequested" })
     },
-    [selectedSpinId, refreshSidebars, refreshTags]
+    [selectedSpinId, refreshSidebars]
   )
 
   const detachSpinById = useCallback(async (id: string) => {
@@ -335,9 +349,9 @@ export function useLibrary() {
         setSelectedSpinExtra(null)
       }
       await refreshSidebars()
-      await refreshTags()
+      dispatchInvalidation({ type: "refreshRequested" })
     },
-    [selectedSpinId, refreshSidebars, refreshTags]
+    [selectedSpinId, refreshSidebars]
   )
 
   // Prefer the fully-fetched record (has markdown_text) over the list row, which
@@ -392,9 +406,9 @@ export function useLibrary() {
       clearSelection()
       await fetchSpins()
       await refreshSidebars()
-      await refreshTags()
+      dispatchInvalidation({ type: "refreshRequested" })
     },
-    [selectedIds, clearSelection, fetchSpins, refreshSidebars, refreshTags]
+    [selectedIds, clearSelection, fetchSpins, refreshSidebars]
   )
 
   /** Add a tag to every selected document, patch it into the already-loaded rows (no
@@ -413,9 +427,9 @@ export function useLibrary() {
         prev.map((s) => (selectedIds.has(s.id) && !s.tags.includes(t) ? { ...s, tags: [...s.tags, t] } : s))
       )
       clearSelection()
-      await refreshTags()
+      dispatchInvalidation({ type: "refreshRequested" })
     },
-    [spins, selectedIds, clearSelection, refreshTags]
+    [spins, selectedIds, clearSelection]
   )
 
   const openSpin = useCallback(async (id: string) => {
