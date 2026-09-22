@@ -7,6 +7,8 @@ import { SITE_URL, SITE_NAME } from "@/lib/seo"
 import { SiteNav } from "@/components/site-nav"
 import { SiteFooter } from "@/components/site-footer"
 import { ArticleConverter } from "@/components/marketing/article-converter"
+import { ArticleCtaBar } from "@/components/marketing/article-cta-bar"
+import { splitBeforeNthH2 } from "@/lib/article-cta"
 import { GrainOverlay } from "@/components/grain-overlay"
 
 type Props = { params: Promise<{ slug: string }> }
@@ -50,6 +52,8 @@ export default async function BlogPostPage({ params }: Props) {
 
   const html = await markdownToHtml(post.content)
 
+  // CTA goes before the second <h2>: past the intro, still well above the fold-out.
+  const [bodyBeforeCta, bodyAfterCta] = splitBeforeNthH2(html, 2)
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
@@ -131,11 +135,20 @@ export default async function BlogPostPage({ params }: Props) {
             </div>
           </header>
 
-          {/* Body */}
+          {/* Body, with a compact CTA dropped in at the first section break.
+              The converter at the foot only reaches readers who finish; these
+              articles are 95-99% single-page sessions. */}
           <div
             className="prose-blog"
-            dangerouslySetInnerHTML={{ __html: html }}
+            dangerouslySetInnerHTML={{ __html: bodyBeforeCta }}
           />
+          {bodyAfterCta && <ArticleCtaBar />}
+          {bodyAfterCta && (
+            <div
+              className="prose-blog"
+              dangerouslySetInnerHTML={{ __html: bodyAfterCta }}
+            />
+          )}
 
           <ArticleConverter />
 

@@ -1,5 +1,8 @@
 import { ConvertPageConverter } from "./convert-page-converter"
 
+/** Anchor target for the mid-article CTA in article-cta-bar.tsx. */
+export const ARTICLE_CONVERTER_ID = "try-it"
+
 /**
  * The converter, embedded at the end of a guide or blog post.
  *
@@ -24,7 +27,7 @@ export function ArticleConverter({ heading, subheading }: {
   subheading?: string
 } = {}) {
   return (
-    <section className="-mx-6 mt-16 border-t border-[#1E1E1E] pt-12">
+    <section id={ARTICLE_CONVERTER_ID} className="-mx-6 mt-16 scroll-mt-24 border-t border-[#1E1E1E] pt-12">
       <ConvertPageConverter
         eyebrow="Try it free"
         heading={heading ?? "Convert a document to Markdown"}
