@@ -127,7 +127,7 @@ export default function MDSpinPage() {
             {[
               { icon: FileText, step: "01", title: "Convert", body: "Drop any PDF, doc, or deck. Get clean Markdown." },
               { icon: Library, step: "02", title: "Organize", body: "Save to your Vault, sorted into projects and tags." },
-              { icon: Share2, step: "03", title: "Connect", body: "MDSpin auto-links related documents into a knowledge map." },
+              { icon: Share2, step: "03", title: "Map", body: "See your whole vault take shape as a navigable map." },
               { icon: Sparkles, step: "04", title: "Synthesize", body: "Generate AI briefs across clusters of related docs." },
             ].map((s) => (
               <div
@@ -187,23 +187,35 @@ export default function MDSpinPage() {
             <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-6 transition-colors hover:border-[#3A3A3A]">
               <div className="mb-5 h-32 overflow-hidden rounded-lg border border-[#2A2A2A] bg-[#0C0C0C]">
                 <svg viewBox="0 0 280 140" className="h-full w-full" role="img" aria-label="Knowledge map preview">
+                  {/* background starfield */}
                   {[
-                    ["140", "70", "100", "40"], ["140", "70", "200", "45"],
-                    ["140", "70", "90", "105"], ["140", "70", "205", "100"],
-                    ["100", "40", "55", "70"], ["200", "45", "240", "85"],
-                    ["90", "105", "150", "120"], ["205", "100", "150", "120"],
-                  ].map(([x1, y1, x2, y2], i) => (
-                    <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#2A2A2A" strokeWidth="1" />
+                    [20, 20], [255, 15], [140, 10], [30, 125], [260, 120],
+                    [10, 70], [270, 55], [120, 130], [180, 20], [45, 100],
+                  ].map(([cx, cy], i) => (
+                    <circle key={`bg-${i}`} cx={cx} cy={cy} r="0.6" fill="#2A2A2A" />
                   ))}
+
+                  {/* documents, as scattered stars */}
                   {[
-                    ["140", "70", "7", "#FF4800"],
-                    ["100", "40", "4.5", "#888480"], ["200", "45", "4.5", "#888480"],
-                    ["90", "105", "4.5", "#888480"], ["205", "100", "4.5", "#888480"],
-                    ["55", "70", "3.5", "#4A4A46"], ["240", "85", "3.5", "#4A4A46"],
-                    ["150", "120", "3.5", "#4A4A46"],
-                  ].map(([cx, cy, r, fill], i) => (
-                    <circle key={i} cx={cx} cy={cy} r={r} fill={fill} />
+                    [45, 50], [100, 95], [150, 30], [175, 75],
+                    [230, 70], [205, 125], [255, 90], [15, 110],
+                  ].map(([cx, cy], i) => (
+                    <circle key={`star-${i}`} cx={cx} cy={cy} r="1.8" fill="#4A4A46" />
                   ))}
+
+                  {/* subproject orbit ring, moon */}
+                  <circle cx="72" cy="76" r="26" fill="none" stroke="#2A2A2A" strokeWidth="1" />
+                  <circle cx="92" cy="59" r="3.5" fill="#888480" />
+
+                  {/* root projects, as planets with a soft glow */}
+                  <circle cx="72" cy="76" r="22" fill="#FF4800" opacity="0.15" />
+                  <circle cx="72" cy="76" r="13" fill="#FF4800" />
+
+                  <circle cx="198" cy="46" r="15" fill="#888480" opacity="0.12" />
+                  <circle cx="198" cy="46" r="8" fill="#888480" />
+
+                  <circle cx="222" cy="108" r="11" fill="#4A4A46" opacity="0.12" />
+                  <circle cx="222" cy="108" r="6" fill="#4A4A46" />
                 </svg>
               </div>
               <h3 className="font-display text-lg font-semibold text-[#F0EDE8]">Knowledge Map</h3>
