@@ -11,6 +11,7 @@ import { VaultViewToggle } from "@/components/library/vault-view-toggle"
 import { AddToVaultMenu } from "@/components/vault/add-to-vault-menu"
 import { EmbeddingBackfillBanner } from "@/components/vault/embedding-backfill-banner"
 import { SummaryBackfillBanner } from "@/components/vault/summary-backfill-banner"
+import { FilingBackfillBanner } from "@/components/vault/filing-backfill-banner"
 import { UNFILED } from "@/lib/library"
 
 export default function VaultPage() {
@@ -80,6 +81,7 @@ export default function VaultPage() {
         <>
           <EmbeddingBackfillBanner />
           <SummaryBackfillBanner />
+          <FilingBackfillBanner />
           <FolderGrid
             projects={lib.projects}
             summaries={lib.folders}
@@ -109,6 +111,7 @@ export default function VaultPage() {
           <div className="min-w-0 flex-1">
             <EmbeddingBackfillBanner />
             <SummaryBackfillBanner />
+            <FilingBackfillBanner />
 
             {view === "folders" && currentFolderName && (
               <button

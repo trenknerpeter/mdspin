@@ -60,6 +60,14 @@ export const EMBED_REQUEST_BATCH = 1
  *  processing needs a long budget anymore. */
 export const EMBED_BACKFILL_TIMEOUT_MS = 45_000
 
+/** Chars of each doc sent to the filing LLM fallback. Smaller than SUMMARY_DOC_CAP: a
+ *  filing decision needs enough text to tell what a document is about, not a full read. */
+export const FILING_DOC_CAP = 3000
+/** Give up after this many failed (technical) attempts per doc -- same retry philosophy
+ *  as SUMMARY_MAX_ATTEMPTS. Does not apply to a 'flagged' outcome, which is a completed
+ *  decision rather than a failure and is never retried automatically. */
+export const FILING_MAX_ATTEMPTS = 3
+
 /** Markdown files per source connection. A repo over this is refused with a clear
  *  message at connect time — matching MAX_IMPORT_FILES's stated policy of "refused,
  *  never silently truncated" — rather than importing the first N files and calling

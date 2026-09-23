@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Search, FileText, Copy, Check, Sparkles, FolderInput, Inbox, Tag } from "lucide-react"
+import { Search, FileText, Copy, Check, Sparkles, FolderInput, Inbox, Tag, AlertCircle } from "lucide-react"
 import { useRef, useState } from "react"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -228,6 +228,27 @@ export function VaultListView({ lib }: { lib: ReturnType<typeof useLibrary> }) {
                     </div>
                     {c.summary && (
                       <p className="mt-2 line-clamp-2 text-xs text-[#888480]">{c.summary}</p>
+                    )}
+                    {/* A 'flagged' doc is always Unfiled (filing never touches project_id
+                        below the confidence bar) — this only ever renders on that row, so
+                        the guess doesn't leak onto a document someone already filed. */}
+                    {c.project_ids.length === 0 && c.filing_status === "flagged" && c.filing_note && (
+                      <div
+                        className="mt-2 flex items-center gap-2 text-xs text-amber-400"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <AlertCircle className="h-3 w-3 shrink-0" />
+                        <span className="min-w-0 flex-1 truncate">{c.filing_note}</span>
+                        {c.filing_suggested_project_id && (
+                          <button
+                            type="button"
+                            onClick={() => lib.moveOneTo(c.id, c.filing_suggested_project_id)}
+                            className="shrink-0 rounded-full border border-amber-400/30 px-2 py-0.5 text-[10px] font-medium text-amber-300 transition-colors hover:border-amber-400/60 hover:text-amber-200"
+                          >
+                            File it
+                          </button>
+                        )}
+                      </div>
                     )}
                     {c.tags.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1.5">

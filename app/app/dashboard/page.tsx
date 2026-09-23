@@ -7,6 +7,7 @@ import { ConversionBand } from "@/components/dashboard/conversion-band"
 import { VaultPulse } from "@/components/dashboard/vault-pulse"
 import { ProjectsRail } from "@/components/dashboard/projects-rail"
 import { RecentVault } from "@/components/dashboard/recent-vault"
+import { FilingActivity } from "@/components/dashboard/filing-activity"
 
 export default function DashboardPage() {
   const d = useDashboard()
@@ -70,6 +71,7 @@ export default function DashboardPage() {
         <div className="space-y-6">
           <ConversionBand stats={d.stats} savings={d.savings} />
           <VaultPulse docs={d.vaultDocs} vaultCount={d.stats.vaultCount} />
+          <FilingActivity docs={d.vaultDocs} projects={d.projects} />
 
           <div className="grid gap-6 lg:grid-cols-5">
             <div className="lg:col-span-2">

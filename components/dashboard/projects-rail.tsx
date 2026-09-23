@@ -1,7 +1,14 @@
 "use client"
 
 import { DashboardListRow } from "@/components/dashboard/dashboard-list-row"
-import { descendantProjectIds, rollUpProjectCounts, rootProjects, type Project, type SpinStats } from "@/lib/library"
+import {
+  descendantProjectIds,
+  isRecentlyAutoCreated,
+  rollUpProjectCounts,
+  rootProjects,
+  type Project,
+  type SpinStats,
+} from "@/lib/library"
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
@@ -59,6 +66,7 @@ export function ProjectsRail({
                   href={`/app/vault?project=${p.id}`}
                   color={p.color}
                   title={p.name}
+                  badge={isRecentlyAutoCreated(p) ? "New" : undefined}
                   count={String(counts[p.id] ?? 0)}
                   date={date ? formatDate(date) : undefined}
                 />

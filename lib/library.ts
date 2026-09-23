@@ -3,6 +3,7 @@ import { countWords } from "@/lib/vault/text"
 import { normalizeTag } from "@/lib/vault/tags"
 import type { IngestSourceType } from "@/lib/vault/ingest"
 import type { SummaryStatus } from "@/lib/vault/summary"
+import type { FilingStatus } from "@/lib/vault/filing"
 
 export const UNFILED = "__unfiled__"
 
@@ -27,6 +28,9 @@ export interface Project {
   /** Subprojects nest exactly one level, so a project with a parent_id never has
    *  children of its own — enforced by the projects_single_level trigger. */
   parent_id: string | null
+  /** True when the GitHub auto-filing classifier created this project rather than the
+   *  user — drives the "New" badge in the projects rail/grid. */
+  auto_created: boolean
 }
 
 export interface Spin {
@@ -58,6 +62,16 @@ export interface Spin {
   external_url: string | null
   source_link_state: SourceLinkState | null
   source_connection_id: string | null
+  /** Set only for source_type === "sync" docs the filing pipeline has touched. NULL for
+   *  everything else — see the migration comment on conversions.filing_status. */
+  filing_status: FilingStatus | null
+  filing_confidence: number | null
+  /** Human-readable filing outcome/guess, shown directly in the Unfiled view for
+   *  'flagged' rows (e.g. "Might belong in Client X — 68% confident"). */
+  filing_note: string | null
+  /** Only set on a 'flagged' row where the guess was an existing project — powers a
+   *  one-click "File into X" instead of just naming X in prose. */
+  filing_suggested_project_id: string | null
 }
 
 /** Raw `conversions` row shape as selected by this file's queries — still carries the
@@ -87,6 +101,10 @@ interface ConversionRow {
   external_url?: string | null
   source_link_state?: SourceLinkState | null
   source_connection_id?: string | null
+  filing_status?: FilingStatus | null
+  filing_confidence?: number | null
+  filing_note?: string | null
+  filing_suggested_project_id?: string | null
 }
 
 export function toSpin(row: ConversionRow, projectIds: string[]): Spin {
@@ -113,6 +131,10 @@ export function toSpin(row: ConversionRow, projectIds: string[]): Spin {
     external_url: row.external_url ?? null,
     source_link_state: row.source_link_state ?? null,
     source_connection_id: row.source_connection_id ?? null,
+    filing_status: row.filing_status ?? null,
+    filing_confidence: row.filing_confidence ?? null,
+    filing_note: row.filing_note ?? null,
+    filing_suggested_project_id: row.filing_suggested_project_id ?? null,
   }
 }
 
@@ -154,6 +176,19 @@ export function rootProjectId(
 ): string | null {
   if (!projectId) return null
   return byId.get(projectId)?.parent_id ?? projectId
+}
+
+/** Whether a project should still carry the "New" badge — auto_created, and young enough
+ *  that the badge is still telling the user something they haven't already noticed. A
+ *  week is arbitrary but generous: the point is to catch it on the next dashboard visit,
+ *  not to mark auto-created projects forever. */
+export function isRecentlyAutoCreated(
+  p: Pick<Project, "auto_created" | "created_at">,
+  now: Date = new Date()
+): boolean {
+  if (!p.auto_created) return false
+  const ageMs = now.getTime() - new Date(p.created_at).getTime()
+  return ageMs < 7 * 24 * 60 * 60 * 1000
 }
 
 /** Whether a project is top-level (a "root") rather than a subproject. */
@@ -288,7 +323,7 @@ export async function listProjects(): Promise<Project[]> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from("projects")
-    .select("id, name, color, created_at, parent_id")
+    .select("id, name, color, created_at, parent_id, auto_created")
     .order("created_at", { ascending: true })
   if (error) throw error
   return (data ?? []) as Project[]
@@ -307,7 +342,7 @@ export async function createProject(
   const { data, error } = await supabase
     .from("projects")
     .insert({ user_id: user.id, name, color: color ?? null, parent_id: parentId ?? null })
-    .select("id, name, color, created_at, parent_id")
+    .select("id, name, color, created_at, parent_id, auto_created")
     .single()
   if (error) throw error
   return data as Project
@@ -352,7 +387,7 @@ export async function deleteProject(id: string) {
 
 // Shared by both field lists below; markdown_text is the one column that differs.
 const SPIN_COMMON_FIELDS =
-  "id, filename, title, file_type, word_count, project_id, tags, in_vault, source_type, converted_at, updated_at, version, brief, brief_generated_at, summary, summary_status, summary_generated_at, source_bytes, external_url, source_link_state, source_connection_id"
+  "id, filename, title, file_type, word_count, project_id, tags, in_vault, source_type, converted_at, updated_at, version, brief, brief_generated_at, summary, summary_status, summary_generated_at, source_bytes, external_url, source_link_state, source_connection_id, filing_status, filing_confidence, filing_note, filing_suggested_project_id"
 
 // Used by listSpins/listHistory. Omits markdown_text: a single document can be
 // 2.4MB, and list pages fetch up to 100 rows on every filter change. PostgREST

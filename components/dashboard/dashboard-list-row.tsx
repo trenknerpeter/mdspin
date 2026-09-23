@@ -12,12 +12,16 @@ export function DashboardListRow({
   href,
   color,
   title,
+  badge,
   count,
   date,
 }: {
   href: string
   color?: string | null
   title: string
+  /** Small pill after the title — used for the auto-filing classifier's "New" project
+   *  marker. Optional: neither caller needs it for anything else today. */
+  badge?: string
   count?: string
   date?: string
 }) {
@@ -31,6 +35,11 @@ export function DashboardListRow({
         style={{ background: color ?? "#4A4A46" }}
       />
       <span className="min-w-0 flex-1 truncate text-sm text-[#F0EDE8]">{title}</span>
+      {badge && (
+        <span className="shrink-0 rounded-full bg-[#FF4800]/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#FF4800]">
+          {badge}
+        </span>
+      )}
       {count && (
         <span className="shrink-0 text-right text-xs text-[#888480]">{count}</span>
       )}

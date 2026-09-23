@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { after } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createVaultRepo } from "@/lib/vault/repo"
-import { verifyWebhookSignature } from "@/lib/integrations/github/webhook-signature"
+import { verifyWebhookSignature } from "@/lib/integrations/webhook-signature"
 import { runIncrementalSync, type SyncConfig } from "@/lib/integrations/github/sync"
 import type { GitHubPushPayload } from "@/lib/integrations/github/changes"
 import { embedAndStoreDocument, type EmbeddableDoc } from "@/lib/vault/embed-document"
+import { classifyAndStoreDocument, type ClassifiableDoc } from "@/lib/vault/classify-document"
+import type { FilingCandidateProject } from "@/lib/vault/filing"
 import { trackServer } from "@/lib/posthog-server"
 import { EVENTS } from "@/lib/analytics/events"
 
@@ -151,6 +153,42 @@ async function handlePush(payload: GitHubPushPayload & { repository: { id: numbe
         webhookUrl,
         webhookSecret: process.env.MAKE_SUMMARY_SECRET ?? "",
       })
+    }
+  }
+
+  // Inline-drain filing for just the touched docs, same shape as the summary drain above
+  // (claim_filings_by_id_for_user is the filing twin of claim_summaries_by_id_for_user, for
+  // the same service-role-has-no-auth.uid() reason). Every newly-inserted synced doc starts
+  // Unfiled by upsertSyncedDocument's design, so this is what actually files it — an
+  // updated/adopted/unchanged row already has a project_id (the user's own, preserved by
+  // the mirror guard) and is never a filing candidate here.
+  const filingWebhookUrl = process.env.MAKE_FILING_WEBHOOK_URL
+  if (result && result.touchedIds.length > 0 && filingWebhookUrl) {
+    const { data: filingClaimed } = await admin.rpc("claim_filings_by_id_for_user", {
+      p_user_id: connection.user_id,
+      p_ids: result.touchedIds,
+    })
+    const claimedRows = (filingClaimed ?? []) as Array<{
+      id: string
+      user_id: string
+      title: string | null
+      filename: string
+      markdown_text: string | null
+      external_id: string | null
+      source_connection_id: string | null
+    }>
+    if (claimedRows.length > 0) {
+      const { data: projectRows } = await admin
+        .from("projects")
+        .select("id, name")
+        .eq("user_id", connection.user_id)
+        .is("parent_id", null)
+      const candidates: FilingCandidateProject[] = (projectRows ?? []) as FilingCandidateProject[]
+      const filingDeps = { webhookUrl: filingWebhookUrl, webhookSecret: process.env.MAKE_FILING_SECRET ?? "", repoName: cfg.repo }
+      for (const row of claimedRows) {
+        const doc: ClassifiableDoc = { ...row }
+        await classifyAndStoreDocument(admin, doc, candidates, filingDeps)
+      }
     }
   }
 

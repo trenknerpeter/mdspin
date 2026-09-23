@@ -3,7 +3,7 @@
 import { FolderPlus } from "lucide-react"
 import { useState, type KeyboardEvent } from "react"
 import { FolderCard } from "@/components/library/folder-card"
-import { childrenOf, isRootProject, type FolderSummary, type Project } from "@/lib/library"
+import { childrenOf, isRecentlyAutoCreated, isRootProject, type FolderSummary, type Project } from "@/lib/library"
 
 // Folders whose contents changed most recently come first, so the grid reflects what
 // you're actually working on. Empty folders sink to the bottom (no lastActivity) rather
@@ -101,6 +101,7 @@ export function FolderGrid({
             name={project?.name ?? "Unfiled"}
             color={project?.color ?? null}
             subProjects={subProjects}
+            isNew={project ? isRecentlyAutoCreated(project) : false}
             onOpen={() => onOpenFolder(s.projectId)}
             onOpenSubProject={(id) => onOpenFolder(id)}
           />

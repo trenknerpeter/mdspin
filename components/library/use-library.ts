@@ -415,6 +415,19 @@ export function useLibrary() {
     [selectedIds, clearSelection, fetchSpins, refreshSidebars]
   )
 
+  /** File a single document into a project, independent of the current selection —
+   *  powers the Unfiled view's one-click "File into X" on a 'flagged' row's suggestion,
+   *  which must not disturb whatever the user has already multi-selected elsewhere. */
+  const moveOneTo = useCallback(
+    async (id: string, projectId: string | null) => {
+      await moveSpinsToProject([id], projectId)
+      await fetchSpins()
+      await refreshSidebars()
+      dispatchInvalidation({ type: "refreshRequested" })
+    },
+    [fetchSpins, refreshSidebars]
+  )
+
   /** Add a tag to every selected document, patch it into the already-loaded rows (no
    *  refetch needed — tag-add is additive, so it can't remove a doc from whatever filter
    *  currently has it visible), then refresh the tag sidebar and clear the selection. */
@@ -483,6 +496,7 @@ export function useLibrary() {
     selectAllVisible,
     clearSelection,
     moveSelectedTo,
+    moveOneTo,
     addTagToSelected,
     // mutations
     addNote,

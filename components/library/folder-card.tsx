@@ -16,6 +16,9 @@ export interface FolderCardProps {
   /** One-line project summary. Undefined until the summary pipeline covers projects —
    *  the card renders nothing rather than a placeholder. */
   summaryLine?: string | null
+  /** True when the GitHub auto-filing classifier created this project itself, and it's
+   *  young enough that the badge is still worth showing (see isRecentlyAutoCreated). */
+  isNew?: boolean
   onOpen: () => void
   onOpenSubProject?: (id: string) => void
 }
@@ -26,6 +29,7 @@ export function FolderCard({
   color,
   subProjects = [],
   summaryLine,
+  isNew,
   onOpen,
   onOpenSubProject,
 }: FolderCardProps) {
@@ -55,6 +59,11 @@ export function FolderCard({
           />
         )}
         <p className="truncate text-sm font-medium text-[#F0EDE8]">{name}</p>
+        {isNew && (
+          <span className="shrink-0 rounded-full bg-[#FF4800]/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#FF4800]">
+            New
+          </span>
+        )}
       </div>
 
       <div className="mt-1 flex items-center gap-2 text-xs text-[#4A4A46]">
