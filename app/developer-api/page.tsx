@@ -8,12 +8,12 @@ import { ApiDocsContent } from "./api-docs-content"
 export const metadata: Metadata = {
   title: "API Reference — MDSpin Developer Documentation",
   description:
-    "Complete API reference for MDSpin. Convert PDF, DOCX, Google Docs, and Google Slides to clean Markdown programmatically. Authentication, endpoints, parameters, and examples.",
+    "Complete API reference for MDSpin. Convert PDF, DOCX, Google Docs, and Google Slides to clean Markdown programmatically, and read or write your Knowledge Vault over REST or MCP. Authentication, endpoints, parameters, and examples.",
   alternates: { canonical: `${SITE_URL}/developer-api` },
   openGraph: {
     title: "API Reference — MDSpin Developer Documentation",
     description:
-      "Complete API reference for MDSpin. Convert documents to clean Markdown programmatically.",
+      "Complete API reference for MDSpin. Convert documents to clean Markdown, and access your Knowledge Vault over REST or MCP.",
     url: `${SITE_URL}/developer-api`,
   },
 }
@@ -24,7 +24,7 @@ export default function DeveloperApiPage() {
     "@type": "TechArticle",
     name: "MDSpin API Reference",
     description:
-      "Complete API reference for converting documents to Markdown with MDSpin.",
+      "Complete API reference for converting documents to Markdown and accessing your Knowledge Vault with MDSpin.",
     url: `${SITE_URL}/developer-api`,
     publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
   }
@@ -68,8 +68,9 @@ export default function DeveloperApiPage() {
               Developer API
             </h1>
             <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-[#888480]">
-              Programmatic access to MDSpin&apos;s conversion engine. Convert PDF,
-              DOCX, Google Docs, Google Slides, and more to clean Markdown.
+              Programmatic access to MDSpin&apos;s conversion engine and your Knowledge
+              Vault. Convert PDF, DOCX, Google Docs, Google Slides, and more to clean
+              Markdown — then organize, search, and update your Vault over REST or MCP.
             </p>
           </div>
 

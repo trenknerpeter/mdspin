@@ -184,12 +184,27 @@ export function ApiDocsContent() {
         </p>
         <CodeBlock>{`Authorization: Bearer mdspin_your_api_key`}</CodeBlock>
 
-        <div className="mt-6 rounded-xl border border-[#2A2A2A] bg-[#161616] p-4">
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 text-sm">🔒</span>
-            <div>
-              <p className="text-sm font-medium text-[#F0EDE8]">Base URL</p>
-              <code className="font-mono text-sm text-[#888480]">{BASE_URL}</code>
+        <div className="mt-6 space-y-3">
+          <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-4">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 text-sm">🔒</span>
+              <div>
+                <p className="text-sm font-medium text-[#F0EDE8]">Base URL — Conversion API</p>
+                <code className="font-mono text-sm text-[#888480]">{BASE_URL}</code>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-4">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 text-sm">🗄️</span>
+              <div>
+                <p className="text-sm font-medium text-[#F0EDE8]">Base URL — Knowledge Vault &amp; MCP</p>
+                <code className="font-mono text-sm text-[#888480]">https://mdspin.app</code>
+                <p className="mt-1 text-xs text-[#888480]">
+                  A different domain from the Conversion API above — the Vault REST endpoints and the MCP server are
+                  both served directly from the main MDSpin app.
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -230,6 +245,11 @@ export function ApiDocsContent() {
                   description: "Verify API key and read account info",
                   endpoints: "/oauth/me",
                 },
+                {
+                  scope: "vault",
+                  description: "Read and update your Knowledge Vault — documents, projects, search",
+                  endpoints: "/api/v1/vault/*",
+                },
               ].map((s) => (
                 <tr key={s.scope} className="border-b border-[#2A2A2A]/50">
                   <td className="py-2.5 pr-4 font-mono text-[#FF4800]">{s.scope}</td>
@@ -265,6 +285,116 @@ export function ApiDocsContent() {
       {endpoints.map((ep) => (
         <EndpointSection key={ep.id} endpoint={ep} />
       ))}
+
+      {/* Vault MCP Server */}
+      <section id="mcp-server" className="scroll-mt-32">
+        <h2 className="mb-4 font-display text-2xl font-bold text-white">
+          Vault MCP Server
+        </h2>
+        <p className="mb-4 text-sm leading-relaxed text-[#888480]">
+          For AI agents rather than raw HTTP calls, your Knowledge Vault is also reachable as a{" "}
+          <a
+            href="https://modelcontextprotocol.io"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#FF4800] underline underline-offset-2 hover:text-[#e04200]"
+          >
+            Model Context Protocol
+          </a>{" "}
+          server — 14 tools covering everything the REST API above exposes, plus document and project writes. Same
+          authentication as everything else on this page.
+        </p>
+        <div className="mb-6 rounded-xl border border-[#2A2A2A] bg-[#161616] p-4">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 text-sm">🔌</span>
+            <div>
+              <p className="text-sm font-medium text-[#F0EDE8]">MCP endpoint</p>
+              <code className="font-mono text-sm text-[#888480]">https://mdspin.app/api/mcp</code>
+            </div>
+          </div>
+        </div>
+
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-[#888480]">
+          Connecting a client
+        </h3>
+        <p className="mb-3 text-sm leading-relaxed text-[#888480]">
+          Using Claude Code:
+        </p>
+        <CodeBlock>{`claude mcp add --transport http mdspin-vault https://mdspin.app/api/mcp \\
+  --header "Authorization: Bearer mdspin_your_api_key"`}</CodeBlock>
+        <p className="mb-3 mt-4 text-sm leading-relaxed text-[#888480]">
+          Or add it directly to any client that supports a Streamable HTTP MCP server:
+        </p>
+        <CodeBlock>{`{
+  "mcpServers": {
+    "mdspin-vault": {
+      "type": "http",
+      "url": "https://mdspin.app/api/mcp",
+      "headers": { "Authorization": "Bearer mdspin_your_api_key" }
+    }
+  }
+}`}</CodeBlock>
+
+        <h3 className="mb-3 mt-6 text-xs font-semibold uppercase tracking-[0.15em] text-[#888480]">
+          Read tools
+        </h3>
+        <div className="mb-6 overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-[#2A2A2A] text-[#888480]">
+                <th className="pb-2 pr-4 font-medium">Tool</th>
+                <th className="pb-2 font-medium">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { name: "vault_overview", description: "Totals, projects, top tags, and your 10 most recently updated documents. The cheapest first call for an agent exploring your Vault." },
+                { name: "search_vault", description: "Keyword-and-meaning search across your Vault. Returns short snippets and a relevance score, never full document bodies." },
+                { name: "list_documents", description: "Filterable, keyset-paginated document listing. Prefer search_vault when looking for something specific rather than enumerating." },
+                { name: "get_document", description: "Fetch 1–5 documents by id, with a content mode: none, summary (default), outline, or full (paginated)." },
+                { name: "list_projects", description: "Every project in your Vault, flat, with parent_id marking which are subprojects." },
+                { name: "get_project", description: "A single project's details and instructions, with its subprojects listed inline." },
+                { name: "get_related_documents", description: "Documents related to a given one, scoped to its top-level project." },
+              ].map((t) => (
+                <tr key={t.name} className="border-b border-[#2A2A2A]/50">
+                  <td className="py-2.5 pr-4 font-mono text-emerald-400">{t.name}</td>
+                  <td className="py-2.5 text-[#888480]">{t.description}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-[#888480]">
+          Write tools
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-[#2A2A2A] text-[#888480]">
+                <th className="pb-2 pr-4 font-medium">Tool</th>
+                <th className="pb-2 font-medium">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { name: "create_document", description: "Create a new document from a Markdown body. Title is derived from the first heading when omitted." },
+                { name: "append_to_document", description: "Add content to the end of an existing document without touching what's already there." },
+                { name: "update_document", description: "Full replace of title/markdown/tags/project, gated by expected_version and a required reason. Only allowed on notes and MCP-created documents — imported/converted/API-created documents return IMMUTABLE_SOURCE." },
+                { name: "organize_document", description: "Add and/or remove tags on a document. Additive/subtractive only — there's no 'set tags'." },
+                { name: "remove_from_vault", description: "Reversibly remove a document from listings and search. There is no delete tool." },
+                { name: "create_project", description: "Create a project, optionally nested one level under an existing top-level project." },
+                { name: "update_project", description: "Rename a project, change its color or instructions, or move it in or out of nesting." },
+              ].map((t) => (
+                <tr key={t.name} className="border-b border-[#2A2A2A]/50">
+                  <td className="py-2.5 pr-4 font-mono text-blue-400">{t.name}</td>
+                  <td className="py-2.5 text-[#888480]">{t.description}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {/* Error Codes */}
       <section id="errors" className="scroll-mt-32">
