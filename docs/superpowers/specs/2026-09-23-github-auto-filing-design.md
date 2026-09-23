@@ -43,14 +43,23 @@ For every `conversions` row with `source_type = 'sync'` and
 2. **LLM fallback** (expected to fire for most docs) — send the doc content
    plus the candidate project list to the `MDSpin Filing` Make scenario
    (same shape as the existing summary/brief scenarios: Custom Webhook →
-   `ai-tools:Ask` → `WebhookRespond`, with the same shared-secret filter).
-   The scenario returns a JSON decision (`match` / `new` / `none`) with a
-   confidence, delimited the same way `SUMMARY_DELIMITER` is (Make has no
-   `toJSON()` and strips response headers, and a blocked filter still
-   answers 200 "Accepted" — see `lib/vault/filing.ts`'s header comment).
+   shared-secret filter → `ai-tools:Ask` → `WebhookRespond`). The scenario
+   returns a JSON decision (`match` / `new` / `none`) with a confidence,
+   delimited the same way `SUMMARY_DELIMITER` is (Make has no `toJSON()`
+   and strips response headers, and a blocked filter still answers 200
+   "Accepted" — see `lib/vault/filing.ts`'s header comment).
+   - The model returns a project **name**, not an id — Make has no clean way
+     to hand it a per-candidate id array to echo back, and an LLM reliably
+     gets a name right where it can easily mangle a UUID. The app resolves
+     the name back to a real candidate (`findCandidateByName`, same
+     aggressive normalization as the path matcher) before trusting it either
+     way; an unresolvable name is treated as a technical failure, never a
+     guess. A `new` decision whose name actually matches an existing
+     candidate is resolved as a match against it instead, so a naming
+     collision can't create a duplicate project.
    - High-confidence `match` → file into that project.
-   - High-confidence `new` → create the project (`projects.auto_created =
-     true`), file into it.
+   - High-confidence `new` (name not resolvable to an existing project) →
+     create the project (`projects.auto_created = true`), file into it.
    - Anything below the confidence bar, or `none` → leave `project_id` NULL,
      `filing_status = 'flagged'`, with the guess stored in `filing_note` /
      `filing_confidence` (and `filing_suggested_project_id` when there's a
@@ -119,3 +128,28 @@ pipelines' `NOT_CONFIGURED` gate — until the Make scenario exists and the
 env vars are set (Production + Preview), every sync doc simply stays
 `filing_status = 'pending'` and nothing is claimed, rather than partially
 running with an attempt budget draining against nothing.
+
+## Status: shipped 2026-09-23
+
+- Schema migration `20260923000000_vault_filing_pipeline.sql` applied to the
+  hosted Supabase project (`ixdsddfxkrkytiitfici`) via the Supabase MCP.
+  `get_advisors` clean — no new RLS/security findings.
+- `MDSpin Filing` Make scenario created and activated (scenario id
+  `7562812`, team 290806, folder 327388, hook id `3772809`) — same
+  webhook → shared-secret filter → `ai-tools:Ask` (Gemini, reusing
+  connection `3289375`) → `WebhookRespond` shape as the summary/brief
+  scenarios. Verified live via direct webhook calls before wiring it into
+  the app: a confident `match`, a genuine `new` topic, a vague `none`
+  (with an empty project list), and a wrong-secret call correctly falling
+  through to Make's blocked-filter 200 "Accepted" (which `parseFilingResponse`
+  correctly refuses to treat as a decision).
+- `MAKE_FILING_WEBHOOK_URL` / `MAKE_FILING_SECRET` set in this repo's
+  `.env.local` and in the Vercel project's Production + Preview
+  environments; deployed to production (commit `dc55fde` on `main`).
+- 38 new unit tests across `lib/__tests__/vault-filing.test.ts` and
+  `lib/__tests__/vault-classify-document.test.ts`; full suite (690+ tests)
+  and `tsc --noEmit` clean at time of shipping.
+- Not yet exercised end-to-end against a real GitHub push in production —
+  next verification step is either pushing to a connected repo or running
+  the "File everything now" backfill banner against a real Unfiled backlog,
+  then checking the scenario's `executions_list` to confirm the call landed.
