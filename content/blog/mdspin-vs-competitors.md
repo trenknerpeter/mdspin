@@ -24,6 +24,8 @@ It also has no connectors to cloud document sources like Google Docs or Gmail. Y
 
 **MDSpin comparison:** MDSpin covers the same core use case — converting documents to Markdown — but wraps it in a zero-setup web interface. No Python, no CLI, no deployment. Drop a file, hit Spin, get Markdown. MDSpin also shows conversion impact metrics (token reduction, speed improvement, cost savings) that MarkItDown doesn't provide, giving users immediate visibility into the ROI of converting their documents.
 
+See the full breakdown: [MDSpin as a MarkItDown alternative](/alternatives/markitdown).
+
 ## MDSpin vs Docling
 
 Docling is IBM's answer to document conversion, and it's the most technically sophisticated tool in this space. It uses a 258M parameter vision-language model (Granite-Docling) to understand document layout, preserve table structures, handle equations, and maintain reading order across complex PDFs.
@@ -111,4 +113,4 @@ For teams evaluating markdown converters for AI workflows, MDSpin offers the fas
 - [Document Preprocessing for AI: The Complete Guide](/guides/document-preprocessing-for-ai)
 - [Supported formats and how each conversion works](/formats)
 
-[Try it now at mdspin.app](https://mdspin.app)
+[Try it now at mdspin.app](https://www.mdspin.app)
