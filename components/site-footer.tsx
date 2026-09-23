@@ -13,6 +13,7 @@ const resourceLinks = [
   { href: "/guides", label: "Guides" },
   { href: "/blog", label: "Blog" },
   { href: "/use-cases", label: "Use Cases" },
+  { href: "/alternatives/markitdown", label: "MarkItDown Alternative" },
   ...CONVERT_PAGES.map((page) => ({
     href: `/convert/${page.slug}`,
     label: page.navLabel,

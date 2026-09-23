@@ -16,6 +16,7 @@ import {
   BookOpen,
   Newspaper,
   Wrench,
+  Scale,
   ChevronDown,
   LayoutDashboard,
   Network,
@@ -46,6 +47,7 @@ const productLinks = [
 const resourceLinks = [
   { href: "/guides", label: "Guides", icon: BookOpen, description: "Tutorials and walkthroughs" },
   { href: "/blog", label: "Blog", icon: Newspaper, description: "Updates and insights" },
+  { href: "/alternatives/markitdown", label: "MarkItDown Alternative", icon: Scale, description: "How MDSpin compares" },
 ]
 
 // Free, single-purpose converter pages (e.g. "PDF to Markdown") — listed
