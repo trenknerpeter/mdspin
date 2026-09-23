@@ -9,14 +9,14 @@ import { VaultHeroAnimation } from "@/components/marketing/vault-hero-animation"
 import { GetStartedButton } from "@/components/marketing/get-started-button"
 
 export const metadata: Metadata = {
-  title: "Knowledge Vault — Organize, Connect & Synthesize Your Documents",
+  title: "Knowledge Vault — Organize, Map & Synthesize Your Documents",
   description:
-    "MDSpin's Knowledge Vault keeps every conversion organized, auto-connects related documents into a knowledge map, and synthesizes AI briefs across them — one searchable hub for your AI.",
+    "MDSpin's Knowledge Vault keeps every conversion organized into projects and subprojects, visualizes your whole library on an interactive map, and synthesizes AI briefs across related documents — one searchable hub for your AI.",
   alternates: { canonical: `${SITE_URL}/knowledge-vault` },
   openGraph: {
     title: "Knowledge Vault | MDSpin",
     description:
-      "Organize every conversion, connect related documents into a knowledge map, and synthesize AI briefs across them.",
+      "Organize every conversion into projects, visualize your whole library on an interactive map, and synthesize AI briefs across related documents.",
     url: `${SITE_URL}/knowledge-vault`,
   },
 }
@@ -27,9 +27,9 @@ const features = [
     label: "Organize",
     title: "Knowledge Vault",
     description:
-      "Every file you convert lands in one place instead of your downloads folder. Organize by project, tag freely, and search the full text of everything you've ever converted — your knowledge base grows with every spin.",
+      "Every file you convert lands in one place instead of your downloads folder. Organize by project — split a busy project into subprojects when it outgrows one level — tag freely, and search the full text of everything you've ever converted. Connect a GitHub repo and its Markdown files stay synced automatically, no manual re-uploading.",
     points: [
-      { icon: FolderTree, text: "Group documents into color-coded projects" },
+      { icon: FolderTree, text: "Projects, with one level of subprojects for busy topics" },
       { icon: Tags, text: "Tag freely and filter your vault in a click" },
       { icon: Search, text: "Full-text search across every document" },
       { icon: FileText, text: "Preview, edit, copy, or download clean Markdown" },
@@ -37,15 +37,15 @@ const features = [
   },
   {
     icon: Network,
-    label: "Connect",
+    label: "Map",
     title: "Knowledge Map",
     description:
-      "A force-directed graph visualizes your whole vault, auto-clustered by project and connected by content similarity. Find the neighbors of any document, follow a thread across projects, and surface links you'd never spot in a file list.",
+      "A galaxy view visualizes your whole vault's structure — root projects as planets sized by document count, subprojects orbiting as moons, every document a star. Click a planet to drill in, click a star to open it — see the shape of your knowledge without hunting through folders.",
     points: [
-      { icon: Network, text: "Force-directed graph of your entire vault" },
-      { icon: FolderTree, text: "Auto-clustered by project, colored by topic" },
-      { icon: GitBranch, text: "Edges drawn from real content similarity" },
-      { icon: Search, text: "Click any node to inspect and jump to it" },
+      { icon: Network, text: "Root projects render as planets, sized by document count" },
+      { icon: FolderTree, text: "Subprojects orbit their planet as moons — click in to drill down" },
+      { icon: Search, text: "Search jumps straight to any project or document" },
+      { icon: FileText, text: "Click any star to open its document" },
     ],
   },
   {
@@ -69,7 +69,7 @@ export default function KnowledgeVaultPage() {
     "@type": "WebPage",
     name: "Knowledge Vault — MDSpin",
     description:
-      "Organize every conversion, connect related documents into a knowledge map, and synthesize AI briefs across them.",
+      "Organize every conversion into projects, visualize your whole library on an interactive map, and synthesize AI briefs across related documents.",
     url: `${SITE_URL}/knowledge-vault`,
     publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
   }
@@ -104,8 +104,9 @@ export default function KnowledgeVaultPage() {
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-[#888480] lg:mx-0">
               MDSpin doesn&apos;t just convert your files — it keeps them. Organize every
-              conversion, let MDSpin connect what&apos;s related, and synthesize briefs across
-              your library. One searchable hub your AI can actually use.
+              conversion into projects, watch your whole vault take shape on the Map, and
+              synthesize briefs across what&apos;s related. One searchable hub your AI can
+              actually use.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
               <GetStartedButton />
@@ -194,7 +195,7 @@ export default function KnowledgeVaultPage() {
           <div className="grid gap-4 sm:grid-cols-3">
             {[
               { title: "Nothing gets lost", body: "Every conversion is captured and searchable — no more re-converting the same file or hunting through downloads." },
-              { title: "Context gets richer", body: "The more you add, the more connections MDSpin finds, and the better the context you can hand to your AI." },
+              { title: "Structure gets visible", body: "The more you add, the more of your vault's shape shows up on the Map — and the more material every cluster brief has to draw from." },
               { title: "Answers, not files", body: "Cluster briefs turn a stack of related documents into a synthesized answer you can actually use." },
             ].map((b) => (
               <div key={b.title} className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-6">
@@ -212,7 +213,7 @@ export default function KnowledgeVaultPage() {
           <div className="rounded-xl border border-[#2A2A2A] bg-[#161616] p-10 text-center">
             <h2 className="font-display text-2xl font-bold text-white">Start building your vault</h2>
             <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[#888480]">
-              Convert your first document free and watch it become part of a connected,
+              Convert your first document free and watch it become part of an organized,
               searchable knowledge hub.
             </p>
             <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">

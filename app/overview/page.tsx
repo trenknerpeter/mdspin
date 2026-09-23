@@ -8,12 +8,12 @@ import { GrainOverlay } from "@/components/grain-overlay"
 export const metadata: Metadata = {
   title: "The Knowledge Hub for Your AI — How MDSpin Works",
   description:
-    "MDSpin converts any document into clean Markdown, then organizes, connects, and synthesizes it into one searchable knowledge hub your AI can actually use.",
+    "MDSpin converts any document into clean Markdown, then organizes, maps, and synthesizes it into one searchable knowledge hub your AI can actually use.",
   alternates: { canonical: `${SITE_URL}/overview` },
   openGraph: {
     title: "The Knowledge Hub for Your AI | MDSpin",
     description:
-      "Convert any document into clean Markdown, then build a connected, AI-ready knowledge hub.",
+      "Convert any document into clean Markdown, then build an organized, AI-ready knowledge hub.",
     url: `${SITE_URL}/overview`,
   },
 }
@@ -29,7 +29,7 @@ const stats = [
 const hubLoop = [
   { step: "1", title: "Convert", description: "Drop any PDF, doc, or deck and get clean, structured Markdown — headings, tables, and lists intact." },
   { step: "2", title: "Organize", description: "Save conversions to your Vault, sorted into projects and tags with full-text search across everything." },
-  { step: "3", title: "Connect", description: "MDSpin auto-detects related documents and links them into a force-directed knowledge map." },
+  { step: "3", title: "Map", description: "See your whole vault take shape on an interactive map — projects, subprojects, and documents laid out so you can drill straight in." },
   { step: "4", title: "Synthesize", description: "Generate an AI brief across a cluster of related docs — your library, read and summarized for you." },
 ]
 
@@ -42,7 +42,7 @@ const hubFeatures = [
   {
     title: "Knowledge Map",
     detail:
-      "A force-directed graph visualizes your whole vault, auto-clustered by project and connected by content similarity. See how ideas relate, find neighbors of any document, and surface links you'd never spot in a file list.",
+      "A galaxy view visualizes your whole vault's structure — root projects as planets sized by document count, subprojects orbiting as moons, every document a star. Click through to see the shape of your knowledge, and surface related documents for anything you're reading.",
   },
   {
     title: "Cluster Briefs",
@@ -57,7 +57,7 @@ export default function OverviewPage() {
     "@type": "WebPage",
     name: "The Knowledge Hub for Your AI — MDSpin",
     description:
-      "Convert any document into clean Markdown, then organize, connect, and synthesize it into one searchable knowledge hub.",
+      "Convert any document into clean Markdown, then organize, map, and synthesize it into one searchable knowledge hub.",
     url: `${SITE_URL}/overview`,
     publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
   }
@@ -97,7 +97,7 @@ export default function OverviewPage() {
             </h1>
             <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-[#888480]">
               MDSpin starts where every other converter stops. Conversion is the on-ramp —
-              the real product is a connected, searchable hub where your documents become
+              the real product is an organized, mapped hub where your documents become
               knowledge your AI can actually use.
             </p>
           </div>
@@ -109,8 +109,8 @@ export default function OverviewPage() {
             </h2>
             <p className="mb-6 text-sm leading-relaxed text-[#888480]">
               A converted file you can&apos;t find again is worthless. MDSpin closes the loop:
-              every conversion is captured, organized, connected to what you already have, and
-              ready to be synthesized on demand.
+              every conversion is captured, organized, mapped alongside what you already have,
+              and ready to be synthesized on demand.
             </p>
             <div className="space-y-3">
               {hubLoop.map((s) => (
@@ -253,7 +253,7 @@ export default function OverviewPage() {
               Start building your hub
             </h2>
             <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[#888480]">
-              Convert your first document free, then watch it become part of a connected,
+              Convert your first document free, then watch it become part of an organized,
               searchable knowledge hub your AI can use.
             </p>
             <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">

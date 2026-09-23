@@ -208,8 +208,8 @@ export default function MDSpinPage() {
               </div>
               <h3 className="font-display text-lg font-semibold text-[#F0EDE8]">Knowledge Map</h3>
               <p className="mt-3 text-sm leading-relaxed text-[#888480]">
-                A force-directed graph that auto-clusters your documents and surfaces
-                connections you&apos;d miss.
+                A galaxy view of your whole vault — projects and subprojects as planets
+                and moons, click straight through to any document.
               </p>
             </div>
 

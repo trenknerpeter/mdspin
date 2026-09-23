@@ -8,12 +8,12 @@ import { GrainOverlay } from "@/components/grain-overlay"
 export const metadata: Metadata = {
   title: "Use Cases — Build an AI Knowledge Hub from Your Documents",
   description:
-    "See how people use MDSpin to build living knowledge bases, connect and synthesize research, and prepare documents for RAG and AI workflows — all from one searchable hub.",
+    "See how people use MDSpin to build living knowledge bases, map and synthesize research, and prepare documents for RAG and AI workflows — all from one searchable hub.",
   alternates: { canonical: `${SITE_URL}/use-cases` },
   openGraph: {
     title: "Use Cases — Build an AI Knowledge Hub from Your Documents | MDSpin",
     description:
-      "Build living knowledge bases, connect and synthesize research, and prepare documents for RAG and AI workflows.",
+      "Build living knowledge bases, map and synthesize research, and prepare documents for RAG and AI workflows.",
     url: `${SITE_URL}/use-cases`,
   },
 }
@@ -33,25 +33,25 @@ const useCases = [
   },
   {
     title: "Research & Synthesis",
-    subtitle: "Connect related documents and synthesize across them",
+    subtitle: "Map your research and synthesize across it",
     description:
-      "MDSpin auto-detects relationships between your documents and maps them as a force-directed knowledge graph. Find the neighbors of any source, surface connections you'd miss in a file list, and generate an AI brief that pulls the thread across a whole cluster of related docs.",
+      "MDSpin visualizes your whole research vault as a navigable map of projects and documents, surfaces related sources for whatever you're reading, and generates an AI brief that pulls the thread across a whole cluster of related docs.",
     examples: [
-      "Visualize a research corpus as a connected knowledge map",
+      "Visualize a research corpus as a navigable knowledge map",
       "Automatically find documents related to the one you're reading",
       "Synthesize an AI brief across a cluster of related sources",
-      "Spot links between projects you didn't know were connected",
+      "See the shape of an entire research library at a glance",
     ],
   },
   {
     title: "Consultants & Analysts",
     subtitle: "A connected hub for every client and engagement",
     description:
-      "Consultants and analysts drown in documents from every source and format. Convert them all to clean Markdown, organize each engagement into its own project, let MDSpin link related materials, and synthesize briefs that turn a pile of client files into an answer.",
+      "Consultants and analysts drown in documents from every source and format. Convert them all to clean Markdown, organize each engagement into its own project, let related materials surface automatically as you work, and synthesize briefs that turn a pile of client files into an answer.",
     examples: [
       "Keep each client's materials in a dedicated project",
       "Convert pitch decks and statements for AI-powered benchmarking",
-      "Auto-link related findings across an engagement",
+      "Surface related findings automatically within an engagement",
       "Generate board-ready briefs across a cluster of documents",
     ],
   },
