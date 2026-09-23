@@ -264,6 +264,7 @@ The fix is straightforward: convert to Markdown before processing. The improveme
 ---
 
 **Related reading:**
+- [How to Build a Knowledge Base From Your Own Documents (No-Code)](/guides/build-ai-knowledge-base-from-documents)
 - [How to Convert PDFs for ChatGPT, Claude & Gemini](/guides/convert-pdf-for-chatgpt)
 - [How to Cut AI Token Costs by 40%](/guides/reduce-ai-token-costs)
 - [Why Markdown is the Best Format for RAG Pipelines](/guides/markdown-for-rag)

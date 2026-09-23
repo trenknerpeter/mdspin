@@ -49,6 +49,7 @@ That's the difference between a place files go and a system that works on your b
 ---
 
 **Keep reading:**
+- [How to Build a Knowledge Base From Your Own Documents (No-Code)](/guides/build-ai-knowledge-base-from-documents)
 - [Knowledge Vault: Organize, Map & Synthesize Your Documents](/knowledge-vault)
 - [Document Preprocessing for AI: The Complete Guide](/guides/document-preprocessing-for-ai)
 - [Why Markdown is the Best Format for RAG Pipelines](/guides/markdown-for-rag)
