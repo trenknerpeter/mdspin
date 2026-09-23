@@ -37,6 +37,115 @@ export type ConvertPage = {
 
 export const CONVERT_PAGES: ConvertPage[] = [
   {
+    slug: 'pdf-to-markdown',
+    metaTitle: 'PDF to Markdown Converter — Free, Accurate Conversion for AI',
+    metaDescription:
+      'Convert PDF to clean Markdown online for free. MDSpin preserves headings, tables, and multi-column layouts — no more garbled text soup when you paste a PDF into ChatGPT, Claude, or a RAG pipeline.',
+    navLabel: 'PDF to Markdown',
+    navDescription: 'Turn PDFs into AI-ready Markdown',
+    eyebrow: 'Free online tool',
+    h1: 'PDF to Markdown Converter',
+    intro: [
+      'Convert a PDF to clean, structured Markdown in seconds — no signup needed for a single file. Upload a report, contract, whitepaper, or research paper, and MDSpin extracts the content and rebuilds it as Markdown: headings stay headings, tables stay tables, and multi-column layouts come out in correct reading order.',
+      'PDFs store text by position on the page, not by reading order — which is why pasting one into ChatGPT often produces merged columns, missing tables, or scrambled headings. MDSpin parses the actual document structure first, so the Markdown you get is what a person would read, not what the binary format happens to store.',
+    ],
+    converterEyebrow: 'PDF',
+    converterHeading: 'Drop your PDF here',
+    converterSubheading:
+      'Upload a PDF and get clean, AI-ready Markdown in seconds.',
+    steps: [
+      {
+        title: 'Upload your PDF',
+        description:
+          'Drag a PDF onto the converter — a report, contract, whitepaper, research paper, or any PDF document.',
+      },
+      {
+        title: 'MDSpin rebuilds the structure',
+        description:
+          'Multi-column layouts are detected and reordered into linear reading flow. Headings, tables, and lists map to their Markdown equivalents.',
+      },
+      {
+        title: 'Copy or save your Markdown',
+        description:
+          'Paste the result straight into ChatGPT or Claude, download it as a .md file, or save it to your MDSpin vault for later.',
+      },
+    ],
+    sections: [
+      {
+        heading: 'Why PDFs are hard for AI to read',
+        paragraphs: [
+          'A PDF is not a text document — it is a set of drawing instructions that happen to render as text on screen. Characters are positioned by X/Y coordinates on a page, not stored in reading order, and there is no reliable concept of "this is a table" or "this is a heading" baked into the format.',
+          'Standard text extraction reads those coordinates roughly left-to-right, top-to-bottom, which breaks badly on multi-column layouts, sidebars, and tables — columns get interleaved, table cells get flattened into run-on text, and headings disappear into the body copy. An LLM fed that output is reasoning about scrambled information.',
+        ],
+      },
+      {
+        heading: 'What MDSpin does differently',
+        paragraphs: [
+          'MDSpin analyzes the actual layout of each page before extracting text — detecting columns, tables, and heading hierarchy the way a person visually parsing the page would.',
+        ],
+        bullets: [
+          'Multi-column pages are reordered into a single correct reading flow',
+          'Tables become real pipe-delimited Markdown tables, not flattened text',
+          'Heading levels are detected and mapped to Markdown #, ##, ###',
+          'Bulleted and numbered lists keep their structure',
+          'Scanned (image-only) PDF pages are transcribed with AI vision',
+        ],
+      },
+      {
+        heading: 'What people convert',
+        paragraphs: [],
+        bullets: [
+          'Research papers for AI-assisted literature review',
+          'Contracts and agreements for AI clause analysis',
+          'Whitepapers and reports fed into RAG pipelines',
+          'Meeting minutes and board decks for AI summarization',
+          'Invoices and forms for data extraction workflows',
+        ],
+      },
+      {
+        heading: 'PDF, ChatGPT, and token costs',
+        paragraphs: [
+          'ChatGPT and Claude can open PDFs directly, but their built-in extraction is a black box — you cannot see or verify how a complex table came through, and raw PDF text carries formatting overhead that costs you tokens for no benefit.',
+          'Converting to Markdown first puts you in control: you see the exact text the model receives, it costs fewer tokens per call, and you get a reusable .md file instead of a one-off chat answer.',
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: 'How do I convert a PDF to Markdown?',
+        answer:
+          'Upload your PDF to the converter on this page and click Spin. MDSpin extracts the content and rebuilds it as clean Markdown with headings, tables, and reading order preserved. Copy it, download it as a .md file, or save it to your vault. A single conversion is free with no signup.',
+      },
+      {
+        question: 'Does it handle multi-column PDFs and tables?',
+        answer:
+          'Yes — this is where standard PDF text extraction usually breaks. MDSpin detects column layout and table structure before extracting text, so multi-column pages come out in correct reading order and tables become real Markdown tables instead of flattened text.',
+      },
+      {
+        question: 'Can it convert scanned PDFs?',
+        answer:
+          'Yes. If a PDF page has no extractable text layer (a scanned page or a photographed document saved as PDF), MDSpin transcribes it with AI vision instead, using the same heading and table detection.',
+      },
+      {
+        question: 'Why not just upload the PDF straight to ChatGPT?',
+        answer:
+          'You can, but you have no visibility into how ChatGPT’s extraction handles a complex table or multi-column layout, and errors are silent. Converting to Markdown first lets you see and verify the exact text the model will receive, uses fewer tokens, and gives you a file you can save, index, or reuse.',
+      },
+      {
+        question: 'Is the PDF to Markdown converter free?',
+        answer:
+          'Yes — converting a single PDF is free with no signup. A free account adds batch conversion, URL conversion, saved history, and a personal vault that connects related documents automatically.',
+      },
+    ],
+    related: [
+      { href: '/guides/convert-pdf-for-chatgpt', label: 'How to convert PDFs for ChatGPT, Claude & Gemini' },
+      { href: '/guides/markdown-for-rag', label: 'Why Markdown is the best format for RAG pipelines' },
+      { href: '/guides/reduce-ai-token-costs', label: 'How to cut AI token costs with better formatting' },
+      { href: '/formats', label: 'All supported formats' },
+    ],
+    dateModified: '2026-09-23',
+  },
+  {
     slug: 'image-to-markdown',
     metaTitle: 'Image to Markdown Converter — PNG & JPG to Markdown (Free AI OCR)',
     metaDescription:

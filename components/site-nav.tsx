@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useAuth } from "@/components/auth-provider"
+import { CONVERT_PAGES } from "@/lib/convert-pages"
 import {
   ArrowRight,
   User,
@@ -14,6 +15,7 @@ import {
   Puzzle,
   BookOpen,
   Newspaper,
+  Wrench,
   ChevronDown,
   LayoutDashboard,
   Network,
@@ -45,6 +47,15 @@ const resourceLinks = [
   { href: "/guides", label: "Guides", icon: BookOpen, description: "Tutorials and walkthroughs" },
   { href: "/blog", label: "Blog", icon: Newspaper, description: "Updates and insights" },
 ]
+
+// Free, single-purpose converter pages (e.g. "PDF to Markdown") — listed
+// alongside Guides/Blog in the Resources menu so they get real internal links.
+const toolLinks = CONVERT_PAGES.map((page) => ({
+  href: `/convert/${page.slug}`,
+  label: page.navLabel,
+  icon: Wrench,
+  description: page.navDescription,
+}))
 
 export function SiteNav() {
   const { user, isLoading: authLoading } = useAuth()
@@ -118,8 +129,27 @@ export function SiteNav() {
                   Resources
                 </NavigationMenuTrigger>
                 <NavigationMenuContent className="!bg-[#161616] rounded-lg border border-[#2A2A2A] shadow-xl">
-                  <ul className="grid w-[260px] gap-0.5 p-2">
+                  <ul className="grid w-[280px] gap-0.5 p-2">
                     {resourceLinks.map((link) => (
+                      <li key={link.href}>
+                        <Link
+                          href={link.href}
+                          className="flex items-start gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-[#1E1E1E]"
+                        >
+                          <link.icon className="mt-0.5 h-4 w-4 shrink-0 text-[#4A4A46]" />
+                          <div>
+                            <div className="text-sm font-medium text-[#F0EDE8]">{link.label}</div>
+                            <div className="text-xs text-[#888480]">{link.description}</div>
+                          </div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="px-5 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-widest text-[#4A4A46]">
+                    Free tools
+                  </p>
+                  <ul className="grid w-[280px] gap-0.5 p-2 pt-0">
+                    {toolLinks.map((link) => (
                       <li key={link.href}>
                         <Link
                           href={link.href}
@@ -231,6 +261,19 @@ export function SiteNav() {
                 {mobileResourceOpen && (
                   <div className="ml-2 flex flex-col gap-1 border-l border-[#2A2A2A] pl-3">
                     {resourceLinks.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => setMobileOpen(false)}
+                        className="py-1.5 text-sm text-[#888480] transition-colors hover:text-[#F0EDE8]"
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                    <p className="mt-2 pt-1 text-[10px] font-semibold uppercase tracking-widest text-[#4A4A46]">
+                      Free tools
+                    </p>
+                    {toolLinks.map((link) => (
                       <Link
                         key={link.href}
                         href={link.href}

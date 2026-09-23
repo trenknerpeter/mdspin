@@ -33,6 +33,8 @@ const formats = [
       "Feeding whitepapers into RAG pipelines",
       "Extracting meeting minutes for AI summarization",
     ],
+    toolHref: "/convert/pdf-to-markdown",
+    toolLabel: "Open the PDF to Markdown converter",
   },
   {
     name: "DOCX to Markdown",

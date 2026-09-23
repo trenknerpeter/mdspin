@@ -32,6 +32,24 @@ export function JsonLd() {
     logo: `${SITE_URL}/logo.png`,
   }
 
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApp) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organization) }}
+      />
+    </>
+  )
+}
+
+// Rendered only on the homepage, where the FAQ content is actually visible —
+// Google requires FAQPage markup to match on-page content, so this must not
+// go in the root layout (which would repeat it, unmatched, on every page).
+export function HomeFaqJsonLd() {
   const faqPage = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -88,19 +106,9 @@ export function JsonLd() {
   }
 
   return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApp) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organization) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPage) }}
-      />
-    </>
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPage) }}
+    />
   )
 }

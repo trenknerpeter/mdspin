@@ -1,4 +1,4 @@
-export const SITE_URL = 'https://mdspin.app'
+export const SITE_URL = 'https://www.mdspin.app'
 export const SITE_NAME = 'MDSpin'
 export const SITE_TITLE_DEFAULT = 'MDSpin — The Knowledge Hub for Your AI'
 export const SITE_TITLE_TEMPLATE = '%s | MDSpin'

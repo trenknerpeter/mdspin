@@ -42,7 +42,7 @@ The conversion process takes seconds:
 
 ### Step 1: Open MDSpin
 
-Go to [mdspin.app](https://mdspin.app). No account required for your first conversions.
+Go to the [PDF to Markdown converter](/convert/pdf-to-markdown). No account required for your first conversions.
 
 ### Step 2: Upload Your PDF
 
