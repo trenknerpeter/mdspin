@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import { Syne, DM_Sans, JetBrains_Mono, Instrument_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { AuthProvider } from '@/components/auth-provider'
@@ -87,6 +88,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${syne.variable} ${dmSans.variable} ${jetbrainsMono.variable} ${instrumentSans.variable}`}>
+      <head>
+        <Script
+          id="Cookiebot"
+          src="https://consent.cookiebot.com/uc.js"
+          data-cbid="da4e883e-d836-4e92-a0b3-62fe94f5b004"
+          data-blockingmode="auto"
+          strategy="beforeInteractive"
+        />
+      </head>
       <body className="antialiased">
         <JsonLd />
         <AuthProvider>
