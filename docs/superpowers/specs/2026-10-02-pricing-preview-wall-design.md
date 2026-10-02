@@ -58,3 +58,42 @@ Copy this design into `docs/superpowers/specs/2026-10-02-pricing-preview-wall-de
 - **Browser (preview tools):** in a signed-out tab, convert a file → see the preview and wall → click Download → modal → sign in with a local test account → lands on `/app` with the file re-converted and the download available. Check the console and the PostHog events in network requests. Pricing page shows 2 cards, and "Notify me" writes a waitlist row (check via SQL).
 - **DB:** `select * from metrics.quota_pressure` uses 10; the waitlist insert works from the server.
 - **Extension:** load unpacked, convert while signed out → preview + sign-in button, nothing injected.
+
+## As built (differs from the design above)
+
+- **`gateForGuest` never forwards `markdown_text` unless it gated it.** The original whitelist copied it raw, so a `{success:false, markdown_text}` or non-string body would have leaked the full document. The single route now gates *every* guest object body, including errors, not only 2xx ones.
+- **The IndexedDB stash (`lib/pending-conversion.ts`) reads and deletes in one `readwrite` transaction** and handles `onabort`. Without that, a quota abort hung `savePendingConversion`, and two overlapping callers could both get the file.
+- **The resume effect in `use-converter.ts` uses a `takeStarted` ref instead of a `cancelled` flag.** With the flag, React StrictMode's double effect consumed the destructive take and then discarded it, so dev builds silently lost the file.
+- **`AddToVaultPanel` no longer takes `onAuthRequired`.** `stashForSignIn` stashes the file and opens the wall itself, so the dialog opens once.
+- **Guest `file_conversion_completed.word_count` uses `preview.total_words`**, so funnel analytics count the full document, not the preview.
+- **Marketing copy sweep (not in the original plan).** `lib/convert-pages.ts` (SEO bodies + FAQ), `how-it-works`, `formats`, `overview`, the article converter/CTA bar and the ChatGPT guide had promised "no signup, copy/download". They now say "preview free with no signup; free account for the full document".
+- **Coffee removal also uninstalled `stripe` and `@stripe/stripe-js`** and dropped the Stripe block from `.env.example`.
+- **Extension, beyond the design:**
+  - The worker refuses chat-page (`sender.tab`) conversions *before* calling the API when there's no valid token, so a guest preview isn't spent and thrown away. Users with an expired mirrored token get "Open MDSpin to sign in or refresh your session"; only the popup refreshes tokens.
+  - The popup re-converts automatically after sign-in when a preview is showing.
+  - "Sign in for more" keys off HTTP 429 / `remaining === 0`, not the message text.
+  - The local anonymous usage counter is gone; quota comes only from `X-RateLimit-*` headers.
+
+## Status: shipped 2026-10-02
+
+- **Website** deployed to production from `main` (`3cd2f04..9471569`). That push also carried a separate session's commit `479c254` (guest IP counters pruned after 90 days, IPs hashed, privacy retention text fixed).
+- **Database** (hosted `ixdsddfxkrkytiitfici`, via Supabase MCP):
+  - `waitlist` gained `user_id` (FK → `auth.users`, on delete set null) and `interest` (default `'pro'`), recorded in `20261002000000_waitlist_pro_interest.sql`.
+  - `metrics.quota_pressure` now uses 10, recorded in `20261002000001_quota_pressure_limit_10.sql`.
+  - RLS on `waitlist` still has no policies; only the service role writes it.
+- **Stripe:** the webhook endpoint was disabled in the Stripe dashboard. `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_PRICE_ID` and `STRIPE_WEBHOOK_SECRET` were removed from Vercel. `/payment/*` and `/api/checkout` no longer exist.
+- **Verified live on production (signed out):**
+  - `/api/convert/batch` and `/api/convert` both returned a 1,254-character preview of a 16,149-character document, ending with the marker. The last paragraph was absent, `preview: {truncated: true, total_words: 2440}`, and only whitelisted keys came back.
+  - `/pricing` shows Free + Pro with "Notify me".
+  - Locally, the waitlist insert wrote `interest = 'pro'` (test row deleted), and the preview card, wall dialog and IndexedDB stash were verified in the browser with a stubbed fetch. Local real conversions fail because `.env.local`'s `BACKEND_API_KEY` is rejected by api.mdspin.app.
+- **Tests:** 712 passing; `tsc --noEmit` clean apart from the 2 baseline `supabase/functions` errors. eslint is not installed in this repo.
+- **Not yet verified:** a real end-to-end sign-in resume on production (convert signed out → Download → sign in → lands on `/app` with the full document). Peter will test it manually.
+- **Extension:** committed locally in `mdspin-chrome-extension` (`683e537..da0bece`, manifest 0.3.4). It is not pushed, not tested in Chrome and not submitted to the Web Store; Peter will do all three later.
+- **Baselines to judge this against (2026-10-02, admin excluded):**
+  - 65 guest IPs (78% converted once and left)
+  - 67 accounts (34 never converted)
+  - 20/day cap hit once
+  - WAU 2, MAU 16
+  - 10 vault users
+  - 9 waitlist rows, all from before this change
+- **Watch:** the PostHog funnel `preview_shown` → `preview_gate_clicked` → `preview_resumed`, plus `pro_waitlist_joined` and new `waitlist` rows.
