@@ -49,7 +49,7 @@ export default function PrivacyPolicyPage() {
             </h1>
 
             <p className="mt-4 text-sm text-[#888480]">
-              Last updated: April 30, 2026
+              Last updated: October 2, 2026
             </p>
           </header>
 
@@ -136,8 +136,9 @@ export default function PrivacyPolicyPage() {
                       </td>
                       <td className="px-4 py-3">
                         Your IP address, used solely to count the free
-                        previews available to non-signed-in users.
-                        Not stored against signed-in accounts.
+                        previews available to non-signed-in users. Stored
+                        only as a one-way keyed hash, never as the raw
+                        address. Not stored against signed-in accounts.
                       </td>
                       <td className="px-4 py-3">
                         Sent automatically by your browser when you make a
@@ -220,8 +221,12 @@ export default function PrivacyPolicyPage() {
                     <strong className="text-white">
                       IP address (anonymous users only)
                     </strong>{" "}
-                    &mdash; counted against the per-IP daily quota and
-                    discarded after 24 hours. Not linked to an account.
+                    &mdash; used to count the free previews available
+                    without signing in. We store a one-way keyed hash of the
+                    address (never the raw IP) together with a conversion
+                    count and the time of your last conversion, and delete it
+                    90 days after your last conversion. Not linked to an
+                    account.
                   </>,
                   <>
                     <strong className="text-white">Session tokens</strong>{" "}
@@ -308,8 +313,10 @@ export default function PrivacyPolicyPage() {
                         storage for Drive/Docs imports, quota enforcement
                       </td>
                       <td className="px-4 py-3">
-                        Retained until you delete your account. Quota counters
-                        reset every 24 hours.
+                        Retained until you delete your account. The daily
+                        conversion limit resets every day at midnight UTC.
+                        Hashed anonymous counters are deleted 90 days after
+                        the last conversion.
                       </td>
                     </tr>
                     <tr className="border-b border-[#2A2A2A] align-top">
@@ -405,16 +412,21 @@ export default function PrivacyPolicyPage() {
                     <strong className="text-white">
                       IP addresses (anonymous quota):
                     </strong>{" "}
-                    24-hour rolling window; deleted when the daily quota row is
-                    reset.
+                    stored only as a one-way keyed hash with a conversion
+                    count; deleted automatically 90 days after the last
+                    conversion from that address.
                   </>,
                   <>
                     <strong className="text-white">Session tokens:</strong> until
                     you sign out or they expire.
                   </>,
                   <>
-                    <strong className="text-white">Quota counters:</strong>{" "}
-                    24-hour rolling window.
+                    <strong className="text-white">
+                      Daily conversion counts (signed-in users):
+                    </strong>{" "}
+                    the limit resets every day at midnight UTC; the per-day
+                    counts are kept, linked to your account, as usage
+                    statistics.
                   </>,
                   <>
                     <strong className="text-white">Local preferences:</strong>{" "}

@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { evaluateUsage, ANON_LIFETIME_LIMIT, AUTH_DAILY_LIMIT } from "@/lib/usage-math"
 
@@ -17,6 +18,20 @@ function nextUtcMidnight(): string {
   tomorrow.setUTCDate(tomorrow.getUTCDate() + 1)
   tomorrow.setUTCHours(0, 0, 0, 0)
   return tomorrow.toISOString()
+}
+
+// Guest counters in anon_usage are keyed by a keyed hash of the IP, never the raw IP.
+// A plain SHA-256 of an IPv4 address is reversible by brute force (only 2^32 inputs),
+// so it's an HMAC keyed with the service-role key: whoever can read the table without
+// that key can't recover IPs. Rotating the key resets every guest's free previews, which
+// is harmless. Output is 64 hex chars — prune_guest_usage relies on that shape to purge
+// leftover raw-IP rows.
+export function hashIp(ip: string, key: string): string {
+  return createHmac("sha256", key).update(ip).digest("hex")
+}
+
+function anonIdentifier(ip: string): string {
+  return hashIp(ip, process.env.SUPABASE_SERVICE_ROLE_KEY ?? "")
 }
 
 export async function checkRateLimit(
@@ -53,7 +68,7 @@ export async function checkRateLimit(
   const { data, error } = await supabase
     .from("anon_usage")
     .select("conversion_count")
-    .eq("identifier", identifier)
+    .eq("identifier", anonIdentifier(identifier))
     .maybeSingle()
 
   if (error) {
@@ -83,7 +98,7 @@ export async function incrementUsage(
   }
 
   const { error } = await supabase.rpc("increment_anon_usage", {
-    p_identifier: identifier,
+    p_identifier: anonIdentifier(identifier),
   })
   if (error) console.error("[rate-limit] anon increment failed:", error.message)
 }
