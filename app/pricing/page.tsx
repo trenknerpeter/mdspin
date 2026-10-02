@@ -5,51 +5,52 @@ import { SITE_URL, SITE_NAME } from "@/lib/seo"
 import { SiteNav } from "@/components/site-nav"
 import { SiteFooter } from "@/components/site-footer"
 import { GrainOverlay } from "@/components/grain-overlay"
-import { BuyCoffee } from "@/components/buy-coffee"
+import { ProWaitlistButton } from "@/components/pricing/pro-waitlist-button"
 
 export const metadata: Metadata = {
   title: "Pricing — Free Document to Markdown Conversion",
   description:
-    "MDSpin is free to use with generous daily limits. See what's included, support the project, and learn about upcoming Pro features.",
+    "MDSpin is free: preview conversions without an account, or sign up free for 10 conversions a day and your Knowledge Vault. Pro is coming soon.",
   alternates: { canonical: `${SITE_URL}/pricing` },
   openGraph: {
     title: "Pricing — Free Document to Markdown Conversion | MDSpin",
     description:
-      "MDSpin is free to use with generous daily limits. See what's included, support the project, and learn about upcoming Pro features.",
+      "MDSpin is free: preview conversions without an account, or sign up free for 10 conversions a day and your Knowledge Vault. Pro is coming soon.",
     url: `${SITE_URL}/pricing`,
   },
 }
 
 const freeFeatures = [
-  "3 conversions per day (guest)",
-  "20 conversions per day (signed in)",
-  "PDF, DOCX, PPTX, image (PNG/JPG) support",
-  "AI-ready Markdown output",
+  "Preview conversions without an account",
+  "10 conversions a day with a free account",
+  "PDF, DOCX, PPTX, images and more",
+  "URL & batch conversion (up to 10 files)",
+  "Knowledge Vault: projects, tags, search and map",
   "Chrome browser extension",
 ]
 
 const proFeatures = [
-  "1,000 conversions per month",
-  "Priority processing",
-  "More formats coming",
+  "Higher daily conversion limits",
+  "Bigger files and larger batches",
+  "Unlimited AI summaries, briefs and auto-filing",
 ]
 
 const faqs = [
   {
     q: "Is MDSpin really free?",
-    a: "Yes — MDSpin is completely free. Guests get 3 conversions per day, and signed-in users get 20 per day. No credit card, no trial, no hidden fees.",
+    a: "Yes. Without an account you can convert a file and preview the result. A free account unlocks the full document, 10 conversions a day, URL and batch conversion, and the Knowledge Vault. No credit card.",
+  },
+  {
+    q: "Why do I need an account to get the full result?",
+    a: "It keeps MDSpin free and abuse-free, and it means your conversions are saved to your Vault so you can find them again later.",
   },
   {
     q: "Why the daily limit?",
-    a: "To keep the service running smoothly for everyone. If you need more capacity, a Pro plan with higher limits is coming soon.",
+    a: "To keep the service fast and free for everyone. If you need more, join the Pro waitlist.",
   },
   {
-    q: "What does 'Buy me a coffee' do?",
-    a: "It's a one-time tip to support MDSpin's development. You won't get extra features — it's simply a way to say thanks and help keep the project going.",
-  },
-  {
-    q: "When is the Pro plan launching?",
-    a: "We're working on it. Stay tuned for updates.",
+    q: "When is Pro launching?",
+    a: "When enough people ask for it. Click “Notify me” and we’ll email you once, when it’s ready — no newsletter.",
   },
 ]
 
@@ -59,7 +60,7 @@ export default function PricingPage() {
     "@type": "WebPage",
     name: "Pricing — MDSpin",
     description:
-      "MDSpin is free to use with generous daily limits. See what's included and support the project.",
+      "MDSpin is free: preview conversions without an account, or sign up free for 10 conversions a day and your Knowledge Vault. Pro is coming soon.",
     url: `${SITE_URL}/pricing`,
     publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
   }
@@ -103,7 +104,7 @@ export default function PricingPage() {
           </div>
 
           {/* Cards */}
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="mx-auto grid max-w-3xl gap-6 md:grid-cols-2">
             {/* Free */}
             <div className="flex flex-col rounded-xl border border-[#FF4800]/30 bg-[#161616] p-8">
               {/* Intentionally hardcoded: this is a server component with no auth state.
@@ -136,54 +137,26 @@ export default function PricingPage() {
               </div>
             </div>
 
-            {/* Support */}
-            <div className="flex flex-col rounded-xl border border-[#2A2A2A] bg-[#161616] p-8">
-              <span className="text-lg">☕</span>
-              <div className="mt-4">
-                <span className="font-display text-4xl font-bold text-white">$2.99</span>
-                <span className="ml-1 text-sm text-[#888480]">one-time</span>
-              </div>
-              <p className="mt-1 text-sm text-[#888480]">Buy me a coffee</p>
-
-              <p className="mt-8 text-sm leading-relaxed text-[#888480]">
-                I built MDSpin as a solo project and keep it free because I believe
-                good tools should be accessible. Your support helps cover server costs
-                and keeps development going. No extra features — just a way to say thanks.
-              </p>
-
-              <div className="mt-auto pt-8">
-                <BuyCoffee fullWidth />
-              </div>
-            </div>
-
             {/* Pro - Coming Soon */}
-            <div className="flex flex-col rounded-xl border border-[#2A2A2A] bg-[#161616] p-8 opacity-50">
+            <div className="flex flex-col rounded-xl border border-[#2A2A2A] bg-[#161616] p-8">
               <span className="inline-block rounded-full border border-[#2A2A2A] px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#4A4A46]">
                 Coming soon
               </span>
               <div className="mt-5">
-                <span className="font-display text-4xl font-bold text-white">TBD</span>
-                <span className="ml-1 text-sm text-[#888480]">/month</span>
+                <span className="font-display text-4xl font-bold text-white">Pro</span>
               </div>
               <p className="mt-1 text-sm text-[#888480]">For power users</p>
 
               <ul className="mt-8 space-y-3">
                 {proFeatures.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-sm text-[#4A4A46]">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#4A4A46]" />
+                  <li key={f} className="flex items-start gap-2.5 text-sm text-[#888480]">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#FF4800]" />
                     {f}
                   </li>
                 ))}
               </ul>
 
-              <div className="mt-auto pt-8">
-                <button
-                  disabled
-                  className="flex w-full cursor-not-allowed items-center justify-center rounded-full border border-[#2A2A2A] px-6 py-2.5 text-sm font-medium text-[#4A4A46]"
-                >
-                  Coming soon
-                </button>
-              </div>
+              <div className="mt-auto pt-8"><ProWaitlistButton /></div>
             </div>
           </div>
 

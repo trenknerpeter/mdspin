@@ -135,8 +135,8 @@ export default function PrivacyPolicyPage() {
                         Network identifier (anonymous use only)
                       </td>
                       <td className="px-4 py-3">
-                        Your IP address, used solely to enforce the
-                        3-conversions-per-day limit for non-signed-in users.
+                        Your IP address, used solely to count the free
+                        previews available to non-signed-in users.
                         Not stored against signed-in accounts.
                       </td>
                       <td className="px-4 py-3">

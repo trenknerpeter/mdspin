@@ -64,9 +64,6 @@ export const EVENTS = {
   // ── Commerce ──────────────────────────────────────────────
   apiKeyGenerated: "api_key_generated",
   apiKeyRevoked: "api_key_revoked",
-  buyCoffeeClicked: "buy_coffee_clicked",
-  checkoutInitiated: "checkout_initiated",
-  paymentCompleted: "payment_completed",
   proWaitlistJoined: "pro_waitlist_joined",
 } as const
 
