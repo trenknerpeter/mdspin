@@ -5,7 +5,7 @@ import { Upload, Copy, Download, Check, Sparkles, FileText, Zap, TrendingDown, P
 import Link from "next/link"
 import { BuyCoffee } from "@/components/buy-coffee"
 import { SUPPORTED_FORMATS, ACCEPT_ATTR } from "@/lib/formats"
-import { describeRejection } from "@/lib/converter-intake"
+import { describeRejection, MAX_CONVERT_FILES } from "@/lib/converter-intake"
 import { useConverter } from "./use-converter"
 import { AddToVaultPanel } from "./add-to-vault-panel"
 import type { ConverterContext, ConversionOptions } from "./types"
@@ -169,14 +169,14 @@ export function Converter({ context, options, onAuthRequired, eyebrow, heading, 
               {c.batchStatus !== 'converting' && (
                 <button
                   type="button"
-                  disabled={c.files.length >= 20}
+                  disabled={c.files.length >= MAX_CONVERT_FILES}
                   onClick={(e) => { e.stopPropagation(); if (gatePower()) return; c.handleBrowse() }}
-                  title={c.files.length >= 20 ? "20-file limit reached" : undefined}
+                  title={c.files.length >= MAX_CONVERT_FILES ? `${MAX_CONVERT_FILES}-file limit reached` : undefined}
                   className="flex items-center gap-1.5 rounded-lg border border-dashed border-[#2A2A2A] bg-[#0C0C0C] px-3 py-2 text-[#4A4A46] transition-all hover:border-[#FF4800]/50 hover:text-[#FF4800] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[#2A2A2A] disabled:hover:text-[#4A4A46]"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   <span className="text-xs">
-                    {c.files.length >= 20 ? "20-file limit reached" : "Add file"}
+                    {c.files.length >= MAX_CONVERT_FILES ? `${MAX_CONVERT_FILES}-file limit reached` : "Add file"}
                   </span>
                 </button>
               )}

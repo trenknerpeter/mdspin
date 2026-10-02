@@ -137,7 +137,7 @@ export default function HowItWorksPage() {
               {[
                 "No signup required — convert immediately",
                 "Supports 10+ formats: PDF, DOCX, PPTX, HTML, CSV, TXT, RTF, PNG, JPG",
-                "Batch up to 20 files at once",
+                "Batch up to 10 files at once",
                 "Copy to clipboard or download as .md",
               ].map((item) => (
                 <li
@@ -194,7 +194,7 @@ export default function HowItWorksPage() {
               Process Multiple Files at Once
             </h2>
             <p className="mb-6 text-sm leading-relaxed text-[#888480]">
-              Need to convert a whole folder of documents? Drop up to 20 files into
+              Need to convert a whole folder of documents? Drop up to 10 files into
               MDSpin and convert them all simultaneously. Each file is processed in
               parallel, so batch jobs finish fast.
             </p>

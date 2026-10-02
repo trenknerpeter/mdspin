@@ -5,7 +5,7 @@
 // conversion. The BACKEND_API_KEY never leaves the server.
 //
 // Supported formats: PDF, DOCX, DOC, PPTX, GSLIDES, RTF, TXT, PAGES, HTML, PNG, JPG/JPEG
-// Limits: 1–20 files per request (max 5 images), each file must be < 20 MB
+// Limits: 1–10 files per request (max 5 images), each file must be < 20 MB
 //
 // Requires env vars in .env.local (and in Vercel project settings):
 //   BACKEND_URL=https://api.mdspin.app
@@ -18,6 +18,7 @@ import { checkRateLimit, incrementUsage } from '@/lib/rate-limit';
 import { requiresSignIn } from '@/lib/gating';
 import { isSupportedExt, isImageExt, MAX_IMAGES_PER_BATCH } from '@/lib/formats';
 import { isIngestExt } from '@/lib/vault/limits';
+import { MAX_CONVERT_FILES } from '@/lib/converter-intake';
 import { trackServer } from '@/lib/posthog-server';
 import { EVENTS } from '@/lib/analytics/events';
 
@@ -28,7 +29,7 @@ const BACKEND_URL     = process.env.BACKEND_URL;
 const BACKEND_API_KEY = process.env.BACKEND_API_KEY;
 
 const MAX_FILE_SIZE   = 20 * 1024 * 1024; // 20 MB
-const MAX_FILES       = 20;
+const MAX_FILES       = MAX_CONVERT_FILES;
 const MIN_FILES       = 1;
 
 function getClientIp(req: NextRequest): string {

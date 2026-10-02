@@ -4,6 +4,7 @@ import {
   groupRejections,
   describeRejection,
   MAX_CONVERT_FILE_SIZE,
+  MAX_CONVERT_FILES,
 } from "@/lib/converter-intake"
 
 const f = (name: string, size = 1000) => ({ name, size })
@@ -66,15 +67,16 @@ describe("partitionIncomingFiles", () => {
     expect(r.rejected).toEqual([{ name: "a.pdf", reason: "duplicate" }])
   })
 
-  it("reports files past the 20-file cap instead of slicing them off", () => {
-    const existing = Array.from({ length: 20 }, (_, i) => f(`e${i}.pdf`))
+  it("reports files past the 10-file cap instead of slicing them off", () => {
+    expect(MAX_CONVERT_FILES).toBe(10)
+    const existing = Array.from({ length: 10 }, (_, i) => f(`e${i}.pdf`))
     const r = partitionIncomingFiles(existing, [f("new.pdf")])
     expect(r.accepted).toEqual([])
     expect(r.rejected).toEqual([{ name: "new.pdf", reason: "over_file_limit" }])
   })
 
   it("fills up to the cap and reports only the overflow", () => {
-    const existing = Array.from({ length: 18 }, (_, i) => f(`e${i}.pdf`))
+    const existing = Array.from({ length: 8 }, (_, i) => f(`e${i}.pdf`))
     const r = partitionIncomingFiles(existing, [f("a.pdf"), f("b.pdf"), f("c.pdf")])
     expect(names(r.accepted)).toEqual(["a.pdf", "b.pdf"])
     expect(r.rejected).toEqual([{ name: "c.pdf", reason: "over_file_limit" }])

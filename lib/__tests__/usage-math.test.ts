@@ -4,7 +4,7 @@ import { evaluateUsage, ANON_LIFETIME_LIMIT, AUTH_DAILY_LIMIT } from "@/lib/usag
 describe("usage-math", () => {
   it("exposes the configured limits", () => {
     expect(ANON_LIFETIME_LIMIT).toBe(3)
-    expect(AUTH_DAILY_LIMIT).toBe(20)
+    expect(AUTH_DAILY_LIMIT).toBe(10)
   })
   it("allows when count is below limit", () => {
     expect(evaluateUsage(0, 3)).toEqual({ allowed: true, remaining: 3, limit: 3 })

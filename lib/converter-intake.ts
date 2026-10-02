@@ -15,7 +15,7 @@ import { isSupportedExt, isImageExt, MAX_IMAGES_PER_BATCH } from "@/lib/formats"
 import { isIngestExt } from "@/lib/vault/limits"
 
 export const MAX_CONVERT_FILE_SIZE = 20 * 1024 * 1024
-export const MAX_CONVERT_FILES = 20
+export const MAX_CONVERT_FILES = 10
 
 export type RejectionReason =
   | "unsupported"
