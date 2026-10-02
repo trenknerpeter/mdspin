@@ -37,10 +37,16 @@ function tx<T>(mode: IDBTransactionMode, run: (s: IDBObjectStore) => IDBRequest<
   return openDb().then(
     (db) =>
       new Promise<T>((resolve, reject) => {
-        const t = db.transaction(STORE, mode)
-        const req = run(t.objectStore(STORE))
-        t.oncomplete = () => { db.close(); resolve(req.result) }
-        t.onerror = () => { db.close(); reject(t.error) }
+        try {
+          const t = db.transaction(STORE, mode)
+          const req = run(t.objectStore(STORE))
+          t.oncomplete = () => { db.close(); resolve(req.result) }
+          t.onerror = () => { db.close(); reject(t.error) }
+          t.onabort = () => { db.close(); reject(t.error ?? new Error("aborted")) }
+        } catch (err) {
+          db.close()
+          reject(err)
+        }
       })
   )
 }
@@ -54,11 +60,31 @@ export async function savePendingConversion(p: PendingConversion): Promise<boole
   }
 }
 
+function getAndDeleteAtomic(): Promise<PendingConversion | undefined> {
+  return openDb().then(
+    (db) =>
+      new Promise<PendingConversion | undefined>((resolve, reject) => {
+        try {
+          const t = db.transaction(STORE, "readwrite")
+          const g = t.objectStore(STORE).get(KEY)
+          g.onsuccess = () => {
+            t.objectStore(STORE).delete(KEY)
+          }
+          t.oncomplete = () => { db.close(); resolve(g.result) }
+          t.onerror = () => { db.close(); reject(t.error) }
+          t.onabort = () => { db.close(); reject(t.error ?? new Error("aborted")) }
+        } catch (err) {
+          db.close()
+          reject(err)
+        }
+      })
+  )
+}
+
 export async function takePendingConversion(): Promise<PendingConversion | null> {
   try {
-    const p = await tx<PendingConversion | undefined>("readonly", (s) => s.get(KEY))
+    const p = await getAndDeleteAtomic()
     if (!p) return null
-    await tx("readwrite", (s) => s.delete(KEY))
     return p.file instanceof Blob && isPendingFresh(p.createdAt) ? p : null
   } catch {
     return null
