@@ -90,6 +90,6 @@ describe("trackServer", () => {
   it("never lets a broken analytics client fail the request it is describing", () => {
     capture.mockImplementationOnce(() => { throw new Error("posthog exploded") })
 
-    expect(() => trackServer(EVENTS.paymentCompleted, { distinctId: "u1" })).not.toThrow()
+    expect(() => trackServer(EVENTS.conversionSucceeded, { distinctId: "u1" })).not.toThrow()
   })
 })

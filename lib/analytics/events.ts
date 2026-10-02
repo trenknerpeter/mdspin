@@ -24,6 +24,14 @@ export const EVENTS = {
   markdownCopied: "markdown_copied",
   markdownDownloaded: "markdown_downloaded",
 
+  // ── Guest preview wall (the sign-up funnel) ───────────────
+  /** A signed-out user was shown a truncated result. */
+  previewShown: "preview_shown",
+  /** They clicked something behind the wall. Property: action. */
+  previewGateClicked: "preview_gate_clicked",
+  /** After sign-in, their stashed file was re-converted in full. */
+  previewResumed: "preview_resumed",
+
   // ── Conversion, as the server sees it ─────────────────────
   conversionSucceeded: "conversion_succeeded",
   conversionFailed: "conversion_failed",
@@ -59,6 +67,7 @@ export const EVENTS = {
   buyCoffeeClicked: "buy_coffee_clicked",
   checkoutInitiated: "checkout_initiated",
   paymentCompleted: "payment_completed",
+  proWaitlistJoined: "pro_waitlist_joined",
 } as const
 
 export type AnalyticsEvent = (typeof EVENTS)[keyof typeof EVENTS]
