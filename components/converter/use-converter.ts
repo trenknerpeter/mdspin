@@ -6,16 +6,13 @@ import { createClient } from "@/lib/supabase/client"
 import { track } from "@/lib/analytics/client"
 import { EVENTS } from "@/lib/analytics/events"
 import { partitionIncomingFiles, groupRejections, type RejectionReason } from "@/lib/converter-intake"
+import { savePendingConversion, takePendingConversion, type PendingAction } from "@/lib/pending-conversion"
 import type { FileItem, ConverterContext, ConversionOptions } from "./types"
 
 export interface IntakeNotice {
   reason: RejectionReason
   count: number
 }
-
-const STASH_KEY = "mdspin:pendingVaultAdd"
-const STASH_TTL = 60 * 60 * 1000 // 1 hour
-const STASH_MAX = 2 * 1024 * 1024 // ~2 MB of JSON
 
 export function useConverter(opts: {
   context: ConverterContext
@@ -45,6 +42,10 @@ export function useConverter(opts: {
   const [dailyLimit, setDailyLimit] = useState<number | null>(null)
 
   const [resumeVaultAdd, setResumeVaultAdd] = useState(false)
+  // Resume-after-sign-in state (effects live below handleSpin).
+  const [resumeAction, setResumeAction] = useState<PendingAction | null>(null)
+  const [resumedFromPreview, setResumedFromPreview] = useState(false)
+  const resumeSpin = useRef(false)
   // True once all signed-in auto-save inserts have resolved. The Add-to-Vault panel
   // waits on this so it never falls back to an insert before the row id is captured
   // (which would create a duplicate History row).
@@ -143,6 +144,17 @@ export function useConverter(opts: {
     URL.revokeObjectURL(url)
   }
 
+  // Anything behind the preview wall: stash the original file, then show sign-in.
+  // Guests can only ever hold one file (lib/gating.ts), so files[0] is the file.
+  const requestFullResult = useCallback(async (action: PendingAction) => {
+    track(EVENTS.previewGateClicked, { action })
+    const f = files.find((fi) => fi.file)?.file
+    if (f) await savePendingConversion({ file: f, action, createdAt: Date.now() })
+    opts.onAuthRequired?.()
+  }, [files, opts])
+
+  const isGuestPreview = !user && files.some((fi) => fi.preview?.truncated)
+
   const handleSpin = async () => {
     if (files.length === 0 || batchStatus === 'converting') return
     if (remaining !== null && files.length > remaining) {
@@ -189,12 +201,16 @@ export function useConverter(opts: {
         setError(null)
         setBatchStatus('idle')
         setFiles(prev => prev.map(fi => ({ ...fi, status: 'queued' as const })))
-        if (!user) opts.onAuthRequired?.()
+        if (!user) {
+          const f = files[0]?.file
+          if (f) await savePendingConversion({ file: f, action: 'limit', createdAt: Date.now() })
+          opts.onAuthRequired?.()
+        }
         return
       }
 
       // Now safe to parse JSON
-      let data: { results?: Array<{ success: boolean; markdown_text?: string; error?: string }>; message?: string; error?: string }
+      let data: { results?: Array<{ success: boolean; markdown_text?: string; error?: string; preview?: { truncated: boolean; total_words: number } }>; message?: string; error?: string }
       try {
         data = await res.json() as typeof data
       } catch {
@@ -220,19 +236,17 @@ export function useConverter(opts: {
 
       // Map results back to FileItems
       // Backend returns { success: boolean, markdown_text?: string, error?: string, message?: string, ... } per entry
-      const results: Array<{ success: boolean; markdown_text?: string; error?: string; message?: string }> = data.results ?? []
+      const results: Array<{ success: boolean; markdown_text?: string; error?: string; message?: string; preview?: { truncated: boolean; total_words: number } }> = data.results ?? []
       // Results are positional: the backend preserves submission order
       setFiles(prev => prev.map((fi, idx) => {
         const result = results[idx]
         if (!result) return { ...fi, status: 'failed' as const, error: 'No result returned' }
         if (result.success && result.markdown_text) {
-          const wordCount = result.markdown_text.split(/\s+/).filter(Boolean).length
-          return {
-            ...fi,
-            status: 'done' as const,
-            markdown: result.markdown_text,
-            wordCount,
-          }
+          const preview = result.preview?.truncated
+            ? { truncated: true, totalWords: result.preview.total_words }
+            : undefined
+          const wordCount = preview?.totalWords ?? result.markdown_text.split(/\s+/).filter(Boolean).length
+          return { ...fi, status: 'done' as const, markdown: result.markdown_text, wordCount, preview }
         }
         return {
           ...fi,
@@ -253,6 +267,9 @@ export function useConverter(opts: {
         }
       })
       setBatchStatus('done')
+      if (!user && results.some((r) => r.preview?.truncated)) {
+        track(EVENTS.previewShown, { word_count: results[0]?.preview?.total_words ?? null })
+      }
 
       // Auto-save to history — signed-in users only. Capture row ids for "Add to Vault".
       if (user) {
@@ -435,6 +452,7 @@ export function useConverter(opts: {
     setInputMode('upload')
     setUrl('')
     setResumeVaultAdd(false)
+    setResumedFromPreview(false)
     setAutoSaveSettled(true)
     pendingInserts.current = 0
     if (fileInputRef.current) {
@@ -465,75 +483,51 @@ export function useConverter(opts: {
       .join('\n\n---\n\n')
   }, [files])
 
-  const stashPendingVaultAdd = useCallback(
-    (tags: string[]) => {
-      try {
-        const payload = JSON.stringify({
-          files: successfulFiles.map((fi) => ({
-            name: fi.name,
-            file_type: fi.fileType ?? "md",
-            word_count: fi.wordCount ?? null,
-            markdown: fi.markdown,
-          })),
-          tags,
-          createdAt: Date.now(),
-        })
-        if (payload.length > STASH_MAX) return false
-        localStorage.setItem(STASH_KEY, payload)
-        return true
-      } catch {
-        return false
-      }
-    },
-    [successfulFiles]
-  )
+  // Guests hold only a truncated preview, so "Add to Vault" stashes the original
+  // file and shows the sign-in wall; the full conversion is re-run after sign-in.
+  const stashPendingVaultAdd = useCallback(() => {
+    void requestFullResult("vault")
+    return true
+  }, [requestFullResult])
 
-  const clearResumeVaultAdd = useCallback(() => {
-    setResumeVaultAdd(false)
-    try {
-      localStorage.removeItem(STASH_KEY)
-    } catch {
-      /* ignore */
-    }
-  }, [])
+  const clearResumeVaultAdd = useCallback(() => setResumeVaultAdd(false), [])
 
-  // Resume a pending anonymous "Add to Vault" after sign-in.
+  // After sign-in, pick up a guest's stashed file and convert it in full.
   useEffect(() => {
-    if (!user) return
-    // Don't clobber an active/just-finished conversion the user is already working with.
-    if (batchStatus !== "idle") return
-    let parsed: {
-      files?: Array<{ name: string; file_type: string; word_count: number | null; markdown: string }>
-      tags?: string[]
-      createdAt?: number
-    }
-    try {
-      const raw = localStorage.getItem(STASH_KEY)
-      if (!raw) return
-      parsed = JSON.parse(raw)
-    } catch {
-      try { localStorage.removeItem(STASH_KEY) } catch {}
-      return
-    }
-    if (!parsed.files?.length || !parsed.createdAt || Date.now() - parsed.createdAt > STASH_TTL) {
-      try { localStorage.removeItem(STASH_KEY) } catch {}
-      return
-    }
-    setFiles(
-      parsed.files.map((f) => ({
+    if (!user || batchStatus !== "idle" || files.length > 0) return
+    let cancelled = false
+    takePendingConversion().then((p) => {
+      if (cancelled || !p) return
+      resumeSpin.current = true
+      setResumeAction(p.action)
+      setFiles([{
         id: crypto.randomUUID(),
-        name: f.name,
-        status: "done" as const,
-        markdown: f.markdown,
-        wordCount: f.word_count ?? undefined,
-        fileType: f.file_type,
-      }))
-    )
-    setBatchStatus("done")
-    setResumeVaultAdd(true)
-    // Intentionally only re-run on sign-in; batchStatus is read as a one-shot guard, not a trigger.
+        name: p.file.name,
+        file: p.file,
+        status: "queued",
+        fileType: p.file.name.split(".").pop()?.toLowerCase(),
+      }])
+    })
+    return () => { cancelled = true }
+    // One-shot on sign-in; batchStatus/files are guards, not triggers.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
+
+  // Second half: once the restored file is in state, convert it (needs the fresh handleSpin closure).
+  useEffect(() => {
+    if (!resumeSpin.current || files.length !== 1 || batchStatus !== "idle") return
+    resumeSpin.current = false
+    void handleSpin()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [files, batchStatus])
+
+  useEffect(() => {
+    if (!resumeAction || batchStatus !== "done") return
+    track(EVENTS.previewResumed, { action: resumeAction })
+    setResumedFromPreview(true)
+    if (resumeAction === "vault") setResumeVaultAdd(true)
+    setResumeAction(null)
+  }, [resumeAction, batchStatus])
 
   return {
     // auth
@@ -560,6 +554,9 @@ export function useConverter(opts: {
     autoSaveSettled,
     stashPendingVaultAdd,
     clearResumeVaultAdd,
+    requestFullResult,
+    isGuestPreview,
+    resumedFromPreview,
     // setters
     setShowMerged,
     setError,

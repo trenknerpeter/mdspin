@@ -22,7 +22,6 @@ import type { FileItem } from "./types"
 export function AddToVaultPanel({
   files,
   user,
-  onAuthRequired,
   stashForSignIn,
   resumeOpen,
   onResumeHandled,
@@ -30,7 +29,6 @@ export function AddToVaultPanel({
 }: {
   files: FileItem[] // successful files only
   user: User | null
-  onAuthRequired?: () => void
   stashForSignIn: (tags: string[]) => boolean
   resumeOpen: boolean
   onResumeHandled: () => void
@@ -81,8 +79,7 @@ export function AddToVaultPanel({
 
   const handleAdd = async () => {
     if (!user) {
-      stashForSignIn(tags)
-      onAuthRequired?.()
+      stashForSignIn(tags) // stashes the file and opens the sign-in wall
       return
     }
     setSaving(true)

@@ -9,6 +9,7 @@ export type FileItem = {
   wordCount?: number
   fileType?: string
   conversionId?: string // id of the auto-saved conversions row (signed-in); used for "Add to Vault"
+  preview?: { truncated: boolean; totalWords: number } // signed-out: markdown is a server-truncated preview
 }
 
 export type ConverterContext = "teaser" | "app"

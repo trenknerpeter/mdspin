@@ -3,12 +3,12 @@
 import { useState } from "react"
 import { Upload, Copy, Download, Check, Sparkles, FileText, Zap, TrendingDown, Plus, X } from "lucide-react"
 import Link from "next/link"
-import { BuyCoffee } from "@/components/buy-coffee"
 import { SUPPORTED_FORMATS, ACCEPT_ATTR } from "@/lib/formats"
 import { describeRejection, MAX_CONVERT_FILES } from "@/lib/converter-intake"
 import { useConverter } from "./use-converter"
 import { AddToVaultPanel } from "./add-to-vault-panel"
 import type { ConverterContext, ConversionOptions } from "./types"
+import { AUTH_DAILY_LIMIT } from "@/lib/usage-math"
 import { estimateOriginalTokens, estimateMarkdownTokens, computeSavings } from "@/lib/roi"
 
 export function Converter({ context, options, onAuthRequired, eyebrow, heading, subheading }: {
@@ -297,21 +297,20 @@ export function Converter({ context, options, onAuthRequired, eyebrow, heading, 
                 </>
               )}
             </button>
-            {c.batchStatus === 'done' && <BuyCoffee />}
           </div>
           {c.remaining !== null && c.dailyLimit !== null && (
             <div className="flex flex-col items-center gap-2">
               <p className="text-xs text-[#4A4A46]">
                 {c.user
                   ? `${c.remaining} of ${c.dailyLimit} conversions remaining today`
-                  : `${c.remaining} of ${c.dailyLimit} free conversions remaining`}
+                  : `${c.remaining} of ${c.dailyLimit} free previews remaining`}
               </p>
               {c.remaining === 0 && !c.user && (
                 <Link
                   href="/auth/sign-in?next=/app"
                   className="text-xs text-[#FF4800] underline underline-offset-2 hover:text-[#FF6633] transition-colors"
                 >
-                  Sign in for up to 20 daily conversions
+                  {`Sign in for ${AUTH_DAILY_LIMIT} free conversions a day`}
                 </Link>
               )}
               {c.rateLimited && c.user && (
@@ -326,10 +325,14 @@ export function Converter({ context, options, onAuthRequired, eyebrow, heading, 
         {/* Per-file results */}
         {c.batchStatus === 'done' && !c.showMerged && (
           <div className="mt-10 animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4">
+            {c.resumedFromPreview && (
+              <p className="rounded-xl border border-green-500/30 bg-green-500/5 px-5 py-3 text-sm text-[#F0EDE8]">
+                You’re signed in — here’s your full document.
+              </p>
+            )}
             <AddToVaultPanel
               files={c.successfulFiles}
               user={c.user}
-              onAuthRequired={onAuthRequired}
               stashForSignIn={c.stashPendingVaultAdd}
               resumeOpen={c.resumeVaultAdd}
               onResumeHandled={c.clearResumeVaultAdd}
@@ -349,14 +352,14 @@ export function Converter({ context, options, onAuthRequired, eyebrow, heading, 
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => c.handleDownloadFile(fi.name, fi.markdown!)}
+                        onClick={() => fi.preview?.truncated ? c.requestFullResult('download') : c.handleDownloadFile(fi.name, fi.markdown!)}
                         className="flex items-center gap-1.5 rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-1.5 text-xs font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
                       >
                         <Download className="h-3.5 w-3.5" /> Download .md
                       </button>
                       <button
                         type="button"
-                        onClick={() => c.handleCopyFile(fi.id, fi.markdown!)}
+                        onClick={() => fi.preview?.truncated ? c.requestFullResult('copy') : c.handleCopyFile(fi.id, fi.markdown!)}
                         className="flex items-center gap-1.5 rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-1.5 text-xs font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
                       >
                         {c.copiedId === fi.id
@@ -368,7 +371,23 @@ export function Converter({ context, options, onAuthRequired, eyebrow, heading, 
                 </div>
 
                 {/* Content */}
-                {fi.status === 'done' && fi.markdown && (
+                {fi.status === 'done' && fi.markdown && fi.preview?.truncated && (
+                  <div className="relative">
+                    <pre className="max-h-60 overflow-hidden bg-[#0C0C0C] px-5 pb-16 pt-4 font-mono text-xs leading-relaxed text-[#F0EDE8]/75">
+                      <code>{fi.markdown}</code>
+                    </pre>
+                    <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 bg-gradient-to-t from-[#0C0C0C] via-[#0C0C0C]/95 to-transparent px-5 pb-4 pt-12">
+                      <button
+                        type="button"
+                        onClick={() => c.requestFullResult('view')}
+                        className="rounded-full bg-[#FF4800] px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-[#e04200]"
+                      >
+                        Sign in free to get the full document ({fi.preview.totalWords.toLocaleString()} words)
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {fi.status === 'done' && fi.markdown && !fi.preview?.truncated && (
                   <details>
                     <summary className="cursor-pointer px-5 py-2 text-xs text-[#4A4A46] hover:text-[#888480] transition-colors">
                       Preview markdown
