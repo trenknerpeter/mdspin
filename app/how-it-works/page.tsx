@@ -130,15 +130,15 @@ export default function HowItWorksPage() {
             </h2>
             <p className="mb-6 text-sm leading-relaxed text-[#888480]">
               The web app is the fastest way to convert a document. Drop your file
-              into the converter, and MDSpin returns clean Markdown in seconds. No
-              account needed, no data stored on our servers after processing.
+              into the converter, and MDSpin returns clean Markdown in seconds.
+              Preview it with no account; a free account gets you the full document.
             </p>
             <ul className="space-y-3">
               {[
                 "Try it instantly — preview without signing up",
                 "Supports 10+ formats: PDF, DOCX, PPTX, HTML, CSV, TXT, RTF, PNG, JPG",
                 "Batch up to 10 files at once",
-                "Copy to clipboard or download as .md",
+                "Copy to clipboard or download as .md with a free account",
               ].map((item) => (
                 <li
                   key={item}
