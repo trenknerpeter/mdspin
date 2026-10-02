@@ -38,7 +38,7 @@ export function buildPreview(markdown: string): { preview: string; truncated: bo
   }
 }
 
-const GUEST_FIELDS = ["success", "markdown_text", "error", "message", "filename", "index", "file_type"] as const
+const GUEST_FIELDS = ["success", "error", "message", "filename", "index", "file_type"] as const
 
 export function gateForGuest(result: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {}

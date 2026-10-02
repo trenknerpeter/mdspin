@@ -69,6 +69,21 @@ describe("gateForGuest", () => {
     expect(out).toEqual({ success: false, error: "UNSUPPORTED", message: "nope" })
   })
 
+  it("never leaks markdown_text on failure (success: false)", () => {
+    const out = gateForGuest({ success: false, markdown_text: longDoc, error: "X" })
+    expect(out).not.toHaveProperty("markdown_text")
+    expect(out).not.toHaveProperty("preview")
+    expect(out.success).toBe(false)
+    expect(out.error).toBe("X")
+  })
+
+  it("never leaks markdown_text when it is not a string", () => {
+    const out = gateForGuest({ success: true, markdown_text: [longDoc] })
+    expect(out).not.toHaveProperty("markdown_text")
+    expect(out).not.toHaveProperty("preview")
+    expect(out.success).toBe(true)
+  })
+
   it("gates single-file responses that have no success flag", () => {
     const out = gateForGuest({ markdown_text: longDoc, file_type: "pdf" })
     expect(out.preview).toEqual({ truncated: true, total_words: 1200 })
