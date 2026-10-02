@@ -268,7 +268,7 @@ export default function FormatsPage() {
             </h2>
             <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[#888480]">
               Drop any supported file into MDSpin and get clean, AI-ready
-              Markdown in seconds. No signup required.
+              Markdown in seconds. Preview free with no signup.
             </p>
             <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
               <Link

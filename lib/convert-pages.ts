@@ -46,7 +46,7 @@ export const CONVERT_PAGES: ConvertPage[] = [
     eyebrow: 'Free online tool',
     h1: 'PDF to Markdown Converter',
     intro: [
-      'Convert a PDF to clean, structured Markdown in seconds — no signup needed for a single file. Upload a report, contract, whitepaper, or research paper, and MDSpin extracts the content and rebuilds it as Markdown: headings stay headings, tables stay tables, and multi-column layouts come out in correct reading order.',
+      'Convert a PDF to clean, structured Markdown in seconds — preview it free with no signup. Upload a report, contract, whitepaper, or research paper, and MDSpin extracts the content and rebuilds it as Markdown: headings stay headings, tables stay tables, and multi-column layouts come out in correct reading order.',
       'PDFs store text by position on the page, not by reading order — which is why pasting one into ChatGPT often produces merged columns, missing tables, or scrambled headings. MDSpin parses the actual document structure first, so the Markdown you get is what a person would read, not what the binary format happens to store.',
     ],
     converterEyebrow: 'PDF',
@@ -114,7 +114,7 @@ export const CONVERT_PAGES: ConvertPage[] = [
       {
         question: 'How do I convert a PDF to Markdown?',
         answer:
-          'Upload your PDF to the converter on this page and click Spin. MDSpin extracts the content and rebuilds it as clean Markdown with headings, tables, and reading order preserved. Copy it, download it as a .md file, or save it to your vault. A single conversion is free with no signup.',
+          'Upload your PDF to the converter on this page and click Spin. MDSpin extracts the content and rebuilds it as clean Markdown with headings, tables, and reading order preserved. Preview it free with no signup, then create a free account to copy, download, or save the full document to your vault.',
       },
       {
         question: 'Does it handle multi-column PDFs and tables?',
@@ -134,7 +134,7 @@ export const CONVERT_PAGES: ConvertPage[] = [
       {
         question: 'Is the PDF to Markdown converter free?',
         answer:
-          'Yes — converting a single PDF is free with no signup. A free account adds batch conversion, URL conversion, saved history, and a personal vault that connects related documents automatically.',
+          'Yes — converting a PDF is free, and you can preview the result with no signup. A free account (no credit card) gives you the full document, copy and download, 10 conversions a day, batch conversion, URL conversion, saved history, and a personal vault that connects related documents automatically.',
       },
     ],
     related: [
@@ -149,13 +149,13 @@ export const CONVERT_PAGES: ConvertPage[] = [
     slug: 'image-to-markdown',
     metaTitle: 'Image to Markdown Converter — PNG & JPG to Markdown (Free AI OCR)',
     metaDescription:
-      'Convert PNG and JPG images to clean Markdown online. AI vision transcribes screenshots, scanned pages, receipts, and whiteboard photos — headings, tables, and lists preserved. Free, no signup.',
+      'Convert PNG and JPG images to clean Markdown online. AI vision transcribes screenshots, scanned pages, receipts, and whiteboard photos — headings, tables, and lists preserved. Free to preview, no signup.',
     navLabel: 'Image to Markdown',
     navDescription: 'Turn PNG & JPG into clean Markdown',
     eyebrow: 'Free online tool',
     h1: 'Image to Markdown Converter',
     intro: [
-      'Convert a PNG or JPG image to clean, structured Markdown in seconds. Upload a screenshot, a scanned page, a photographed receipt, or a whiteboard photo, and MDSpin transcribes the text with AI vision — keeping headings as headings, tables as Markdown tables, and lists as lists. No signup needed for a single image, and nothing to install.',
+      'Convert a PNG or JPG image to clean, structured Markdown in seconds. Upload a screenshot, a scanned page, a photographed receipt, or a whiteboard photo, and MDSpin transcribes the text with AI vision — keeping headings as headings, tables as Markdown tables, and lists as lists. Preview a single image free with no signup, and nothing to install.',
       'Traditional OCR tools give you a wall of unformatted text. MDSpin gives you Markdown that ChatGPT, Claude, and RAG pipelines can actually parse — which means better answers when you paste it into an AI chat, and cleaner chunks when you index it.',
     ],
     converterEyebrow: 'PNG · JPG · JPEG',
@@ -217,7 +217,7 @@ export const CONVERT_PAGES: ConvertPage[] = [
       {
         question: 'How do I convert a PNG or JPG to Markdown?',
         answer:
-          'Upload the image to the converter on this page and click Spin. MDSpin transcribes the text with AI vision and returns clean Markdown with headings, tables, and lists preserved. Copy it, download it as a .md file, or save it to your vault. A single image conversion is free and requires no signup.',
+          'Upload the image to the converter on this page and click Spin. MDSpin transcribes the text with AI vision and returns clean Markdown with headings, tables, and lists preserved. Preview it free with no signup, then create a free account to copy, download, or save the full document to your vault.',
       },
       {
         question: 'Can I convert a screenshot to Markdown?',
@@ -242,7 +242,7 @@ export const CONVERT_PAGES: ConvertPage[] = [
       {
         question: 'Is the image to Markdown converter free?',
         answer:
-          'Yes — converting a single image is free with no signup. A free account adds batch conversion, URL conversion, saved history, and a personal vault that connects related documents automatically.',
+          'Yes — converting an image is free, and you can preview the result with no signup. A free account (no credit card) gives you the full document, copy and download, 10 conversions a day, batch conversion, URL conversion, saved history, and a personal vault that connects related documents automatically.',
       },
     ],
     related: [
@@ -257,13 +257,13 @@ export const CONVERT_PAGES: ConvertPage[] = [
     slug: 'word-to-markdown',
     metaTitle: 'Word to Markdown Converter — DOCX to Markdown for ChatGPT & Claude',
     metaDescription:
-      'Convert Word (DOCX) documents to clean Markdown for ChatGPT, Claude, and RAG pipelines. Headings, tables, and lists preserved; tracked changes and formatting noise stripped. Free, no signup.',
+      'Convert Word (DOCX) documents to clean Markdown for ChatGPT, Claude, and RAG pipelines. Headings, tables, and lists preserved; tracked changes and formatting noise stripped. Free to preview, no signup.',
     navLabel: 'Word to Markdown',
     navDescription: 'Turn DOCX into AI-ready Markdown',
     eyebrow: 'Free online tool',
     h1: 'Word to Markdown Converter',
     intro: [
-      'Convert a Word document (.docx) to clean, structured Markdown in seconds — the format ChatGPT, Claude, Gemini, and RAG pipelines read best. Upload your file and MDSpin maps headings to Markdown headings, tables to Markdown tables, and lists to lists, while stripping the tracked changes, comments, and formatting metadata an AI does not need. No signup required for a single document, and nothing to install.',
+      'Convert a Word document (.docx) to clean, structured Markdown in seconds — the format ChatGPT, Claude, Gemini, and RAG pipelines read best. Upload your file and MDSpin maps headings to Markdown headings, tables to Markdown tables, and lists to lists, while stripping the tracked changes, comments, and formatting metadata an AI does not need. Preview a single document free with no signup, and nothing to install.',
       'Pasting a whole Word doc into an AI chat usually means pasting its formatting noise too — which inflates your token count and buries the actual content. Converting to Markdown first gives the model clean input, which means more accurate answers and lower cost per call.',
     ],
     converterEyebrow: 'DOCX · DOC',
@@ -331,7 +331,7 @@ export const CONVERT_PAGES: ConvertPage[] = [
       {
         question: 'How do I convert a Word document to Markdown?',
         answer:
-          'Upload your .docx to the converter on this page and click Spin. MDSpin converts it to clean Markdown with headings, tables, and lists preserved, and strips tracked changes and formatting metadata. Copy it, download it as a .md file, or save it to your vault. A single conversion is free with no signup.',
+          'Upload your .docx to the converter on this page and click Spin. MDSpin converts it to clean Markdown with headings, tables, and lists preserved, and strips tracked changes and formatting metadata. Preview it free with no signup, then create a free account to copy, download, or save the full document to your vault.',
       },
       {
         question: 'Does it preserve tables and formatting?',
@@ -351,7 +351,7 @@ export const CONVERT_PAGES: ConvertPage[] = [
       {
         question: 'Is the Word to Markdown converter free?',
         answer:
-          'Yes — converting a single document is free with no signup. A free account adds batch conversion, URL conversion, saved history, and a personal vault that connects related documents automatically.',
+          'Yes — converting a document is free, and you can preview the result with no signup. A free account (no credit card) gives you the full document, copy and download, 10 conversions a day, batch conversion, URL conversion, saved history, and a personal vault that connects related documents automatically.',
       },
     ],
     related: [

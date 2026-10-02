@@ -33,7 +33,7 @@ export function ArticleConverter({ heading, subheading }: {
         heading={heading ?? "Convert a document to Markdown"}
         subheading={
           subheading ??
-          "Drop in a PDF, Word file, or screenshot — clean Markdown back in seconds. No account needed to try it."
+          "Drop in a PDF, Word file, or screenshot — clean Markdown back in seconds. No account needed to preview it."
         }
       />
     </section>

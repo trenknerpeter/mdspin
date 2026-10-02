@@ -7,7 +7,7 @@ import type { AnalyticsEvent } from "@/lib/analytics/events"
  *
  * Complements the browser SDK rather than duplicating it: these events survive
  * ad blockers, and they cover surfaces that have no browser at all (the REST
- * API, the MCP server, GitHub webhooks, Stripe webhooks).
+ * API, the MCP server, GitHub webhooks).
  *
  * Past bug worth not reintroducing: callers used to `await posthog.shutdown()`
  * after each capture. Because the client is a module-level singleton, the first

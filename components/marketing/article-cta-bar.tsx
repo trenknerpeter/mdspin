@@ -18,7 +18,7 @@ export function ArticleCtaBar() {
     <aside className="my-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#2A2A2A] bg-[#131313] px-5 py-4">
       <p className="text-sm text-[#888480]">
         Got a document to convert?{" "}
-        <span className="text-[#F0EDE8]">Try it free on this page</span> — no account needed.
+        <span className="text-[#F0EDE8]">Try it free on this page</span> — preview with no account needed.
       </p>
       <a
         href={`#${ARTICLE_CONVERTER_ID}`}

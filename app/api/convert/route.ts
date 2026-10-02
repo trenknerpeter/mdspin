@@ -195,8 +195,8 @@ export async function POST(req: NextRequest) {
   const remaining = backendRes.ok ? rateCheck.remaining - 1 : rateCheck.remaining;
 
   // Guests (no Bearer token, no cookie) get a preview only; see lib/preview.ts.
-  // Only gate successful object bodies — errors pass through untouched.
-  const body = !user && backendRes.ok && data && typeof data === 'object'
+  // Every guest object body is gated; gateForGuest passes success/error/message through.
+  const body = !user && data && typeof data === 'object'
     ? gateForGuest(data as Record<string, unknown>)
     : data;
 

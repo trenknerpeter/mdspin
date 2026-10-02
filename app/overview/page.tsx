@@ -184,7 +184,7 @@ export default function OverviewPage() {
             <p className="mb-6 text-sm leading-relaxed text-[#888480]">
               MDSpin is a document-to-Markdown converter built specifically for AI workflows.
               Drop in a file, get back clean Markdown with headings, tables, and lists intact.
-              No signup required, no data stored.
+              Preview with no signup, no data stored.
             </p>
             <div className="flex flex-wrap gap-2">
               {supportedFormats.map((format) => (

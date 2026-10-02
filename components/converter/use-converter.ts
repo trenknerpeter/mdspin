@@ -260,7 +260,7 @@ export function useConverter(opts: {
         const fi = files[idx]
         const ext = fi?.name.split('.').pop()?.toLowerCase()
         if (result.success && result.markdown_text) {
-          const wordCount = result.markdown_text.split(/\s+/).filter(Boolean).length
+          const wordCount = result.preview?.total_words ?? result.markdown_text.split(/\s+/).filter(Boolean).length
           track(EVENTS.fileConversionCompleted, { source: 'upload', file_type: ext, word_count: wordCount })
         } else {
           track(EVENTS.fileConversionFailed, { source: 'upload', file_type: ext, error: result.error ?? 'Conversion failed' })
@@ -286,7 +286,7 @@ export function useConverter(opts: {
           if (!(result.success && result.markdown_text)) return
           const meta = fileMetaForInserts[idx]
           if (!meta) return
-          const wordCount = result.markdown_text.split(/\s+/).filter(Boolean).length
+          const wordCount = result.preview?.total_words ?? result.markdown_text.split(/\s+/).filter(Boolean).length
           Promise.resolve(
             supabase
               .from("conversions")

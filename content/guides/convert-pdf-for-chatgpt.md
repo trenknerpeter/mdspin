@@ -42,7 +42,7 @@ The conversion process takes seconds:
 
 ### Step 1: Open MDSpin
 
-Go to the [PDF to Markdown converter](/convert/pdf-to-markdown). No account required for your first conversions.
+Go to the [PDF to Markdown converter](/convert/pdf-to-markdown). Preview without an account; a free account gives you the full document.
 
 ### Step 2: Upload Your PDF
 
@@ -143,4 +143,4 @@ And if you're evaluating document conversion tools, our [comparison of MDSpin vs
 
 The gap between "upload PDF to AI" and "get accurate answers" is a document format problem with a simple solution. Convert to Markdown first.
 
-[Try MDSpin free at mdspin.app](https://mdspin.app) — drop your PDF, get clean Markdown in seconds. No signup required.
+[Try MDSpin free at mdspin.app](https://mdspin.app) — drop your PDF, get clean Markdown in seconds. Preview with no signup.

@@ -135,7 +135,7 @@ export default function HowItWorksPage() {
             </p>
             <ul className="space-y-3">
               {[
-                "No signup required — convert immediately",
+                "Try it instantly — preview without signing up",
                 "Supports 10+ formats: PDF, DOCX, PPTX, HTML, CSV, TXT, RTF, PNG, JPG",
                 "Batch up to 10 files at once",
                 "Copy to clipboard or download as .md",
@@ -222,7 +222,7 @@ export default function HowItWorksPage() {
               Try it now
             </h2>
             <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[#888480]">
-              Convert your first document in seconds. No signup, no credit card.
+              Convert your first document in seconds. Preview with no signup; a free account needs no credit card.
             </p>
             <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
               <Link
