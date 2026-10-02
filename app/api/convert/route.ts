@@ -17,6 +17,7 @@ import { checkRateLimit, incrementUsage } from '@/lib/rate-limit';
 import { trackServer } from '@/lib/posthog-server';
 import { EVENTS } from '@/lib/analytics/events';
 import { isSupportedExt, MIME_TYPES } from '@/lib/formats';
+import { gateForGuest } from '@/lib/preview';
 
 export const runtime    = 'nodejs'; // Buffer is required — cannot run on Edge
 export const maxDuration = 30;      // seconds — large PDFs can be slow
@@ -193,7 +194,13 @@ export async function POST(req: NextRequest) {
 
   const remaining = backendRes.ok ? rateCheck.remaining - 1 : rateCheck.remaining;
 
-  return NextResponse.json(data, {
+  // Guests (no Bearer token, no cookie) get a preview only; see lib/preview.ts.
+  // Only gate successful object bodies — errors pass through untouched.
+  const body = !user && backendRes.ok && data && typeof data === 'object'
+    ? gateForGuest(data as Record<string, unknown>)
+    : data;
+
+  return NextResponse.json(body, {
     status: backendRes.status,
     headers: {
       'X-RateLimit-Limit': String(rateCheck.limit),

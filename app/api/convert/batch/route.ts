@@ -21,6 +21,7 @@ import { isIngestExt } from '@/lib/vault/limits';
 import { MAX_CONVERT_FILES } from '@/lib/converter-intake';
 import { trackServer } from '@/lib/posthog-server';
 import { EVENTS } from '@/lib/analytics/events';
+import { gateForGuest } from '@/lib/preview';
 
 export const runtime     = 'nodejs'; // Buffer is required — cannot run on Edge
 export const maxDuration = 120;      // seconds — batch conversions can be slow
@@ -47,6 +48,7 @@ interface BatchResult {
   message?: string;
   filename?: string;
   index?: number;
+  preview?: { truncated: boolean; total_words: number };
 }
 
 interface BatchResponse {
@@ -345,7 +347,13 @@ export async function POST(req: NextRequest) {
 
   const remaining = Math.max(0, rateCheck.remaining - successCount);
 
-  return NextResponse.json(data, {
+  // Signed-out callers get a server-side preview only — the full markdown must
+  // never reach a guest client (lib/preview.ts). Signed-in responses pass through.
+  const body = user
+    ? data
+    : { ...data, results: Array.isArray(data.results) ? data.results.map((r) => gateForGuest(r as unknown as Record<string, unknown>)) : [] };
+
+  return NextResponse.json(body, {
     status: backendRes.status,
     headers: {
       'X-RateLimit-Limit':     String(rateCheck.limit),
