@@ -493,11 +493,15 @@ export function useConverter(opts: {
   const clearResumeVaultAdd = useCallback(() => setResumeVaultAdd(false), [])
 
   // After sign-in, pick up a guest's stashed file and convert it in full.
+  // takePendingConversion() is destructive, so a consumed stash must never be dropped
+  // (StrictMode runs this effect twice); the ref guard makes the take happen once.
+  const takeStarted = useRef(false)
   useEffect(() => {
-    if (!user || batchStatus !== "idle" || files.length > 0) return
-    let cancelled = false
+    if (!user) { takeStarted.current = false; return }
+    if (takeStarted.current || batchStatus !== "idle" || files.length > 0) return
+    takeStarted.current = true
     takePendingConversion().then((p) => {
-      if (cancelled || !p) return
+      if (!p) return
       resumeSpin.current = true
       setResumeAction(p.action)
       setFiles([{
@@ -508,7 +512,6 @@ export function useConverter(opts: {
         fileType: p.file.name.split(".").pop()?.toLowerCase(),
       }])
     })
-    return () => { cancelled = true }
     // One-shot on sign-in; batchStatus/files are guards, not triggers.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
