@@ -74,6 +74,10 @@ Copy this design into `docs/superpowers/specs/2026-10-02-pricing-preview-wall-de
   - "Sign in for more" keys off HTTP 429 / `remaining === 0`, not the message text.
   - The local anonymous usage counter is gone; quota comes only from `X-RateLimit-*` headers.
 
+### Follow-up 2026-10-03 (Peter's review of the live preview)
+- Guests get **one** free preview, not three (`ANON_LIFETIME_LIMIT = 1`; `metrics.quota_pressure` updated, recorded in `20261003000000_quota_pressure_guest_limit_1.sql`).
+- In the guest preview state, **"Sign in free to get the full document" is the only call to action**. "Create new" stays visible but is disabled and greyed. The previews-remaining line, the "Sign in for 10…" link, the Knowledge Vault promo box, Download/Copy on the card and "Convert more files" are hidden for guests. Signed-in users keep all of them.
+
 ## Status: shipped 2026-10-02
 
 - **Website** deployed to production from `main` (`3cd2f04..9471569`). That push also carried a separate session's commit `479c254` (guest IP counters pruned after 90 days, IPs hashed, privacy retention text fixed).

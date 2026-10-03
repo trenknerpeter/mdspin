@@ -1,7 +1,7 @@
 // lib/usage-math.ts
 // Pure usage math + limit constants. No imports — unit-tested.
 
-export const ANON_LIFETIME_LIMIT = 3
+export const ANON_LIFETIME_LIMIT = 1
 export const AUTH_DAILY_LIMIT = 10
 
 export function evaluateUsage(count: number, limit: number): {

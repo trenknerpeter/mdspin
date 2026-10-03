@@ -268,11 +268,12 @@ export function Converter({ context, options, onAuthRequired, eyebrow, heading, 
             <button
               type="button"
               onClick={c.batchStatus === 'done' ? c.handleNewConversion : c.handleSpin}
-              disabled={c.batchStatus !== 'done' && (c.files.length === 0 || c.batchStatus === 'converting' || c.rateLimited)}
+              // A guest looking at a preview has nothing to "create new" with — the one action left is signing in.
+              disabled={c.isGuestPreview || (c.batchStatus !== 'done' && (c.files.length === 0 || c.batchStatus === 'converting' || c.rateLimited))}
               className={`
                 group relative flex h-12 min-w-[140px] items-center justify-center gap-2
                 rounded-full px-8 text-sm font-semibold transition-all duration-300
-                ${c.batchStatus === 'done' || (c.files.length > 0 && c.batchStatus !== 'converting' && !c.rateLimited)
+                ${!c.isGuestPreview && (c.batchStatus === 'done' || (c.files.length > 0 && c.batchStatus !== 'converting' && !c.rateLimited))
                   ? "bg-[#FF4800] text-white shadow-lg shadow-[#FF4800]/25 hover:scale-105 hover:shadow-xl hover:shadow-[#FF4800]/30 active:scale-[0.98]"
                   : "cursor-not-allowed bg-[#1E1E1E] text-[#4A4A46]"}
               `}
@@ -298,7 +299,7 @@ export function Converter({ context, options, onAuthRequired, eyebrow, heading, 
               )}
             </button>
           </div>
-          {c.remaining !== null && c.dailyLimit !== null && (
+          {c.remaining !== null && c.dailyLimit !== null && !c.isGuestPreview && (
             <div className="flex flex-col items-center gap-2">
               <p className="text-xs text-[#4A4A46]">
                 {c.user
@@ -330,14 +331,14 @@ export function Converter({ context, options, onAuthRequired, eyebrow, heading, 
                 You’re signed in — here’s your full document.
               </p>
             )}
-            <AddToVaultPanel
+            {c.user && <AddToVaultPanel
               files={c.successfulFiles}
               user={c.user}
               stashForSignIn={c.stashPendingVaultAdd}
               resumeOpen={c.resumeVaultAdd}
               onResumeHandled={c.clearResumeVaultAdd}
               autoSaveSettled={c.autoSaveSettled}
-            />
+            />}
             {c.files.map(fi => (
               <div key={fi.id} className="overflow-hidden rounded-xl border border-[#2A2A2A]">
                 {/* Card header */}
@@ -348,18 +349,18 @@ export function Converter({ context, options, onAuthRequired, eyebrow, heading, 
                       : <span className="h-3.5 w-3.5 text-red-400">&#x2715;</span>}
                     <span className="text-sm font-medium text-[#F0EDE8] truncate max-w-[200px]">{fi.name}</span>
                   </div>
-                  {fi.status === 'done' && fi.markdown && (
+                  {fi.status === 'done' && fi.markdown && !fi.preview?.truncated && (
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => fi.preview?.truncated ? c.requestFullResult('download') : c.handleDownloadFile(fi.name, fi.markdown!)}
+                        onClick={() => c.handleDownloadFile(fi.name, fi.markdown!)}
                         className="flex items-center gap-1.5 rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-1.5 text-xs font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
                       >
                         <Download className="h-3.5 w-3.5" /> Download .md
                       </button>
                       <button
                         type="button"
-                        onClick={() => fi.preview?.truncated ? c.requestFullResult('copy') : c.handleCopyFile(fi.id, fi.markdown!)}
+                        onClick={() => c.handleCopyFile(fi.id, fi.markdown!)}
                         className="flex items-center gap-1.5 rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-1.5 text-xs font-medium text-[#888480] transition-all hover:border-[#4A4A46] hover:text-[#F0EDE8]"
                       >
                         {c.copiedId === fi.id
@@ -508,13 +509,15 @@ export function Converter({ context, options, onAuthRequired, eyebrow, heading, 
                 <Sparkles className="h-4 w-4" /> Merge All
               </button>
             )}
-            <button
-              type="button"
-              onClick={c.handleNewConversion}
-              className="flex items-center gap-2 text-sm text-[#4A4A46] transition-colors hover:text-[#888480]"
-            >
-              <Zap className="h-3.5 w-3.5" /> Convert more files
-            </button>
+            {!c.isGuestPreview && (
+              <button
+                type="button"
+                onClick={c.handleNewConversion}
+                className="flex items-center gap-2 text-sm text-[#4A4A46] transition-colors hover:text-[#888480]"
+              >
+                <Zap className="h-3.5 w-3.5" /> Convert more files
+              </button>
+            )}
           </div>
         )}
       </div>
