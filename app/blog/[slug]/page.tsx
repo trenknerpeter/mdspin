@@ -52,14 +52,16 @@ export default async function BlogPostPage({ params }: Props) {
 
   const html = await markdownToHtml(post.content)
 
-  // CTA goes before the second <h2>: past the intro, still well above the fold-out.
-  const [bodyBeforeCta, bodyAfterCta] = splitBeforeNthH2(html, 2)
+  // CTA goes before the second <h2> by default (past the intro, still well
+  // above the fold-out); a post can move it with `cta.section` in frontmatter.
+  const [bodyBeforeCta, bodyAfterCta] = splitBeforeNthH2(html, post.cta.section)
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     headline: post.title,
     description: post.description,
     datePublished: post.date,
+    dateModified: post.updated ?? post.date,
     author: { "@type": "Person", name: post.author },
     publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
     url: `${SITE_URL}/blog/${slug}`,
@@ -120,7 +122,7 @@ export default async function BlogPostPage({ params }: Props) {
               {post.title}
             </h1>
 
-            <div className="mt-4 flex items-center gap-3 text-sm text-[#888480]">
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-[#888480]">
               <span>{post.author}</span>
               <span className="h-0.5 w-0.5 rounded-full bg-[#4A4A46]" />
               <time dateTime={post.date}>
@@ -130,6 +132,21 @@ export default async function BlogPostPage({ params }: Props) {
                   day: "numeric",
                 })}
               </time>
+              {post.updated && (
+                <>
+                  <span className="h-0.5 w-0.5 rounded-full bg-[#4A4A46]" />
+                  <span>
+                    Updated{" "}
+                    <time dateTime={post.updated}>
+                      {new Date(post.updated).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </time>
+                  </span>
+                </>
+              )}
               <span className="h-0.5 w-0.5 rounded-full bg-[#4A4A46]" />
               <span>{post.readingTime} min read</span>
             </div>
@@ -142,7 +159,7 @@ export default async function BlogPostPage({ params }: Props) {
             className="prose-blog"
             dangerouslySetInnerHTML={{ __html: bodyBeforeCta }}
           />
-          {bodyAfterCta && <ArticleCtaBar />}
+          {bodyAfterCta && <ArticleCtaBar prompt={post.cta.prompt} action={post.cta.action} />}
           {bodyAfterCta && (
             <div
               className="prose-blog"
@@ -150,7 +167,7 @@ export default async function BlogPostPage({ params }: Props) {
             />
           )}
 
-          <ArticleConverter />
+          <ArticleConverter heading={post.cta.heading} subheading={post.cta.subheading} />
 
           {/* Back link */}
           <div className="mt-16 border-t border-[#1E1E1E] pt-8">

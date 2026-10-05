@@ -24,3 +24,39 @@ export function splitBeforeNthH2(html: string, n: number): [string, string] {
 
   return [html.slice(0, index), html.slice(index)]
 }
+
+/**
+ * Per-article overrides for the mid-article CTA and the converter at the foot,
+ * read from an optional `cta:` block in the post's frontmatter.
+ *
+ * The default ask ("Got a document to convert?") suits how-to guides, but a
+ * post like the format benchmark earns its click later and for a different
+ * reason — after the cost tables, readers want their own number. Every field
+ * is optional and anything malformed falls back to the default, so a typo in
+ * frontmatter can never break a page that exists to rank.
+ */
+export type ArticleCta = {
+  /** Place the bar before this <h2> (1-based). */
+  section: number
+  prompt?: string
+  action?: string
+  heading?: string
+  subheading?: string
+}
+
+const DEFAULT_CTA_SECTION = 2
+
+export function readArticleCta(raw: unknown): ArticleCta {
+  const cta: ArticleCta = { section: DEFAULT_CTA_SECTION }
+  if (!raw || typeof raw !== "object") return cta
+
+  const data = raw as Record<string, unknown>
+  if (Number.isInteger(data.section) && (data.section as number) >= 1) {
+    cta.section = data.section as number
+  }
+  for (const key of ["prompt", "action", "heading", "subheading"] as const) {
+    const value = data[key]
+    if (typeof value === "string" && value.trim()) cta[key] = value.trim()
+  }
+  return cta
+}

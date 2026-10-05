@@ -4,6 +4,7 @@ import matter from 'gray-matter'
 import { remark } from 'remark'
 import remarkHtml from 'remark-html'
 import remarkGfm from 'remark-gfm'
+import { readArticleCta, type ArticleCta } from './article-cta'
 
 const BLOG_DIR = path.join(process.cwd(), 'content', 'blog')
 
@@ -12,14 +13,17 @@ export type BlogPost = {
   title: string
   description: string
   date: string
+  /** Set when a post is substantively revised; drives dateModified and the sitemap. */
+  updated?: string
   author: string
   tags: string[]
   image?: string
   readingTime: number
+  cta: ArticleCta
   content: string
 }
 
-export type BlogPostMeta = Omit<BlogPost, 'content'>
+export type BlogPostMeta = Omit<BlogPost, 'content' | 'cta'>
 
 function getReadingTime(text: string): number {
   return Math.max(1, Math.ceil(text.split(/\s+/).length / 200))
@@ -40,6 +44,7 @@ export function getAllPosts(): BlogPostMeta[] {
       title: data.title ?? '',
       description: data.description ?? '',
       date: data.date ?? '',
+      updated: data.updated,
       author: data.author ?? 'MDSpin Team',
       tags: data.tags ?? [],
       image: data.image,
@@ -62,10 +67,12 @@ export function getPostBySlug(slug: string): BlogPost | null {
     title: data.title ?? '',
     description: data.description ?? '',
     date: data.date ?? '',
+    updated: data.updated,
     author: data.author ?? 'MDSpin Team',
     tags: data.tags ?? [],
     image: data.image,
     readingTime: getReadingTime(content),
+    cta: readArticleCta(data.cta),
     content,
   }
 }

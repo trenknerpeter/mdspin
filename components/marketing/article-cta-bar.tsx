@@ -13,18 +13,26 @@ import { ARTICLE_CONVERTER_ID } from "./article-converter"
  * needs no JavaScript, works before hydration, and costs nothing in bundle
  * size on pages whose whole job is ranking in search.
  */
-export function ArticleCtaBar() {
+export function ArticleCtaBar({ prompt, action }: {
+  /** Replaces the default line; a post sets it via `cta.prompt` in frontmatter. */
+  prompt?: string
+  action?: string
+} = {}) {
   return (
     <aside className="my-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#2A2A2A] bg-[#131313] px-5 py-4">
-      <p className="text-sm text-[#888480]">
-        Got a document to convert?{" "}
-        <span className="text-[#F0EDE8]">Try it free on this page</span> — preview with no account needed.
-      </p>
+      {prompt ? (
+        <p className="text-sm text-[#F0EDE8]">{prompt}</p>
+      ) : (
+        <p className="text-sm text-[#888480]">
+          Got a document to convert?{" "}
+          <span className="text-[#F0EDE8]">Try it free on this page</span> — preview with no account needed.
+        </p>
+      )}
       <a
         href={`#${ARTICLE_CONVERTER_ID}`}
         className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#FF4800] px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#e04200]"
       >
-        Convert a file
+        {action ?? "Convert a file"}
         <ArrowDown className="h-3.5 w-3.5" />
       </a>
     </aside>

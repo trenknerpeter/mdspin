@@ -1,14 +1,23 @@
 ---
-title: "Best Document Format for LLMs: A Benchmark"
+title: "Best Document Format for LLMs: 2026 Benchmark"
 description: "We compared PDF, HTML, DOCX, and Markdown across token count, processing speed, retrieval accuracy, and cost. Here's what the data shows about the best format for LLM consumption."
 date: "2026-03-28"
+updated: "2026-10-05"
 author: "MDSpin Team"
 tags: ["benchmark", "ai", "comparison"]
+cta:
+  section: 4
+  prompt: "How many tokens would your own file save? Drop it in and see — no account needed."
+  action: "See my savings"
+  heading: "See your own token savings"
+  subheading: "Drop in a PDF, Word file, or screenshot. You get clean Markdown back, with an estimate of the tokens it saves over the original."
 ---
 
 Everyone optimizes prompts. Everyone debates model selection. Almost nobody optimizes the format they send documents in — even though it has a measurable impact on cost, speed, and answer quality.
 
 We benchmarked four common document formats to find the best one for LLM consumption. Here's what the data shows.
+
+*Updated October 2026: the cost tables now use current models and prices. The token counts and accuracy results are unchanged from the original benchmark.*
 
 ## Methodology
 
@@ -58,29 +67,31 @@ Using the token counts above, here's what each format costs per document across 
 
 ### Cost Per Document (Input Tokens Only)
 
-| Format | GPT-4o ($2.50/M) | Claude 3.5 Sonnet ($3/M) | GPT-4 ($30/M) | Gemini 1.5 Pro ($1.25/M) |
-|--------|-------------------|--------------------------|----------------|--------------------------|
-| Markdown | $0.021 | $0.025 | $0.251 | $0.010 |
-| DOCX | $0.025 | $0.029 | $0.294 | $0.012 |
-| PDF text | $0.031 | $0.037 | $0.372 | $0.016 |
-| HTML | $0.036 | $0.043 | $0.426 | $0.018 |
+| Format | Claude Opus 5.5 ($4/M) | Claude Sonnet 5.5 ($2/M) | GPT-6 Astra ($10/M) | Gemini 3.8 Flash ($0.75/M) |
+|--------|------------------------|--------------------------|---------------------|----------------------------|
+| Markdown | $0.033 | $0.017 | $0.084 | $0.006 |
+| DOCX | $0.039 | $0.020 | $0.098 | $0.007 |
+| PDF text | $0.050 | $0.025 | $0.124 | $0.009 |
+| HTML | $0.057 | $0.028 | $0.142 | $0.011 |
+
+*Prices are standard-tier input rates from each provider's official pricing page, checked October 2026. Google has announced that Gemini 3.8 Flash input rises to $1.50/M on January 1, 2027.*
 
 The per-document difference looks small. It's not — it scales.
 
 ### Annual Cost for 500 Documents/Month
 
-| Format | GPT-4o | Claude 3.5 Sonnet | GPT-4 |
-|--------|--------|-------------------|-------|
-| Markdown | $125 | $150 | $1,503 |
-| PDF text | $186 | $223 | $2,232 |
-| HTML | $213 | $255 | $2,556 |
+| Format | Claude Opus 5.5 | Claude Sonnet 5.5 | GPT-6 Astra |
+|--------|-----------------|-------------------|-------------|
+| Markdown | $200 | $100 | $501 |
+| PDF text | $298 | $149 | $744 |
+| HTML | $341 | $170 | $852 |
 
 **Savings (Markdown vs. PDF):**
-- GPT-4o: $61/year
-- Claude 3.5 Sonnet: $73/year
-- GPT-4: $729/year
+- Claude Opus 5.5: $97/year
+- Claude Sonnet 5.5: $49/year
+- GPT-6 Astra: $243/year
 
-At higher volumes (5,000+ documents/month) or with more expensive models, the savings scale proportionally. For teams processing thousands of documents daily through GPT-4-class models, the annual savings reach into thousands of dollars — just from changing the input format.
+At higher volumes (5,000+ documents/month) the savings scale proportionally. For teams processing thousands of documents daily through frontier models like GPT-6 Astra or Claude Opus 5.5, the annual savings reach into thousands of dollars — just from changing the input format. And cost is only half of it: the same overhead eats into every model's context window.
 
 For a deeper analysis of token cost optimization strategies, see our guide on [how to cut AI token costs by 40%](/guides/reduce-ai-token-costs).
 
@@ -149,7 +160,7 @@ Across all four dimensions — token count, cost, retrieval accuracy, and respon
 
 **For developer pipelines:** Integrate a conversion step before your LLM calls. Options include MDSpin for web-based conversion, MarkItDown for Python-based pipelines, or Docling for complex PDF processing. See our [full comparison of conversion tools](/blog/mdspin-vs-competitors).
 
-**For automation workflows:** MDSpin's Make.com integration (coming soon) will automate document conversion inside no-code scenarios.
+**For automation workflows:** MDSpin's [Make.com integration](/integrations) converts documents automatically inside no-code scenarios — for example, turning every new email attachment into Markdown and sending it on to your vector store or knowledge base.
 
 For a comprehensive overview of preprocessing strategies across all document types and AI use cases, read our guide on [document preprocessing for AI](/guides/document-preprocessing-for-ai).
 
