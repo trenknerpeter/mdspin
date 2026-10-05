@@ -9,11 +9,12 @@ import { GrainOverlay } from "@/components/grain-overlay"
 import { Converter } from "@/components/converter/converter"
 import { VaultHeroAnimation } from "@/components/marketing/vault-hero-animation"
 import { GetStartedButton } from "@/components/marketing/get-started-button"
-import { SignInGateDialog } from "@/components/converter/sign-in-gate-dialog"
+import { SignInGateDialog, type GateReason } from "@/components/converter/sign-in-gate-dialog"
 
 export function HomePageClient() {
   const [mounted, setMounted] = useState(false)
   const [showWall, setShowWall] = useState(false)
+  const [wallReason, setWallReason] = useState<GateReason>("preview")
 
   useEffect(() => {
     setMounted(true)
@@ -373,10 +374,10 @@ expansion in EMEA.
             Convert PDF, DOCX &amp; images to Markdown — try it now
           </h2>
         </div>
-        <Converter context="teaser" onAuthRequired={() => setShowWall(true)} />
+        <Converter context="teaser" onAuthRequired={(reason) => { setWallReason(reason ?? "preview"); setShowWall(true) }} />
       </section>
 
-      <SignInGateDialog open={showWall} onOpenChange={setShowWall} />
+      <SignInGateDialog open={showWall} onOpenChange={setShowWall} reason={wallReason} />
 
 
       {/* ── Products ── */}

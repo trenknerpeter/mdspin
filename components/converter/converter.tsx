@@ -8,13 +8,14 @@ import { describeRejection, MAX_CONVERT_FILES } from "@/lib/converter-intake"
 import { useConverter } from "./use-converter"
 import { AddToVaultPanel } from "./add-to-vault-panel"
 import type { ConverterContext, ConversionOptions } from "./types"
+import type { GateReason } from "./sign-in-gate-dialog"
 import { AUTH_DAILY_LIMIT } from "@/lib/usage-math"
 import { estimateOriginalTokens, estimateMarkdownTokens, computeSavings } from "@/lib/roi"
 
 export function Converter({ context, options, onAuthRequired, eyebrow, heading, subheading }: {
   context: ConverterContext
   options?: ConversionOptions
-  onAuthRequired?: () => void
+  onAuthRequired?: (reason?: GateReason) => void
   eyebrow?: string
   heading?: string
   subheading?: string

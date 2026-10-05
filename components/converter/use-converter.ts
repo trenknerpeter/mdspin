@@ -8,6 +8,7 @@ import { EVENTS } from "@/lib/analytics/events"
 import { partitionIncomingFiles, groupRejections, type RejectionReason } from "@/lib/converter-intake"
 import { savePendingConversion, takePendingConversion, type PendingAction } from "@/lib/pending-conversion"
 import type { FileItem, ConverterContext, ConversionOptions } from "./types"
+import type { GateReason } from "./sign-in-gate-dialog"
 
 export interface IntakeNotice {
   reason: RejectionReason
@@ -17,7 +18,7 @@ export interface IntakeNotice {
 export function useConverter(opts: {
   context: ConverterContext
   options?: ConversionOptions
-  onAuthRequired?: () => void
+  onAuthRequired?: (reason?: GateReason) => void
 }) {
   const { user } = useAuth()
   const supabase = createClient()
@@ -204,7 +205,7 @@ export function useConverter(opts: {
         if (!user) {
           const f = files[0]?.file
           if (f) await savePendingConversion({ file: f, action: 'limit', createdAt: Date.now() })
-          opts.onAuthRequired?.()
+          opts.onAuthRequired?.('limit')
         }
         return
       }
@@ -360,7 +361,7 @@ export function useConverter(opts: {
       if (res.status === 429) {
         setRateLimited(true)
         setBatchStatus('idle')
-        if (!user) opts.onAuthRequired?.()
+        if (!user) opts.onAuthRequired?.('limit')
         return
       }
 
