@@ -111,7 +111,7 @@ Converting PDFs to Markdown before sending to AI reduces token usage significant
 - **Clean Markdown**: ~8,350 tokens
 - **Savings**: ~4,050 tokens per document (33% reduction)
 
-At scale, this adds up. A team processing 200 documents per month through GPT-4o ($2.50 per million input tokens) saves roughly $2.43/month on input tokens alone. Through Claude 3.5 Sonnet at $3.00 per million tokens, that's $2.92/month. For higher-volume pipelines or more expensive models like GPT-4 ($30/M tokens), the savings become substantial — over $29/month for the same volume.
+At scale, this adds up. A team processing 200 documents per month saves about 810,000 input tokens: roughly $1.62/month through Claude Sonnet 5.5 ($2 per million input tokens) or $8.10/month through GPT-6 Astra ($10 per million). The savings grow with volume, and the smaller input also leaves more of the model's context window for the actual question.
 
 For a deeper analysis of token cost optimization, see our guide on [how to cut AI token costs by 40%](/guides/reduce-ai-token-costs).
 
@@ -133,7 +133,9 @@ Markdown conversion improves results across every major AI platform:
 
 ## Beyond PDFs
 
-MDSpin converts more than just PDFs. The same quality improvement applies to DOCX, PPTX, and other formats. See our [complete list of supported formats](/formats) for details on how each conversion works.
+MDSpin converts more than just PDFs. The same quality improvement applies to other formats. See [how to use Word documents with ChatGPT & Claude](/guides/use-word-documents-with-chatgpt) and [how to use a PowerPoint deck with ChatGPT & Claude](/guides/use-powerpoint-with-chatgpt), or our [complete list of supported formats](/formats).
+
+Loading documents into NotebookLM, a Claude Project or a custom GPT? Read [how to prepare documents for AI knowledge tools](/guides/prepare-documents-for-notebooklm-claude-projects). It covers each tool's file limits and how to merge files to stay under them.
 
 For teams building RAG pipelines, Markdown conversion is especially impactful — clean Markdown produces better chunks, better embeddings, and better retrieval. Read our guide on [why Markdown is the best format for RAG pipelines](/guides/markdown-for-rag).
 
