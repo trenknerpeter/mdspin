@@ -10,9 +10,10 @@ import { AUTH_DAILY_LIMIT } from "@/lib/usage-math"
 //
 // `reason` picks the wording: "preview" (default) when the user has just seen a
 // truncated preview, "limit" when they already used their one free preview and
-// the wall opens before anything converts — "get your full document" reads
-// wrong when there is no document on screen.
-export type GateReason = "preview" | "limit"
+// the wall opens before anything converts, "feature" when they reached for a
+// signed-in-only feature (From URL, a second file) — "get your full document"
+// reads wrong when there is no document on screen.
+export type GateReason = "preview" | "limit" | "feature"
 
 export function SignInGateDialog({ open, onOpenChange, reason = "preview" }: {
   open: boolean
@@ -23,7 +24,15 @@ export function SignInGateDialog({ open, onOpenChange, reason = "preview" }: {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        {reason === "limit" ? (
+        {reason === "feature" ? (
+          <>
+            <DialogTitle>Sign in for URL &amp; batch conversion</DialogTitle>
+            <p className="text-sm text-[#888480]">
+              Converting from a link or several files at once needs a free account — no credit
+              card. {perks}
+            </p>
+          </>
+        ) : reason === "limit" ? (
           <>
             <DialogTitle>You’ve used your free preview</DialogTitle>
             <p className="text-sm text-[#888480]">

@@ -25,7 +25,7 @@ export function Converter({ context, options, onAuthRequired, eyebrow, heading, 
 
   // Gate the power features (URL + multi-file batch) behind sign-in in the teaser context.
   const gatePower = () => {
-    if (context === "teaser" && !c.user) { onAuthRequired?.(); return true }
+    if (context === "teaser" && !c.user) { onAuthRequired?.("feature"); return true }
     return false
   }
 
@@ -36,7 +36,7 @@ export function Converter({ context, options, onAuthRequired, eyebrow, heading, 
     const dropped = e.dataTransfer?.files?.length ?? 0
     if (context === "teaser" && !c.user && c.files.length + dropped > 1) {
       e.preventDefault()
-      onAuthRequired?.()
+      onAuthRequired?.("feature")
       return
     }
     c.handleDrop(e)

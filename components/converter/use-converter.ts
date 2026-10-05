@@ -224,7 +224,7 @@ export function useConverter(opts: {
       if (res.status === 401 && data.error === 'AUTH_REQUIRED') {
         setBatchStatus('idle')
         setFiles(prev => prev.map(fi => ({ ...fi, status: 'queued' as const })))
-        opts.onAuthRequired?.()
+        opts.onAuthRequired?.('feature')
         return
       }
 
@@ -376,7 +376,7 @@ export function useConverter(opts: {
 
       if (res.status === 401 && data.error === 'AUTH_REQUIRED') {
         setBatchStatus('idle')
-        opts.onAuthRequired?.()
+        opts.onAuthRequired?.('feature')
         return
       }
 
