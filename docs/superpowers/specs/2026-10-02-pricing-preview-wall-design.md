@@ -78,6 +78,17 @@ Copy this design into `docs/superpowers/specs/2026-10-02-pricing-preview-wall-de
 - Guests get **one** free preview, not three (`ANON_LIFETIME_LIMIT = 1`; `metrics.quota_pressure` updated, recorded in `20261003000000_quota_pressure_guest_limit_1.sql`).
 - In the guest preview state, **"Sign in free to get the full document" is the only call to action**. "Create new" stays visible but is disabled and greyed. The previews-remaining line, the "Sign in for 10…" link, the Knowledge Vault promo box, Download/Copy on the card and "Convert more files" are hidden for guests. Signed-in users keep all of them.
 
+### Follow-up 2026-10-05 (sign-in popup wording per trigger)
+The one sign-in popup (`components/converter/sign-in-gate-dialog.tsx`) now takes a `reason: GateReason` (`"preview" | "limit" | "feature"`). The converter passes it through `onAuthRequired(reason)`, and both hosts (`home-page-client.tsx`, `convert-page-converter.tsx`) keep it in state. Before this, every trigger showed "Get your full document", which read wrong when nothing was on screen.
+
+| Trigger | `reason` | Title |
+|---|---|---|
+| Copy / Download / Add to Vault / "Sign in free to get the full document" on a preview | `preview` (default) | Get your full document — free |
+| Guest converts again after using their one preview (429 on batch or URL) | `limit` | You've used your free preview |
+| From URL, Add file (second file), or dropping several files | `feature` | Sign in for URL & batch conversion |
+
+All three end with the same perks line (10 conversions a day, URL & batch, Knowledge Vault) and the same Sign up free / Sign in buttons to `next=/app`. Only `preview` and `limit` promise to pick the file up after sign-in, because only those stash it; the `feature` case stashes nothing, so its copy doesn't promise that. Verified in the browser with a stubbed fetch: a 429 showed the `limit` wording, the preview button showed the `preview` wording, and From URL and a two-file drop showed the `feature` wording.
+
 ## Status: shipped 2026-10-02
 
 - **Website** deployed to production from `main` (`3cd2f04..9471569`). That push also carried a separate session's commit `479c254` (guest IP counters pruned after 90 days, IPs hashed, privacy retention text fixed).
